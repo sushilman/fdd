@@ -10,7 +10,9 @@ import 'WebSocketServer.dart';
  * Default address is ws://<ip>:42042/activator
  *
  * Spwans isolates that are in the vm where activator is running
- * or spawns a central isolate for a physical vm
+ * or spawns an (controller?) isolate for a physical vm
+ *
+ * How to separate between physical vm and logical system
  * The activator itself can be the central isolate
  */
 class Activator {
