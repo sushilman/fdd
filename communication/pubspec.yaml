@@ -1,0 +1,3 @@
+name: communication
+dependencies:
+  browser: any
