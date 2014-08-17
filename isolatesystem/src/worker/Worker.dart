@@ -23,7 +23,11 @@ class Worker {
    * get the isolate to start working
    */
   start() {
-    port.sendPort.send("hello");
+    print('Sending \"hello\"');
+    Stream isolateListener = port.asBroadcastStream();
+    isolateListener.first.then((SendPort sp) {
+      sp.send("hello");
+    });
   }
 
 }

@@ -17,7 +17,7 @@ class TestConnection {
     print("Connecting to websocket");
 
     Future f = WebSocket.connect('ws://localhost:42042' + address);
-    f.then(handleWebSocket);
+    f.then(handleWebSocket).catchError(onError);
   }
 
   void handleWebSocket(WebSocket ws) {

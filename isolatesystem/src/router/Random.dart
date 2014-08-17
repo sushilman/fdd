@@ -1,6 +1,7 @@
 library isolatesystem.router.random;
 
 import 'dart:isolate';
+import 'dart:io';
 import 'Router.dart';
 import '../worker/Worker.dart';
 
@@ -26,6 +27,7 @@ class Random implements Router {
       workers.add(worker);
 
       //Temporary just for test
+      sleep(new Duration(seconds:2));
       worker.start();
     }
   }
