@@ -1,0 +1,3 @@
+name: isolateSystem_actormodel
+dependencies:
+  browser: any
