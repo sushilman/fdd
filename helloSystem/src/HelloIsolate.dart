@@ -24,9 +24,9 @@ main(SendPort sendport) {
 String helloWorld(String message) {
   print("Message received: $message");
   switch(message) {
-      case "hello":
-        print("returning hello there");
-        return "Hello there !";
+      case "PING":
+        print("Isolate: PONG");
+        return "PONG";
         break;
       default:
         print("Didn't understatnd");

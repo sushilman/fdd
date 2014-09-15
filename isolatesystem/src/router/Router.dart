@@ -20,6 +20,8 @@ abstract class Router {
   /**
    * Returns selected worker or workers based on router algorithm/method of current router
    */
-  List<Worker> selectWorkers();
+  Worker selectWorker();
+
+  List<Worker> selectAll();
 
 }

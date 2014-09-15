@@ -10,7 +10,7 @@ library isolatesystem.core;
  * or we can modify this as a controller
  */
 import 'router/Router.dart';
-import 'router/RoundRobin.dart';
+import 'controller/Controller.dart';
 
 class IsolateSystem {
 
@@ -19,11 +19,7 @@ class IsolateSystem {
   IsolateSystem(String name, Uri isolateUri, [Router router, int numberOfWorkers]) {
 
     this.name = name;
+    new Controller(isolateUri, router, numberOfWorkers);
 
-    if(router == null) {
-      router = new RoundRobin();
-    }
-
-    router.spawnWorkers(numberOfWorkers, isolateUri);
   }
 }

@@ -4,6 +4,8 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/lib/isolatesystem/packages/isolatesystem" />
       <excludeFolder url="file://$MODULE_DIR$/lib/isolatesystem/web/packages" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/isolatesystem/packages/isolatesystem" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/isolatesystem/web/packages" />
       <excludeFolder url="file://$MODULE_DIR$/src/packages/isolatesystem/packages/isolatesystem" />
       <excludeFolder url="file://$MODULE_DIR$/src/packages/isolatesystem/web/packages" />
       <excludeFolder url="file://$MODULE_DIR$/web/packages" />

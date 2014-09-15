@@ -8,7 +8,6 @@ class HelloWorld {
     receivePort = new ReceivePort();
     Uri helloIsolate = new Uri.file("HelloIsolate.dart");
     IsolateSystem system = new IsolateSystem("HelloSystem", helloIsolate, new Random(), 5);
-
   }
 }
 

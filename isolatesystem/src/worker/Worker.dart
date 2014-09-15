@@ -9,25 +9,37 @@ import 'dart:async';
  */
 class Worker {
 
-  ReceivePort port;
+  ReceivePort receivePort;
+  SendPort sendPort;
   Worker (Uri isolateUri)
   {
-    port = new ReceivePort();
+    receivePort = new ReceivePort();
     List<String> args = new List();
-    args.add(port.sendPort);
-    Isolate.spawnUri(isolateUri, port.sendPort, null);
+    args.add(receivePort.sendPort);
+    Isolate.spawnUri(isolateUri, receivePort.sendPort, null);
     print ("Isolate Created!");
+    receivePort.listen(_onReceive);
   }
 
+  _onReceive(message) {
+    if(message is SendPort) {
+      sendPort = message;
+      sendPort.send("PING");
+    } else if (message is String) {
+      print ("received by worker: $message");
+      sendPort.send("PONG");
+    }
+  }
   /**
-   * get the isolate to start working
+   * test the isolate if they are alive working
    */
-  start() {
-    print('Sending \"hello\"');
-    Stream isolateListener = port.asBroadcastStream();
-    isolateListener.first.then((SendPort sp) {
-      sp.send("hello");
-    });
+  test() {
+    print('Sending: \"PING\"');
+
+//    Stream isolateListener = port.asBroadcastStream();
+//    isolateListener.first.then((SendPort sp) {
+//      sp.send("PING");
+//    });
   }
 
 }
