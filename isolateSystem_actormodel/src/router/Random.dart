@@ -4,6 +4,7 @@ import 'dart:isolate';
 import 'dart:async';
 import 'Router.dart';
 import '../messages/Messages.dart';
+import 'dart:math' as Math;
 
 /**
  * http://doc.akka.io/docs/akka/snapshot/scala/routing.html
@@ -26,13 +27,18 @@ import '../messages/Messages.dart';
  * for supervision of errors?
  */
 
-main(List<String> args, SendPort sendport) {
+main(List<String> args, SendPort sendPort) {
   ReceivePort receivePort = new ReceivePort();
-  sendport.send(receivePort.sendPort); // anything along with sendport?
+  sendPort.send(receivePort.sendPort); // anything along with sendport?
   Random randomRouter = new Random();
+  Uri workerUri = args[0];
+  int workersCount = args[1];
+
   receivePort.listen((message) {
-    randomRouter._onReceive(message, sendport, receivePort);
+    randomRouter._onReceive(message, receivePort);
   });
+
+  randomRouter.spawnWorkers(receivePort, workerUri, workersCount);
 }
 
 class Random implements Router {
@@ -40,24 +46,41 @@ class Random implements Router {
   List<SendPort> workersSendPorts = new List<SendPort>();
 
 
-  _onReceive(message, sendport, receivePort) {
+  _onReceive(message, receivePort) {
+    //print("inside random.dart");
     if (message is SendPort) {
-      workersSendPorts.add(sendport);
+      workersSendPorts.add(message);
     } else if (message is String) {
-      print("Random Router: $message");
+      //TODO: for now just forwarding the message
+      selectWorkerSendPort().send(message);
+
     } else if (message is Event) {
       switch(message.action) {
         case(Action.SPAWN):
-          Uri workerUri = Uri.parse(message.message["worker"]);
-          int num = int.parse(message.message["count"]);
-          Isolate.spawnUri(workerUri, null, receivePort.sendPort).then((isolate){
-            workerIsolates.putIfAbsent(workerUri, isolate);
-          });
+          //Do nothing
+          //may be call spawnWorkers
         break;
 
         default:
+          print("Action NONE, Random Router: $message");
         break;
       }
     }
+  }
+
+  spawnWorkers(ReceivePort receivePort, Uri workerUri, int workersCount) {
+    print ("Spawning $workersCount workers of $workerUri");
+    for(int index = 0; index < workersCount; index++) {
+      Isolate.spawnUri(workerUri, [index], receivePort.sendPort).then((isolate) {
+        workerIsolates[workerUri] = isolate;
+      });
+      print("Spawning $index Worker ");
+    }
+  }
+
+  SendPort selectWorkerSendPort() {
+    Math.Random random = new Math.Random();
+    int randomInt = random.nextInt(workersSendPorts.length);
+    return workersSendPorts[randomInt];
   }
 }
