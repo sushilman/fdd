@@ -16,7 +16,7 @@ class IsolateSystem {
      */
     String routerUri = "../router/Random.dart";
     String workerUri = "../PrinterIsolate.dart";
-    int workersCount = 5;
+    int workersCount = 1;
 
     _spawnController(routerUri, workerUri, workersCount);
 
@@ -28,7 +28,7 @@ class IsolateSystem {
      * Test code that sends message to isolate
      */
     int counter = 0;
-    new Timer.periodic(const Duration(seconds: 2), (t) {
+    new Timer.periodic(const Duration(seconds: 0.1), (t) {
       sendPort.send('Print me: ${counter++}');
     });
   }
@@ -38,7 +38,7 @@ class IsolateSystem {
       sendPort = message;
       //sendPort.send(Messages.createEvent(Action.SPAWN, {"router":"router/Random.dart", "count" : "5"}));
     } else if (message is Event) {
-      print ("Message received : ${message.message}");
+      print ("Event Message received : ${message.message}");
     } else {
       print ("Unknown message: $message");
     }

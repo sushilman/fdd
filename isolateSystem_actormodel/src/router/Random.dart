@@ -69,12 +69,12 @@ class Random implements Router {
   }
 
   spawnWorkers(ReceivePort receivePort, Uri workerUri, int workersCount) {
-    print ("Spawning $workersCount workers of $workerUri");
+    //print ("Spawning $workersCount workers of $workerUri");
     for(int index = 0; index < workersCount; index++) {
       Isolate.spawnUri(workerUri, [index], receivePort.sendPort).then((isolate) {
         workerIsolates[workerUri] = isolate;
       });
-      print("Spawning $index Worker ");
+      //print("Spawning $index Worker ");
     }
   }
 

@@ -1,5 +1,6 @@
 import 'dart:isolate';
 import 'dart:async';
+import 'dart:io' show sleep;
 import 'messages/Messages.dart';
 
 /**
@@ -21,24 +22,18 @@ _onReceive(message, sendport, printerIsolate, id) {
     //TODO: use this to save sendports of spawned temporary isolates
   } else if(message is String) {
     printerIsolate.outText(message);
-
-    new Timer.periodic(const Duration(seconds: 0.5), (t) {
-      print ("Printer ${id}: $message ");
-    });
   }
 }
 
 class PrinterIsolate {
   int id;
   int counter = 0;
-  //TODO: temporary uuid to recognize which isolate is getting the message
-  // we can simply pass the serialNumber to this isolate from router
-  int uuid = new DateTime.now().millisecondsSinceEpoch;
 
   PrinterIsolate(this.id);
 
   outText(String text) {
+    print("Printer: $text");
     print("Doing something... ;) Stuck in infinite loop $id. To prove only 1 message is processed at a time");
-    while(true);
+    sleep(const Duration(seconds:10));
   }
 }
