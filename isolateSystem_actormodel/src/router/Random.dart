@@ -28,30 +28,40 @@ import 'dart:math' as Math;
  */
 
 main(List<String> args, SendPort sendPort) {
-  ReceivePort receivePort = new ReceivePort();
-  sendPort.send(receivePort.sendPort); // anything along with sendport?
-  Random randomRouter = new Random();
-  Uri workerUri = args[0];
-  int workersCount = args[1];
-
-  receivePort.listen((message) {
-    randomRouter._onReceive(message, receivePort);
-  });
-
-  randomRouter.spawnWorkers(receivePort, workerUri, workersCount);
+  Random randomRouter = new Random(sendPort);
+  randomRouter.main(args);
 }
 
 class Random implements Router {
-  Map<Uri, Isolate> workerIsolates = new Map<Uri, Isolate>();
+  ReceivePort receivePort;
+  SendPort sendPortOfController;
+
+  Map<int, Isolate> workerIsolates = new Map<int, Isolate>();
   List<SendPort> workersSendPorts = new List<SendPort>();
 
+  Random(this.sendPortOfController);
 
-  _onReceive(message, receivePort) {
-    //print("inside random.dart");
+  main(List<String> args) {
+    receivePort = new ReceivePort();
+    SendPort self = receivePort.sendPort;
+    sendPortOfController.send(receivePort.sendPort); // anything along with sendport?
+
+    Uri workerUri = args[0];
+    int workersCount = args[1];
+
+    receivePort.listen((message) {
+      _onReceive(message, receivePort);
+    });
+
+    spawnWorkers(receivePort, workerUri, workersCount);
+  }
+
+  _onReceive(var message, ReceivePort receivePort) {
+    print("Router: $message");
     if (message is SendPort) {
       workersSendPorts.add(message);
     } else if (message is String) {
-      //TODO: for now just forwarding the message
+      //just select and forward the message
       selectWorkerSendPort().send(message);
 
     } else if (message is Event) {
@@ -62,7 +72,7 @@ class Random implements Router {
         break;
 
         default:
-          print("Action NONE, Random Router: $message");
+          print("Unhandled message in Random Router: ${message.action}");
         break;
       }
     }
@@ -71,16 +81,34 @@ class Random implements Router {
   spawnWorkers(ReceivePort receivePort, Uri workerUri, int workersCount) {
     //print ("Spawning $workersCount workers of $workerUri");
     for(int index = 0; index < workersCount; index++) {
+      print("Spawning... $index");
       Isolate.spawnUri(workerUri, [index], receivePort.sendPort).then((isolate) {
-        workerIsolates[workerUri] = isolate;
+        workerIsolates[index] = isolate;
+        print("${workerIsolates.length} vs ${workersCount}");
+        if(workerIsolates.length == workersCount) {
+          sendPortOfController.send(Messages.createEvent(Action.READY, null));
+        }
       });
-      //print("Spawning $index Worker ");
+      print("Spawned $index Worker ");
     }
   }
 
   SendPort selectWorkerSendPort() {
     Math.Random random = new Math.Random();
-    int randomInt = random.nextInt(workersSendPorts.length);
+    int randomInt = 0;
+    if(workersSendPorts.length > 0)
+      randomInt = random.nextInt(workersSendPorts.length - 1);
     return workersSendPorts[randomInt];
+  }
+
+  /**
+   * Checks if the isolate with given sendport is free
+   */
+  bool isFree(Isolate isolate) {
+    ReceivePort rp = new ReceivePort();
+    isolate.ping(rp.sendPort, Isolate.IMMEDIATE);
+    rp.listen((message) {
+      return true;
+    });
   }
 }

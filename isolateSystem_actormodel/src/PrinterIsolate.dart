@@ -13,23 +13,24 @@ main(List<String> args, SendPort sendport) {
   int id = args[0];
   PrinterIsolate printerIsolate = new PrinterIsolate(id);
   receivePort.listen((message) {
-    _onReceive(message, sendport, printerIsolate, id);
+    printerIsolate._onReceive(message, sendport, printerIsolate, id);
   });
 }
 
-_onReceive(message, sendport, printerIsolate, id) {
-  if(message is SendPort) {
-    //TODO: use this to save sendports of spawned temporary isolates
-  } else if(message is String) {
-    printerIsolate.outText(message);
-  }
-}
 
 class PrinterIsolate {
   int id;
   int counter = 0;
 
   PrinterIsolate(this.id);
+
+  _onReceive(message, sendport, printerIsolate, id) {
+    if(message is SendPort) {
+      //TODO: use this to save sendports of spawned temporary isolates
+    } else if(message is String) {
+      printerIsolate.outText(message);
+    }
+  }
 
   outText(String text) {
     print("Printer: $text");
