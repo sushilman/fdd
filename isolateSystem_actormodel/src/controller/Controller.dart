@@ -4,10 +4,6 @@ import '../messages/Messages.dart';
 import '../IsolateSystem.dart';
 
 /**
- * Will be spawned by Activator?
- */
-
-/**
  * Controller
  * needs many sendports -> list of all the routers it has spawned
  *
@@ -15,8 +11,7 @@ import '../IsolateSystem.dart';
  * and send pull request to IsolateSystem
  */
 main(List<String> args, SendPort sendPort) {
-  Controller controller = new Controller(sendPort);
-  controller.main(args);
+  Controller controller = new Controller(args, sendPort);
 }
 
 class Controller {
@@ -24,16 +19,15 @@ class Controller {
   SendPort sendPortOfIsolateSystem;
   int workersCount;
   /**
-   * Send ports of all routers this controller has spawned
+   * Send port the router this controller has spawned
    */
-  List<SendPort> routerSendPorts = new List<SendPort>();
+  SendPort routerSendPort;
 
   //TODO: check proposal -> should be single router per isolate system
-  Map<Uri, Isolate> routerIsolates = new Map<Uri, Isolate>();
+  Uri routerUri;
+  Isolate routerIsolate;
 
-  Controller(this.sendPortOfIsolateSystem);
-
-  main(List<String> args) {
+  Controller(List<String> args, this.sendPortOfIsolateSystem) {
     receivePort = new ReceivePort();
     SendPort self = receivePort.sendPort;
     sendPortOfIsolateSystem.send(receivePort.sendPort);
@@ -52,7 +46,7 @@ class Controller {
   _onReceive(var message, ReceivePort receivePort) {
     print("Controller: $message");
     if(message is SendPort) {
-      routerSendPorts.add(message);
+      routerSendPort = message;
     } else if (message is Event) {
       switch (message.action) {
         case Action.SPAWN:
@@ -68,19 +62,15 @@ class Controller {
         break;
       }
     } else if (message is String) {
-      // For now, just delegate message to first router
-      routerSendPorts[0].send(message);
+      // For now, just delegate message to the router
+      routerSendPort.send(message);
     }
   }
 
   spawnRouters(ReceivePort receivePort, Uri routerUri, Uri workerUri, int workersCount) {
-    //Uri routerUri = Uri.parse("../${message.message["router"]}");
-    //int num = int.parse(message.message["count"]);
-    //print ("Pass message to router to spawn $num isolates with routing $routerUri");
-    //sendPort.send(Messages.createEvent(Action.NONE, "Delegated message to create $num isolates with routing $routerUri"));
-
     Isolate.spawnUri(routerUri, [workerUri, workersCount], receivePort.sendPort).then((isolate) {
-      routerIsolates[routerUri] = isolate;
+      routerUri = routerUri;
+      routerIsolate = isolate;
     });
   }
 }

@@ -4,31 +4,34 @@ import 'dart:io' show sleep;
 import 'messages/Messages.dart';
 
 /**
- * Just a test isolate
+ * A sample printer isolate
  */
-main(List<String> args, SendPort sendport) {
-  ReceivePort receivePort = new ReceivePort();
-  sendport.send(receivePort.sendPort);
-
-  int id = args[0];
-  PrinterIsolate printerIsolate = new PrinterIsolate(id);
-  receivePort.listen((message) {
-    printerIsolate._onReceive(message, sendport, printerIsolate, id);
-  });
+main(List<String> args, SendPort sendPort) {
+  PrinterIsolate printerIsolate = new PrinterIsolate(args, sendPort);
 }
 
-
 class PrinterIsolate {
+  ReceivePort receivePort;
+  SendPort sendPortOfRouter;
+
   int id;
   int counter = 0;
 
-  PrinterIsolate(this.id);
+  PrinterIsolate(List<String> args, this.sendPortOfRouter) {
+    id = args[0];
+    receivePort = new ReceivePort();
+    sendPortOfRouter.send(receivePort.sendPort);
 
-  _onReceive(message, sendport, printerIsolate, id) {
+    receivePort.listen((message) {
+      _onReceive(message, id);
+    });
+  }
+
+  _onReceive(message, id) {
     if(message is SendPort) {
       //TODO: use this to save sendports of spawned temporary isolates
     } else if(message is String) {
-      printerIsolate.outText(message);
+      outText(message);
     }
   }
 

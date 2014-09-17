@@ -28,8 +28,7 @@ import 'dart:math' as Math;
  */
 
 main(List<String> args, SendPort sendPort) {
-  Random randomRouter = new Random(sendPort);
-  randomRouter.main(args);
+  Random randomRouter = new Random(args, sendPort);
 }
 
 class Random implements Router {
@@ -39,9 +38,7 @@ class Random implements Router {
   Map<int, Isolate> workerIsolates = new Map<int, Isolate>();
   List<SendPort> workersSendPorts = new List<SendPort>();
 
-  Random(this.sendPortOfController);
-
-  main(List<String> args) {
+  Random(List<String> args, this.sendPortOfController) {
     receivePort = new ReceivePort();
     SendPort self = receivePort.sendPort;
     sendPortOfController.send(receivePort.sendPort); // anything along with sendport?

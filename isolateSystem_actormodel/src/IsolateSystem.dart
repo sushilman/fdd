@@ -4,6 +4,13 @@ import 'messages/Messages.dart';
 import 'router/Random.dart';
 import 'dart:math' as Math;
 
+
+/**
+ * Will be spawned/started by Activator?
+ *
+ * This can probably be merged with controller?
+ */
+
 /**
  * Controller will send a pull request
  * after which, a message is fetched using messageQueuingSystem
