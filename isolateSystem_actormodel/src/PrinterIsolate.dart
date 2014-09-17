@@ -2,7 +2,8 @@ import 'dart:isolate';
 import 'dart:async';
 import 'dart:io' show sleep;
 import 'messages/Messages.dart';
-
+import 'worker/Worker.dart';
+import 'dart:math' as Math;
 /**
  * A sample printer isolate
  */
@@ -10,24 +11,16 @@ main(List<String> args, SendPort sendPort) {
   PrinterIsolate printerIsolate = new PrinterIsolate(args, sendPort);
 }
 
-class PrinterIsolate {
-  ReceivePort receivePort;
-  SendPort sendPortOfRouter;
+class PrinterIsolate extends Worker {
+  //ReceivePort receivePort;
+  //SendPort sendPortOfRouter;
 
-  int id;
   int counter = 0;
 
-  PrinterIsolate(List<String> args, this.sendPortOfRouter) {
-    id = args[0];
-    receivePort = new ReceivePort();
-    sendPortOfRouter.send(receivePort.sendPort);
+  PrinterIsolate(List<String> args, SendPort sendPortOfRouter) : super(args, sendPortOfRouter);
 
-    receivePort.listen((message) {
-      _onReceive(message, id);
-    });
-  }
-
-  _onReceive(message, id) {
+  @override
+  onReceive(message) {
     if(message is SendPort) {
       //TODO: use this to save sendports of spawned temporary isolates
     } else if(message is String) {
@@ -35,9 +28,14 @@ class PrinterIsolate {
     }
   }
 
+  /**
+   * Just and example of long running method
+   * which might take varied amount of time to complete
+   */
   outText(String text) {
-    print("Printer: $text");
-    print("Doing something... ;) Stuck in infinite loop $id. To prove only 1 message is processed at a time");
-    sleep(const Duration(seconds:10));
+    int rand = new Math.Random().nextInt(20);
+    Duration duration = new Duration(seconds: rand);
+    print("Printer $id: $text... doing something for $rand seconds");
+    sleep(duration);
   }
 }

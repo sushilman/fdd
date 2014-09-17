@@ -19,10 +19,14 @@ import 'dart:math' as Math;
 class IsolateSystem {
   ReceivePort receivePort;
   SendPort sendPort;
+  SendPort self;
+
   Isolate controllerIsolate;
 
+  int counter = 0;
   IsolateSystem() {
     receivePort = new ReceivePort();
+    self = receivePort.sendPort;
 
     /**
      * These values may be in some configuration file or can be passed as a message/argument during initialization
@@ -56,11 +60,13 @@ class IsolateSystem {
       print ("Event received : ${message.action} -> ${message.message}}");
       switch(message.action) {
         case Action.PULL_MESSAGE:
-          String newMessage = _pullMessage();
-          sendPort.send(newMessage);
+          _pullMessage();
         break;
       }
-    } else {
+      //TODO: some action/event?
+    } else if (message is String) {
+      sendPort.send(message);
+    }else {
       print ("Unknown message: $message");
     }
   }
@@ -74,7 +80,11 @@ class IsolateSystem {
 
   _pullMessage() {
     //TODO: pull message from appropriate queue from MessageQueuingSystem
-    return "Simple message ${new Math.Random().nextInt(99999)}";
+    // something like messageQueuingSystem.send(message)
+    //then send to sendport of controller
+    // sendPort.send(newMessage);
+    //
+    self.send("Simple message #${counter++}, ${new Math.Random().nextInt(99999)}");
   }
 }
 

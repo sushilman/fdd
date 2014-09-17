@@ -17,6 +17,7 @@ main(List<String> args, SendPort sendPort) {
 class Controller {
   ReceivePort receivePort;
   SendPort sendPortOfIsolateSystem;
+  SendPort self;
   int workersCount;
   /**
    * Send port the router this controller has spawned
@@ -29,7 +30,7 @@ class Controller {
 
   Controller(List<String> args, this.sendPortOfIsolateSystem) {
     receivePort = new ReceivePort();
-    SendPort self = receivePort.sendPort;
+    self = receivePort.sendPort;
     sendPortOfIsolateSystem.send(receivePort.sendPort);
 
     Uri routerUri = Uri.parse(args[0]);
@@ -53,10 +54,12 @@ class Controller {
           // Do nothing
         break;
         case Action.READY:
-        case Action.DONE:
           for(int i = 0; i < workersCount; i++) {
             sendPortOfIsolateSystem.send(Messages.createEvent(Action.PULL_MESSAGE, null));
           }
+        break;
+        case Action.DONE:
+          sendPortOfIsolateSystem.send(Messages.createEvent(Action.PULL_MESSAGE, null));
         break;
         default:
         break;
