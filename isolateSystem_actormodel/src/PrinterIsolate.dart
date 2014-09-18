@@ -12,9 +12,6 @@ main(List<String> args, SendPort sendPort) {
 }
 
 class PrinterIsolate extends Worker {
-  //ReceivePort receivePort;
-  //SendPort sendPortOfRouter;
-
   int counter = 0;
 
   PrinterIsolate(List<String> args, SendPort sendPortOfRouter) : super(args, sendPortOfRouter);
