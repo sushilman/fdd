@@ -26,7 +26,7 @@ class PrinterIsolate extends Worker {
   }
 
   /**
-   * Just and example of long running method
+   * Just an example of long running method
    * which might take varied amount of time to complete
    */
   outText(String text) {
