@@ -41,7 +41,7 @@ class Controller {
       _onReceive(message, receivePort);
     });
 
-    spawnRouters(receivePort, routerUri, workerUri, workersCount);
+    spawnRouter(receivePort, routerUri, workerUri, workersCount);
   }
 
   _onReceive(var message, ReceivePort receivePort) {
@@ -70,7 +70,7 @@ class Controller {
     }
   }
 
-  spawnRouters(ReceivePort receivePort, Uri routerUri, Uri workerUri, int workersCount) {
+  spawnRouter(ReceivePort receivePort, Uri routerUri, Uri workerUri, int workersCount) {
     Isolate.spawnUri(routerUri, [workerUri, workersCount], receivePort.sendPort).then((isolate) {
       routerUri = routerUri;
       routerIsolate = isolate;

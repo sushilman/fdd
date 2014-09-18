@@ -8,6 +8,7 @@ import 'dart:math' as Math;
  * A sample printer isolate
  */
 main(List<String> args, SendPort sendPort) {
+  print ("Printer Isolate started...");
   PrinterIsolate printerIsolate = new PrinterIsolate(args, sendPort);
 }
 

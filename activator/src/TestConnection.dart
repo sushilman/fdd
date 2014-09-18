@@ -1,6 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
 
+/**
+ * This nature should be incorporated in router
+ */
 class TestConnection {
 
   TestConnection() {
@@ -23,7 +27,9 @@ class TestConnection {
   void handleWebSocket(WebSocket ws) {
     if (ws != null && ws.readyState == WebSocket.OPEN) {
       print("Sent: Echo test");
-      ws.add("Echo test");
+      //var message = ["SPAWN", "https://raw.githubusercontent.com/sushilman/fdd/master/isolateSystem_actormodel/src/PrinterIsolate.dart", "1"];
+      var message = ["SPAWN","http://localhost:8080/PrinterIsolate.dart","1"];
+      ws.add(JSON.encode(message));
     }
 
     ws.listen((String e) {
