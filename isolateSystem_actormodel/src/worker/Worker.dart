@@ -1,5 +1,6 @@
 import 'dart:isolate';
 import 'dart:async';
+import 'dart:convert' show JSON;
 import '../messages/Messages.dart';
 
 abstract class Worker {
@@ -22,7 +23,8 @@ abstract class Worker {
     print("Worker: $message");
     // do something and pass it on
     onReceive(message);
-    sendPortOfRouter.send(Messages.createEvent(Action.DONE, null));
+    //sendPortOfRouter.send("DONE!");
+    sendPortOfRouter.send(JSON.encode(Messages.createEvent(Action.DONE, "")));
   }
 
   /**

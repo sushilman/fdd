@@ -30,67 +30,98 @@ import 'WebSocketServer.dart';
 class Activator {
   ReceivePort receivePort;
   SendPort sendPort;
-  List<_Worker> workers;
+  List<_Isolate> isolates;
+
+  WebSocketServer wss;
 
   static String defaultPath = "/activator";
   static int defaultPort = 42042;
 
   Activator() {
-    workers = new List<_Worker>();
+    isolates = new List<_Isolate>();
     receivePort = new ReceivePort();
     receivePort.listen((message) {
-      _onReceive;
+      print ("Listening...");
+      _onReceive(message);
     });
+
     listenOn(defaultPort, defaultPath);
   }
 
-  _onReceive(message) {
+  /**
+   * Assumes that evey isolate this Activator is going to spawn
+   * will send id along with its send port
+   */
+  _onReceive(var message) {
+    print("in _onReceive");
+    print("Activator: message received from isolate -> $message");
     if(message[1] is SendPort) {
-      sendPort = message[1];
+      String id = message[0];
+      getIsolateById(id).sendPort = message[1];
+      print("Adding sendport to $id");
+      wss.send("DONE");
+    } else {
+      //var encodedMessage = JSON.encode(message);
+      //print ("Encoded message = ${encodedMessage}");
+      wss.send(message);
     }
   }
   /*
    * Listen on a websocket address
    */
   void listenOn(int port, String path) {
-    WebSocketServer wss = new WebSocketServer(port, path, _onData);
+    wss = new WebSocketServer(port, path, _onData);
   }
 
   _onData(msg) {
-    JsonCodec message = JSON.decode(msg);
-    print("$message");
+    print("HASH ${identityHashCode(msg)}");
+    var message = JSON.decode(msg);
+    print("JSON decoded message: $message");
     print("From onData: ${message[0]}");
 
     if(message[0] == "SPAWN") {
       String uri = message[1];
       List<String> args = message[2];
       spawnWorker(uri, args);
+    } else if (message[0] is String || message[0] is int) {
+      forward(message[0], message[1]);
     }
   }
 
   spawnWorker(String uri, List<String> args) {
-    print("Inside spawnWorker");
     Isolate.spawnUri(Uri.parse(uri), args, receivePort.sendPort).then((isolate) {
       print("Activator: Spawning completed");
+      isolates.add(new _Isolate(args[0], isolate));
     });
   }
 
-  forwardMessage() {
-
+  forward(String id, var message) {
+    getIsolateById(id).sendPort.send(message);
   }
 
+  _Isolate getIsolateById(String id) {
+    _Isolate selectedIsolate = null;
+    isolates.forEach((isolate) {
+      print("Comparing: ${isolate.id} vs ${id} ");
+      if(isolate.id == id) {
+        selectedIsolate = isolate;
+      }
+    });
+
+    return selectedIsolate;
+  }
 }
 
 void main() {
   new Activator();
 }
 
-class _Worker {
+class _Isolate {
   int _id;
   SendPort _sendPort;
   Isolate _isolate;
 
-  _Worker(this._id, this._isolate);
+  _Isolate(this._id, this._isolate);
 
   set sendPort(SendPort value) => _sendPort = value;
   get sendPort => _sendPort;

@@ -1,4 +1,4 @@
-library isolatesystem.messages.Messages;
+library activator.messages.Messages;
 import 'dart:convert';
 
 class Messages {

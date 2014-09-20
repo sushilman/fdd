@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
-
+import 'messages/Messages.dart';
 /**
- * This nature should be incorporated in router
+ * This nature should be implemented in router
  */
 class TestConnection {
 
+  int counter = 0;
   TestConnection() {
     initWebSocket("/activator");
   }
@@ -26,14 +27,37 @@ class TestConnection {
 
   void handleWebSocket(WebSocket ws) {
     if (ws != null && ws.readyState == WebSocket.OPEN) {
-      print("Sent: Echo test");
+      print("Sent: SPAWN command");
       //var message = ["SPAWN", "https://raw.githubusercontent.com/sushilman/fdd/master/isolateSystem_actormodel/src/PrinterIsolate.dart", "1"];
-      var message = ["SPAWN","http://localhost:8080/PrinterIsolate.dart","1"];
-      ws.add(JSON.encode(message));
+      var message = ["SPAWN","../../isolateSystem_actormodel/src/PrinterIsolate.dart",["1"]];
+      //var message2 = ["SPAWN","http://localhost:8080/PrinterIsolate.dart",["2"]];
+      //var message3 = ["SPAWN","http://localhost:8080/PrinterIsolate.dart",["3"]];
+
+      ws.add(message);
+      //ws.add(JSON.encode(message2));
+      //ws.add(JSON.encode(message3));
+
     }
 
     ws.listen((String e) {
       print("Response: $e");
+      if(e is String) {
+        if(e == "DONE") {
+          var message4 = ["1","Print me ${counter++}"];
+          //ws.add(JSON.encode(message4));
+          //ws.add(JSON.encode(message4));
+          //ws.add(JSON.encode(message4));
+          //ws.add(JSON.encode(message4));
+        } else {
+          try {
+            Event message = JSON.decode(e);
+            print("${message.action}");
+          } catch (e) {
+            print("Exception $e");
+          }
+        }
+
+      }
     });
 
   }
