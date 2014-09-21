@@ -3,6 +3,8 @@ import 'dart:async';
 
 class WebSocketServer {
 
+  WebSocket webSocket;
+
   WebSocketServer(int port, String path, void onData(var message)) {
     HttpServer.bind(InternetAddress.ANY_IP_V4, port).then((HttpServer server) {
       print("HttpServer listening...");
@@ -12,7 +14,8 @@ class WebSocketServer {
         if(request.uri.path == path) {
           if (WebSocketTransformer.isUpgradeRequest(request)) {
             WebSocketTransformer.upgrade(request).then((socket) {
-              handleWebSocket(socket, onData);
+              webSocket = socket;
+              handleWebSocket(onData);
             });
           } else {
             print("Regular ${request.method} request for: ${request.uri.path}");
@@ -23,16 +26,20 @@ class WebSocketServer {
     });
   }
 
-  handleWebSocket(WebSocket socket, void onData(var message)) {
+  handleWebSocket(void onData(var message)) {
     print('Client connected!');
-    socket.listen((String s) {
+    webSocket.listen((String s) {
       onData(s);
       print('Client sent: $s');
-      socket.add('echo: $s');
+      webSocket.add('echo: $s');
     },
     onDone: () {
       print('Client disconnected');
     });
+  }
+
+  send(String message) {
+    webSocket.add(message);
   }
 
   serveRequest(HttpRequest request){
