@@ -1,45 +1,36 @@
-library isolatesystem.worker;
-
 import 'dart:isolate';
 import 'dart:async';
+import '../messages/Messages.dart';
 
-/**
- * Is simply an isolate that does tasks
- * Can spawn temporary isolates
- */
-class Worker {
-
+abstract class Worker {
   ReceivePort receivePort;
-  SendPort sendPort;
-  Worker (Uri isolateUri)
-  {
+  SendPort sendPortOfRouter;
+  int id;
+
+  Worker(List<String> args, this.sendPortOfRouter) {
+    id = args[0];
     receivePort = new ReceivePort();
-    List<String> args = new List();
-    args.add(receivePort.sendPort);
-    Isolate.spawnUri(isolateUri, receivePort.sendPort, null);
-    print ("Isolate Created!");
-    receivePort.listen(_onReceive);
+    sendPortOfRouter.send([id, receivePort.sendPort]);
+
+    //sendPortOfRouter.send(receivePort.sendPort);
+    receivePort.listen((var message) {
+      _onReceive(message);
+    });
   }
 
-  _onReceive(message) {
-    if(message is SendPort) {
-      sendPort = message;
-      sendPort.send("PING");
-    } else if (message is String) {
-      print ("received by worker: $message");
-      sendPort.send("PONG");
-    }
+  _onReceive(var message) {
+    print("Worker: $message");
+    // do something and pass it on
+    onReceive(message);
+    sendPortOfRouter.send(Messages.createEvent(Action.DONE, null));
   }
+
   /**
-   * test the isolate if they are alive working
+   * onReceive can be made to return Future
+   * So that only after onReceive is completed, DONE message is sent to router
+   *
+   * will this make it possible to implement Future in onReceive?
    */
-  test() {
-    print('Sending: \"PING\"');
-
-//    Stream isolateListener = port.asBroadcastStream();
-//    isolateListener.first.then((SendPort sp) {
-//      sp.send("PING");
-//    });
-  }
+  Future onReceive(var message);
 
 }

@@ -1,27 +1,12 @@
-library isolatesystem.router.router;
-
-import '../worker/Worker.dart';
-
 /**
- * Interface
- *
- * All routers should be isolates
- * that will be spawned by controllers
- *
+ * http://doc.akka.io/docs/akka/snapshot/scala/routing.html
+ * each routee may have different path
+ * i.e. may be spawned in different vm
  */
-abstract class Router {
+class Router {
+  static String RANDOM = "random";
+  static String ROUND_ROBIN = "roundRobin";
+  static String BROADCAST = "broadcast";
 
-  Router();
-
-  List<Worker> workers;
-
-  void spawnWorkers(int n, Uri isolateUri);
-
-  /**
-   * Returns selected worker or workers based on router algorithm/method of current router
-   */
-  Worker selectWorker();
-
-  List<Worker> selectAll();
 
 }
