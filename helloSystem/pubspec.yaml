@@ -1,4 +1,5 @@
 name: helloSystem
 dependencies:
+  path: any
   isolatesystem:
     path: ../isolatesystem

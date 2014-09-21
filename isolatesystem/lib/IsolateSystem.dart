@@ -1,3 +1,5 @@
+library isolatesystem.IsolateSystem;
+
 import 'dart:async';
 import 'dart:isolate';
 import 'messages/Messages.dart';
@@ -24,16 +26,17 @@ class IsolateSystem {
   Isolate controllerIsolate;
 
   int counter = 0;
-  IsolateSystem() {
+
+  IsolateSystem(String workerUri, int workersCount, String routerUri) {
     receivePort = new ReceivePort();
     self = receivePort.sendPort;
 
     /**
      * These values may be in some configuration file or can be passed as a message/argument during initialization
      */
-    String routerUri = "../router/Random.dart";
-    String workerUri = "../PrinterIsolate.dart";
-    int workersCount = 5;
+//    String routerUri = "router/Random.dart";
+//    String workerUri = "../helloSystem/PrinterIsolate.dart";
+//    int workersCount = 5;
 
     _spawnController(routerUri, workerUri, workersCount);
 
@@ -72,7 +75,7 @@ class IsolateSystem {
   }
 
   _spawnController(String routerUri, String workerUri, int workersCount) {
-    Isolate.spawnUri(Uri.parse('controller/Controller.dart'), [routerUri, workerUri, workersCount], receivePort.sendPort)
+    Isolate.spawnUri(Uri.parse('packages/isolatesystem/controller/Controller.dart'), [routerUri, workerUri, workersCount], receivePort.sendPort)
     .then((controller){
       controllerIsolate = controller;
     });

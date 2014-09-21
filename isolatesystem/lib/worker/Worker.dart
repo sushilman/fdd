@@ -1,3 +1,5 @@
+library isolatesystem.worker.Worker;
+
 import 'dart:isolate';
 import 'dart:async';
 import '../messages/Messages.dart';
