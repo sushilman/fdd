@@ -4,7 +4,9 @@ import 'dart:convert';
 import 'package:isolatesystem/action/Action.dart';
 
 /**
- * This nature should be implemented in router
+ * This nature should be implemented in router + proxy for remote isolate
+ *
+ * This class can be converted to be the proxy of remote isolate
  */
 class TestConnection {
 
@@ -35,6 +37,7 @@ class TestConnection {
 
     ws.listen((String message) {
       print("Response: $message");
+      message = isJsonString(message) ? JSON.decode(message) : message;
       if(message is List) {
         switch(message[0]) {
           case Action.DONE:
@@ -47,8 +50,17 @@ class TestConnection {
 
   }
 
-  void onError() {
-    print('Not connected');
+  void onError(var message) {
+    print('Not connected: $message');
+  }
+
+  bool isJsonString(var string) {
+    try {
+      JSON.decode(string);
+      return true;
+    } catch (exception) {
+      return false;
+    }
   }
 }
 

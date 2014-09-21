@@ -145,7 +145,7 @@ class Random implements Router {
 }
 
 class _Worker {
-  int _id;
+  String _id;
   SendPort _sendPort;
   Isolate _isolate;
 
@@ -157,7 +157,7 @@ class _Worker {
   set isolate(Isolate value) => _isolate = value;
   get isolate => _isolate;
 
-  set id(int value) => _id = value;
+  set id(String value) => _id = value;
   get id => _id;
 
   //TODO: make use of control port instead of ping() method?

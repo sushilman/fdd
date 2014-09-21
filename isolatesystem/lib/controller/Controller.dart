@@ -35,7 +35,7 @@ class Controller {
 
     Uri routerUri = Uri.parse(args[0]);
     Uri workerUri = Uri.parse(args[1]);
-    workersCount = args[2];
+    workersCount = int.parse(args[2]);
 
     receivePort.listen((message) {
       _onReceive(message, receivePort);

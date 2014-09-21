@@ -7,7 +7,7 @@ import '../action/Action.dart';
 abstract class Worker {
   ReceivePort receivePort;
   SendPort sendPortOfRouter;
-  int id;
+  String id;
 
   Worker(List<String> args, this.sendPortOfRouter) {
     id = args[0];

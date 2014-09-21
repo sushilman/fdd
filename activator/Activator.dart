@@ -1,8 +1,7 @@
-import 'dart:io';
-import 'dart:async';
 import 'dart:isolate';
 import 'dart:convert';
 import 'WebSocketServer.dart';
+import 'package:isolatesystem/action/Action.dart';
 
 /*
  * Web socket handler
@@ -58,7 +57,7 @@ class Activator {
       String id = message[0];
       getIsolateById(id).sendPort = message[1];
       print("Adding sendport to $id");
-      wss.send("DONE");
+      wss.send(JSON.encode([Action.DONE]));
     } else {
       wss.send(JSON.encode(message));
     }
@@ -79,7 +78,7 @@ class Activator {
       String uri = message[1];
       List<String> args = message[2];
       spawnWorker(uri, args);
-    } else if (message[0] is String || message[0] is int) {
+    } else if (message[0] is String) {
       forward(message[0], message[1]);
     }
   }
@@ -111,7 +110,7 @@ void main() {
 }
 
 class _Isolate {
-  int _id;
+  String _id;
   SendPort _sendPort;
   Isolate _isolate;
 
@@ -123,6 +122,6 @@ class _Isolate {
   set isolate(Isolate value) => _isolate = value;
   get isolate => _isolate;
 
-  set id(int value) => _id = value;
+  set id(String value) => _id = value;
   get id => _id;
 }
