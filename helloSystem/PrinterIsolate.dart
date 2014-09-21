@@ -1,14 +1,13 @@
 import 'dart:isolate';
 import 'dart:async';
 import 'dart:io' show sleep;
-import 'package:isolatesystem/messages/Messages.dart';
 import 'package:isolatesystem/worker/Worker.dart';
 import 'dart:math' as Math;
 /**
  * A sample printer isolate
  */
 main(List<String> args, SendPort sendPort) {
-  print ("Printer Isolate started...");
+  //print ("Printer Isolate started...");
   PrinterIsolate printerIsolate = new PrinterIsolate(args, sendPort);
 }
 
@@ -31,7 +30,7 @@ class PrinterIsolate extends Worker {
    * which might take varied amount of time to complete
    */
   outText(String text) {
-    int rand = new Math.Random().nextInt(20);
+    int rand = new Math.Random().nextInt(5);
     Duration duration = new Duration(seconds: rand);
     print("Printer $id: $text... doing something for $rand seconds");
     sleep(duration);

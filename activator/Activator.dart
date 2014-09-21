@@ -3,7 +3,6 @@ import 'dart:async';
 import 'dart:isolate';
 import 'dart:convert';
 import 'WebSocketServer.dart';
-import 'package:isolatesystem/messages/Messages.dart';
 
 /*
  * Web socket handler
@@ -27,6 +26,7 @@ import 'package:isolatesystem/messages/Messages.dart';
  *  2. Kill/ping an isolate
  *  3. Forward messages to proper isolate
  *
+ * //TODO: ** the ID of each isolate should be unique and based on the id provided by router **
  */
 class Activator {
   ReceivePort receivePort;
@@ -98,12 +98,10 @@ class Activator {
   _Isolate getIsolateById(String id) {
     _Isolate selectedIsolate = null;
     isolates.forEach((isolate) {
-      print("Comparing: ${isolate.id} vs ${id} ");
       if(isolate.id == id) {
         selectedIsolate = isolate;
       }
     });
-
     return selectedIsolate;
   }
 }

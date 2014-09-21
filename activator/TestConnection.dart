@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'package:isolatesystem/action/Action.dart';
 
 /**
  * This nature should be implemented in router
@@ -28,26 +29,18 @@ class TestConnection {
   void handleWebSocket(WebSocket ws) {
     if (ws != null && ws.readyState == WebSocket.OPEN) {
       print("Sent: SPAWN command");
-      //var message = ["SPAWN", "https://raw.githubusercontent.com/sushilman/fdd/master/isolateSystem_actormodel/src/PrinterIsolate.dart", "1"];
-      var message = ["SPAWN","../../isolateSystem_actormodel/src/PrinterIsolate.dart",["1"]];
-      //var message2 = ["SPAWN","http://localhost:8080/PrinterIsolate.dart",["2"]];
-      //var message3 = ["SPAWN","http://localhost:8080/PrinterIsolate.dart",["3"]];
-
+      var message = ["SPAWN","../helloSystem/PrinterIsolate.dart",["1"]];
       ws.add(JSON.encode(message));
-      //ws.add(JSON.encode(message2));
-      //ws.add(JSON.encode(message3));
-
     }
 
-    ws.listen((String e) {
-      print("Response: $e");
-      if(e is String) {
-        if(e == "DONE") {
-          var message4 = ["1","Print me ${counter++}"];
-          ws.add(JSON.encode(message4));
-          //ws.add(JSON.encode(message4));
-          //ws.add(JSON.encode(message4));
-          //ws.add(JSON.encode(message4));
+    ws.listen((String message) {
+      print("Response: $message");
+      if(message is List) {
+        switch(message[0]) {
+          case Action.DONE:
+            var message4 = ["1","Print me ${counter++}"];
+            ws.add(JSON.encode(message4));
+            break;
         }
       }
     });

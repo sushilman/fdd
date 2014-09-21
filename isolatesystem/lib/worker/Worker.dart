@@ -2,7 +2,7 @@ library isolatesystem.worker.Worker;
 
 import 'dart:isolate';
 import 'dart:async';
-import '../messages/Messages.dart';
+import '../action/Action.dart';
 
 abstract class Worker {
   ReceivePort receivePort;
@@ -13,18 +13,16 @@ abstract class Worker {
     id = args[0];
     receivePort = new ReceivePort();
     sendPortOfRouter.send([id, receivePort.sendPort]);
-
-    //sendPortOfRouter.send(receivePort.sendPort);
     receivePort.listen((var message) {
       _onReceive(message);
     });
   }
 
   _onReceive(var message) {
-    print("Worker: $message");
+    //print("Worker: $message");
     // do something and pass it on
     onReceive(message);
-    sendPortOfRouter.send(Messages.createEvent(Action.DONE, null));
+    sendPortOfRouter.send([Action.DONE, "My message here"]);
   }
 
   /**
@@ -33,6 +31,5 @@ abstract class Worker {
    *
    * will this make it possible to implement Future in onReceive?
    */
-  Future onReceive(var message);
-
+  onReceive(var message);
 }

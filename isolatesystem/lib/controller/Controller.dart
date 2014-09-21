@@ -1,6 +1,6 @@
 import 'dart:isolate';
 import 'dart:async';
-import '../messages/Messages.dart';
+import '../action/Action.dart';
 import '../IsolateSystem.dart';
 
 /**
@@ -45,24 +45,25 @@ class Controller {
   }
 
   _onReceive(var message, ReceivePort receivePort) {
-    print("Controller: $message");
+    //print("Controller: $message");
     if(message is SendPort) {
       routerSendPort = message;
-    } else if (message is Event) {
-      switch (message.action) {
+    } else if (message is List) {
+      switch(message[0]) {
         case Action.SPAWN:
-          // Do nothing
-        break;
+          //Do Nothing
+          break;
         case Action.READY:
-          for(int i = 0; i < workersCount; i++) {
-            sendPortOfIsolateSystem.send(Messages.createEvent(Action.PULL_MESSAGE, null));
+          for (int i = 0; i < workersCount; i++) {
+            sendPortOfIsolateSystem.send([Action.PULL_MESSAGE]);
           }
-        break;
+          break;
         case Action.DONE:
-          sendPortOfIsolateSystem.send(Messages.createEvent(Action.PULL_MESSAGE, null));
-        break;
+          sendPortOfIsolateSystem.send([Action.PULL_MESSAGE]);
+          break;
         default:
-        break;
+          print ("Controller: Unknown Action ${message[0]}");
+          break;
       }
     } else if (message is String) {
       // For now, just delegate message to the router

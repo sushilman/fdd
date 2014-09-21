@@ -3,7 +3,7 @@ library isolatesystem.router.Random;
 import 'dart:isolate';
 import 'dart:async';
 import 'Router.dart';
-import '../messages/Messages.dart';
+import '../action/Action.dart';
 import 'dart:math' as Math;
 
 /**
@@ -40,6 +40,7 @@ class Random implements Router {
   //List<SendPort> workersSendPorts = new List<SendPort>();
 
   List<_Worker> workers;
+  int workersCount;
 
   Random(List<String> args, this.sendPortOfController) {
     receivePort = new ReceivePort();
@@ -48,7 +49,7 @@ class Random implements Router {
     sendPortOfController.send(receivePort.sendPort); // anything along with sendport?
 
     Uri workerUri = args[0];
-    int workersCount = args[1];
+    workersCount = args[1];
 
     spawnWorkers(receivePort, workerUri, workersCount);
 
@@ -66,6 +67,9 @@ class Random implements Router {
       _Worker worker = getWorkerById(id);
       worker.sendPort = sendPort;
 
+      if(workers.length == workersCount) {
+        sendPortOfController.send([Action.READY]);
+      }
       //TODO: deprecated
       //workersSendPorts.add(message);
     } else if (message is String) {
@@ -80,20 +84,17 @@ class Random implements Router {
           //spawn new worker?
       //  }
       //});
-    } else if (message is Event) {
-      switch(message.action) {
-        case(Action.SPAWN):
-          //Do nothing
-          //may be call spawnWorkers
-        break;
-
-        case(Action.DONE):
+    } else if (message is List) {
+      switch(message[0]) {
+        case Action.SPAWN:
+          // TODO: spawn isolate, may be?
+          break;
+        case Action.DONE:
           sendPortOfController.send(message);
-        break;
-
+          break;
         default:
-          print("Unhandled message in Random Router: ${message.action}");
-        break;
+          print("RandomRouter: Unknown Action: ${message[0]}");
+          break;
       }
     }
   }
@@ -105,9 +106,6 @@ class Random implements Router {
       Isolate.spawnUri(workerUri, [index], receivePort.sendPort).then((Isolate isolate) {
         //workerIsolates[index] = isolate;
         workers.add(new _Worker(index, isolate));
-        if(workers.length == workersCount) {
-          sendPortOfController.send(Messages.createEvent(Action.READY, null));
-        }
       });
       //print("Spawned $index Worker ");
     }
@@ -117,9 +115,8 @@ class Random implements Router {
     Math.Random random = new Math.Random();
     int randomInt = 0;
     if(workers.length > 1) {
-      randomInt = random.nextInt(workers.length - 1);
+      randomInt = random.nextInt(workers.length);
     }
-    //print("Selected Worker id: $randomInt vs ${workers[randomInt].id}");
     return workers[randomInt];
   }
 
@@ -127,7 +124,7 @@ class Random implements Router {
    * Checks if the isolate with given sendport is free
    *
    * TODO: think about moving this to another separate isolate/actor
-   * send sendports of isolates to this monitoring isolate so that it can ping and forward messages?
+   * send sendports of isolates to this monitoring isolate so that it can ping and forward action?
    */
 
   _Worker getWorkerById(int id) {

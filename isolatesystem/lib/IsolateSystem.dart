@@ -2,7 +2,7 @@ library isolatesystem.IsolateSystem;
 
 import 'dart:async';
 import 'dart:isolate';
-import 'messages/Messages.dart';
+import 'action/Action.dart';
 import 'router/Random.dart';
 import 'dart:math' as Math;
 
@@ -55,18 +55,20 @@ class IsolateSystem {
   }
 
   _onReceive(message) {
-    print("IsolateSystem: $message");
+    //print("IsolateSystem: $message");
     if(message is SendPort) {
       sendPort = message;
       //sendPort.send(Messages.createEvent(Action.SPAWN, {"router":"router/Random.dart", "count" : "5"}));
-    } else if (message is Event) {
-      print ("Event received : ${message.action} -> ${message.message}}");
-      switch(message.action) {
+    } else if (message is List) {
+      //print ("Event received : ${message[0]}");
+      switch(message[0]) {
         case Action.PULL_MESSAGE:
           _pullMessage();
-        break;
+          break;
+        default:
+          print("IsolateSystem: Unknown Action: ${message[0]}");
+          break;
       }
-      //TODO: some action/event?
     } else if (message is String) {
       sendPort.send(message);
     }else {
