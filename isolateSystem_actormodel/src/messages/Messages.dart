@@ -31,8 +31,8 @@ class Event {
 
   toJson() {
     Map map = new Map();
-    map["action"] = _action;
-    map["message"] = _message;
+    map["action"] = action;
+    map["message"] = message;
     return map;
   }
 }
