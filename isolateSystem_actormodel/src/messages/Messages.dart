@@ -29,4 +29,10 @@ class Event {
   Action get action => _action;
   set action(Action value) => _action = value;
 
+  toJson() {
+    Map map = new Map();
+    map["action"] = _action;
+    map["message"] = _message;
+    return map;
+  }
 }

@@ -24,11 +24,11 @@
     <splitter split-orientation="horizontal" split-proportion="0.5">
       <split-first>
         <leaf>
-          <file leaf-file-name="TestConnection.dart" pinned="false" current="true" current-in-tab="true">
+          <file leaf-file-name="TestConnection.dart" pinned="false" current="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/src/TestConnection.dart">
               <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="0.7531993" vertical-offset="293" max-vertical-offset="1035">
-                  <caret line="47" column="12" selection-start-line="47" selection-start-column="12" selection-end-line="47" selection-end-column="12" />
+                <state vertical-scroll-proportion="0.69835466" vertical-offset="293" max-vertical-offset="1035">
+                  <caret line="45" column="19" selection-start-line="45" selection-start-column="19" selection-end-line="45" selection-end-column="19" />
                   <folding />
                 </state>
               </provider>
@@ -40,8 +40,8 @@
                 <state vertical-scroll-proportion="0.0" vertical-offset="1365" max-vertical-offset="2025">
                   <caret line="99" column="45" selection-start-line="99" selection-start-column="45" selection-end-line="99" selection-end-column="45" />
                   <folding>
-                    <marker date="1411137297000" expanded="true" signature="1222:1482" placeholder="{...}" />
-                    <marker date="1411137297000" expanded="true" signature="2424:2487" placeholder="{...}" />
+                    <marker date="1411292853000" expanded="true" signature="1222:1482" placeholder="{...}" />
+                    <marker date="1411292853000" expanded="true" signature="2424:2487" placeholder="{...}" />
                   </folding>
                 </state>
               </provider>
@@ -61,11 +61,11 @@
       </split-first>
       <split-second>
         <leaf>
-          <file leaf-file-name="Activator.dart" pinned="false" current="false" current-in-tab="true">
+          <file leaf-file-name="Activator.dart" pinned="false" current="true" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/src/Activator.dart">
               <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="-0.29464287" vertical-offset="1080" max-vertical-offset="2025">
-                  <caret line="61" column="37" selection-start-line="61" selection-start-column="37" selection-end-line="61" selection-end-column="37" />
+                <state vertical-scroll-proportion="0.75" vertical-offset="690" max-vertical-offset="2025">
+                  <caret line="74" column="22" selection-start-line="74" selection-start-column="22" selection-end-line="74" selection-end-column="22" />
                   <folding />
                 </state>
               </provider>
@@ -94,7 +94,8 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="y" value="23" />
+    <option name="x" value="339" />
+    <option name="y" value="329" />
     <option name="width" value="1680" />
     <option name="height" value="971" />
   </component>
@@ -253,8 +254,8 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="1680" height="971" extended-state="6" />
-    <editor active="false" />
+    <frame x="339" y="329" width="1680" height="971" extended-state="0" />
+    <editor active="true" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.1615431" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
@@ -263,7 +264,7 @@
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.28045684" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.33105803" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.33105803" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -307,10 +308,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="945" max-vertical-offset="2070">
           <caret line="63" column="8" selection-start-line="63" selection-start-column="8" selection-end-line="63" selection-end-column="8" />
-          <folding>
-            <marker date="1411137297000" expanded="true" signature="1222:1482" placeholder="{...}" />
-            <marker date="1411137297000" expanded="true" signature="2424:2487" placeholder="{...}" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -342,10 +340,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="1110" max-vertical-offset="2025">
           <caret line="74" column="7" selection-start-line="74" selection-start-column="7" selection-end-line="74" selection-end-column="7" />
-          <folding>
-            <marker date="1411137297000" expanded="true" signature="1222:1482" placeholder="{...}" />
-            <marker date="1411137297000" expanded="true" signature="2424:2487" placeholder="{...}" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -369,10 +364,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="855" max-vertical-offset="1380">
           <caret line="57" column="65" selection-start-line="57" selection-start-column="65" selection-end-line="57" selection-end-column="65" />
-          <folding>
-            <marker date="1411137297000" expanded="true" signature="1222:1482" placeholder="{...}" />
-            <marker date="1411137297000" expanded="true" signature="2424:2487" placeholder="{...}" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -388,10 +380,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="210" max-vertical-offset="615">
           <caret line="14" column="57" selection-start-line="14" selection-start-column="57" selection-end-line="14" selection-end-column="57" />
-          <folding>
-            <marker date="1411137297000" expanded="true" signature="1222:1482" placeholder="{...}" />
-            <marker date="1411137297000" expanded="true" signature="2424:2487" placeholder="{...}" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -415,10 +404,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="210" max-vertical-offset="615">
           <caret line="14" column="57" selection-start-line="14" selection-start-column="57" selection-end-line="14" selection-end-column="57" />
-          <folding>
-            <marker date="1411137297000" expanded="true" signature="1222:1482" placeholder="{...}" />
-            <marker date="1411137297000" expanded="true" signature="2424:2487" placeholder="{...}" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -490,10 +476,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.4245283" vertical-offset="0" max-vertical-offset="954">
           <caret line="27" column="10" selection-start-line="27" selection-start-column="10" selection-end-line="27" selection-end-column="10" />
-          <folding>
-            <marker date="1411137297000" expanded="true" signature="1222:1482" placeholder="{...}" />
-            <marker date="1411137297000" expanded="true" signature="2424:2487" placeholder="{...}" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -513,21 +496,18 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/Activator.dart">
+    <entry file="file://$PROJECT_DIR$/src/TestConnection.dart">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="1365" max-vertical-offset="2025">
-          <caret line="99" column="45" selection-start-line="99" selection-start-column="45" selection-end-line="99" selection-end-column="45" />
-          <folding>
-            <marker date="1411137297000" expanded="true" signature="1222:1482" placeholder="{...}" />
-            <marker date="1411137297000" expanded="true" signature="2424:2487" placeholder="{...}" />
-          </folding>
+        <state vertical-scroll-proportion="0.69835466" vertical-offset="293" max-vertical-offset="1035">
+          <caret line="45" column="19" selection-start-line="45" selection-start-column="19" selection-end-line="45" selection-end-column="19" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/TestConnection.dart">
+    <entry file="file://$PROJECT_DIR$/src/Activator.dart">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.7531993" vertical-offset="293" max-vertical-offset="1035">
-          <caret line="47" column="12" selection-start-line="47" selection-start-column="12" selection-end-line="47" selection-end-column="12" />
+        <state vertical-scroll-proportion="0.75" vertical-offset="690" max-vertical-offset="2025">
+          <caret line="74" column="22" selection-start-line="74" selection-start-column="22" selection-end-line="74" selection-end-column="22" />
           <folding />
         </state>
       </provider>
