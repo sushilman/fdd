@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/isolateSystem_actormodel.iml" filepath="$PROJECT_DIR$/.idea/isolateSystem_actormodel.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/isolatesystem.iml" filepath="$PROJECT_DIR$/.idea/isolatesystem.iml" />
     </modules>
   </component>

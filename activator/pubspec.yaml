@@ -1,3 +1,4 @@
 name: activator
 dependencies:
-  browser: any
+  isolatesystem:
+    path: ../isolatesystem

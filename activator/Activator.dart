@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:isolate';
 import 'dart:convert';
 import 'WebSocketServer.dart';
+import 'package:isolatesystem/messages/Messages.dart';
 
 /*
  * Web socket handler

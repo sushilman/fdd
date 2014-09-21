@@ -1,8 +1,8 @@
 import 'dart:isolate';
 import 'dart:async';
 import 'dart:io' show sleep;
-import 'messages/Messages.dart';
-import 'worker/Worker.dart';
+import 'package:isolatesystem/messages/Messages.dart';
+import 'package:isolatesystem/worker/Worker.dart';
 import 'dart:math' as Math;
 /**
  * A sample printer isolate
