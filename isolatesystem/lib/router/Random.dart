@@ -11,9 +11,6 @@ import 'dart:math' as Math;
  * each routee may have different path
  * i.e. may be spawned in different vm
  *
- * Router need to store sendports, (receiveports?) and
- * locations where isolates are spawned (esp for remote isolates)
- *
  * TODO:
  * What happens to remote isolates if a router is killed? -> may be gracefully ending that isolate is possible
  * But, if the machine in which the router exists goes down? -> memory leak in remote isolate?
@@ -25,6 +22,8 @@ import 'dart:math' as Math;
  * Isolate.OnErrorListener and,
  * Isolate.OnExitListener
  * for supervision of errors?
+ *
+ * TODO: *important* Should be able to recognize if messages are from isolate or from controller
  */
 
 main(List<String> args, SendPort sendPort) {
@@ -46,10 +45,10 @@ class Random implements Router {
     receivePort = new ReceivePort();
     self = receivePort.sendPort;
     workers = new List<_Worker>();
-    sendPortOfController.send(receivePort.sendPort); // anything along with sendport?
+    sendPortOfController.send(receivePort.sendPort);
 
-    Uri workerUri = args[0];
-    workersCount = args[1];
+    Uri workerUri = Uri.parse(args[0]);
+    workersCount = int.parse(args[1]);
 
     spawnWorkers(receivePort, workerUri, workersCount);
 
@@ -67,6 +66,13 @@ class Random implements Router {
       _Worker worker = getWorkerById(id);
       worker.sendPort = sendPort;
 
+      /**
+       * TODO: required improvement
+       * Just receiving sendport is not enough for remote isolates
+       * because it goes through proxy isolate
+       * and router gets sendPort from proxy isolate first
+       * so make use of READY event/action would be better
+       */
       if(workers.length == workersCount) {
         sendPortOfController.send([Action.READY]);
       }
@@ -103,9 +109,12 @@ class Random implements Router {
     //print ("Spawning $workersCount workers of $workerUri");
     for(int index = 0; index < workersCount; index++) {
       //print("Spawning... $index");
-      Isolate.spawnUri(workerUri, [index], receivePort.sendPort).then((Isolate isolate) {
+      Isolate.spawnUri(workerUri, [index.toString()], receivePort.sendPort).then((Isolate isolate) {
         //workerIsolates[index] = isolate;
-        workers.add(new _Worker(index, isolate));
+        _Worker w = new _Worker(index.toString(), isolate);
+        workers.add(w);
+        isolate.addOnExitListener(w.exitHandler.sendPort);
+        isolate.addErrorListener(w.errorHandler.sendPort);
       });
       //print("Spawned $index Worker ");
     }
@@ -142,6 +151,11 @@ class Random implements Router {
   removeWorker(_Worker w) {
     workers.remove(w);
   }
+
+  //TODO: call when Isolate ends
+  onExit() {
+    // remove the from list or workers
+  }
 }
 
 class _Worker {
@@ -149,7 +163,20 @@ class _Worker {
   SendPort _sendPort;
   Isolate _isolate;
 
-  _Worker(this._id, this._isolate);
+  ReceivePort exitHandler = new ReceivePort();
+  ReceivePort errorHandler =  new ReceivePort();
+
+  _Worker(this._id, this._isolate) {
+    errorHandler.listen((message) {
+      //TODO: implement
+      print("Exception thrown from isolate $_isolate with message: $message");
+    });
+
+    exitHandler.listen((message) {
+      //TODO: implement
+      //remove this element from list
+    });
+  }
 
   set sendPort(SendPort value) => _sendPort = value;
   get sendPort => _sendPort;

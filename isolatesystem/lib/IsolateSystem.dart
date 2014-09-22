@@ -65,6 +65,11 @@ class IsolateSystem {
         case Action.PULL_MESSAGE:
           _pullMessage();
           break;
+        case Action.DONE:
+          if(message.length > 1) {
+            _prepareResponse(message);
+          }
+          break;
         default:
           print("IsolateSystem: Unknown Action: ${message[0]}");
           break;
@@ -72,7 +77,7 @@ class IsolateSystem {
     } else if (message is String) {
       sendPort.send(message);
     }else {
-      print ("Unknown message: $message");
+      print ("IsolateSystem: Unknown message: $message");
     }
   }
 
@@ -84,11 +89,17 @@ class IsolateSystem {
   }
 
   _pullMessage() {
-    //TODO: pull message from appropriate queue from MessageQueuingSystem
+    // TODO: pull message from appropriate queue from MessageQueuingSystem
     // something like messageQueuingSystem.send(message)
-    //then send to sendport of controller
+    // then send to sendPort of controller
     // sendPort.send(newMessage);
     //
-    self.send("Simple message #${counter++}, ${new Math.Random().nextInt(99999)}");
+    self.send("IsolateSystem: Simple message #${counter++}, ${new Math.Random().nextInt(99999)}");
   }
+
+  _prepareResponse(var message) {
+    var ResponseMessage = message[1];
+    print("IsolateSystem: Enqueue this response : ${message[1]}");
+  }
+
 }

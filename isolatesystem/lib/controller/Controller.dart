@@ -1,3 +1,5 @@
+library isolatesystem.controller.Controller;
+
 import 'dart:isolate';
 import 'dart:async';
 import '../action/Action.dart';
@@ -34,17 +36,17 @@ class Controller {
     sendPortOfIsolateSystem.send(receivePort.sendPort);
 
     Uri routerUri = Uri.parse(args[0]);
-    Uri workerUri = Uri.parse(args[1]);
+    String workerUri = args[1];
     workersCount = int.parse(args[2]);
 
     receivePort.listen((message) {
-      _onReceive(message, receivePort);
+      _onReceive(message);
     });
 
-    spawnRouter(receivePort, routerUri, workerUri, workersCount);
+    _spawnRouter(receivePort, routerUri, workerUri, workersCount);
   }
 
-  _onReceive(var message, ReceivePort receivePort) {
+  _onReceive(var message) {
     //print("Controller: $message");
     if(message is SendPort) {
       routerSendPort = message;
@@ -59,6 +61,14 @@ class Controller {
           }
           break;
         case Action.DONE:
+          // The result message? along with DONE action
+          // to be en-queued in MQS
+          if(message.length > 1) {
+            // may be some additional information of
+            // the isolate and/or the original sender?
+            sendPortOfIsolateSystem.send(message);
+          }
+
           sendPortOfIsolateSystem.send([Action.PULL_MESSAGE]);
           break;
         default:
@@ -71,8 +81,8 @@ class Controller {
     }
   }
 
-  spawnRouter(ReceivePort receivePort, Uri routerUri, Uri workerUri, int workersCount) {
-    Isolate.spawnUri(routerUri, [workerUri, workersCount], receivePort.sendPort).then((isolate) {
+  _spawnRouter(ReceivePort receivePort, Uri routerUri, String workerUri, int workersCount) {
+    Isolate.spawnUri(routerUri, [workerUri, workersCount.toString()], receivePort.sendPort).then((isolate) {
       routerUri = routerUri;
       routerIsolate = isolate;
     });
