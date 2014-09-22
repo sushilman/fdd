@@ -14,7 +14,9 @@ main(List<String> args, SendPort sendPort) {
 class PrinterIsolate extends Worker {
   int counter = 0;
 
-  PrinterIsolate(List<String> args, SendPort sendPortOfRouter) : super(args, sendPortOfRouter);
+  PrinterIsolate(List<String> args, SendPort sendPortOfRouter) : super(args, sendPortOfRouter) {
+    sendPortOfRouter.send([id, receivePort.sendPort]);
+  }
 
   @override
   onReceive(message) {

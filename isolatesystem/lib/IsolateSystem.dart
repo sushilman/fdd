@@ -5,6 +5,7 @@ import 'dart:isolate';
 import 'action/Action.dart';
 import 'router/Random.dart';
 import 'dart:math' as Math;
+import 'dart:convert';
 
 
 /**
@@ -27,7 +28,7 @@ class IsolateSystem {
 
   int counter = 0;
 
-  IsolateSystem(String workerUri, int workersCount, String routerUri) {
+  IsolateSystem(String workerUri, int workersCount, List<String> workersPaths, String routerUri) {
     receivePort = new ReceivePort();
     self = receivePort.sendPort;
 
@@ -38,7 +39,7 @@ class IsolateSystem {
 //    String workerUri = "../helloSystem/PrinterIsolate.dart";
 //    int workersCount = 5;
 
-    _spawnController(routerUri, workerUri, workersCount);
+    _spawnController(routerUri, workerUri, workersCount, JSON.encode(workersPaths));
 
     receivePort.listen((message) {
       _onReceive(message);
@@ -63,7 +64,7 @@ class IsolateSystem {
       //print ("Event received : ${message[0]}");
       switch(message[0]) {
         case Action.PULL_MESSAGE:
-          _pullMessage();
+          //_pullMessage();
           break;
         case Action.DONE:
           if(message.length > 1) {
@@ -76,13 +77,13 @@ class IsolateSystem {
       }
     } else if (message is String) {
       sendPort.send(message);
-    }else {
+    } else {
       print ("IsolateSystem: Unknown message: $message");
     }
   }
 
-  _spawnController(String routerUri, String workerUri, int workersCount) {
-    Isolate.spawnUri(Uri.parse('packages/isolatesystem/controller/Controller.dart'), [routerUri, workerUri, workersCount], receivePort.sendPort)
+  _spawnController(String routerUri, String workerUri, int workersCount, String workersPaths) {
+    Isolate.spawnUri(Uri.parse('packages/isolatesystem/controller/Controller.dart'), [routerUri, workerUri, workersCount.toString(), workersPaths], receivePort.sendPort)
     .then((controller){
       controllerIsolate = controller;
     });
@@ -94,12 +95,11 @@ class IsolateSystem {
     // then send to sendPort of controller
     // sendPort.send(newMessage);
     //
-    self.send("IsolateSystem: Simple message #${counter++}, ${new Math.Random().nextInt(99999)}");
+    self.send("Simple message #${counter++}, ${new Math.Random().nextInt(99999)}");
   }
 
   _prepareResponse(var message) {
     var ResponseMessage = message[1];
     print("IsolateSystem: Enqueue this response : ${message[1]}");
   }
-
 }

@@ -74,11 +74,11 @@ class Activator {
     print("$message");
     print("From onData: ${message[0]}");
 
-    if(message[0] == "SPAWN") {
+    if(message[0] == Action.SPAWN) {
       String uri = message[1];
       List<String> args = message[2];
       spawnWorker(uri, args);
-    } else if (message[0] is String) {
+    } else { //if (message[0] is String)
       forward(message[0], message[1]);
     }
   }

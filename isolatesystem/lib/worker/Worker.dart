@@ -12,7 +12,7 @@ abstract class Worker {
   Worker(List<String> args, this.sendPortOfRouter) {
     id = args[0];
     receivePort = new ReceivePort();
-    sendPortOfRouter.send([id, receivePort.sendPort]);
+    //sendPortOfRouter.send([id, receivePort.sendPort]);
     receivePort.listen((var message) {
       _onReceive(message);
     });

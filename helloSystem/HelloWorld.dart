@@ -13,8 +13,19 @@ class HelloWorld {
 
     String workerUri = "${dirname(Platform.script.toString())}/PrinterIsolate.dart";
     print (workerUri);
-    int workersCount = 1;
-    IsolateSystem system = new IsolateSystem(workerUri, workersCount, routerUri); //"HelloSystem", helloIsolate, new Random(), 5
+
+    /*
+    List<String> workersPaths = [
+    "localhost"
+    ];
+    */
+
+    List<String> workersPaths = [
+        "ws://localhost:42042/activator"];
+
+    int workersCount = workersPaths.length;
+
+    IsolateSystem system = new IsolateSystem(workerUri, workersCount, workersPaths, routerUri); //"HelloSystem", helloIsolate, new Random(), 5
   }
 }
 

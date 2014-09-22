@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
-import 'package:isolatesystem/action/Action.dart';
+import '../action/Action.dart';
 
 /**
  * This nature should be implemented in router + proxy for remote isolate

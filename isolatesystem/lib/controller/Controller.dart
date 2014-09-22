@@ -38,12 +38,13 @@ class Controller {
     Uri routerUri = Uri.parse(args[0]);
     String workerUri = args[1];
     workersCount = int.parse(args[2]);
+    String workersPaths = args[3];
 
     receivePort.listen((message) {
       _onReceive(message);
     });
 
-    _spawnRouter(receivePort, routerUri, workerUri, workersCount);
+    _spawnRouter(receivePort, routerUri, workerUri, workersCount, workersPaths);
   }
 
   _onReceive(var message) {
@@ -81,8 +82,8 @@ class Controller {
     }
   }
 
-  _spawnRouter(ReceivePort receivePort, Uri routerUri, String workerUri, int workersCount) {
-    Isolate.spawnUri(routerUri, [workerUri, workersCount.toString()], receivePort.sendPort).then((isolate) {
+  _spawnRouter(ReceivePort receivePort, Uri routerUri, String workerUri, int workersCount, String workersPaths) {
+    Isolate.spawnUri(routerUri, [workerUri, workersCount.toString(), workersPaths], receivePort.sendPort).then((isolate) {
       routerUri = routerUri;
       routerIsolate = isolate;
     });

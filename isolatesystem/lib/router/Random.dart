@@ -5,6 +5,7 @@ import 'dart:async';
 import 'Router.dart';
 import '../action/Action.dart';
 import 'dart:math' as Math;
+import 'dart:convert';
 
 /**
  * http://doc.akka.io/docs/akka/snapshot/scala/routing.html
@@ -35,11 +36,9 @@ class Random implements Router {
   SendPort sendPortOfController;
   SendPort self;
 
-  //Map<int, Isolate> workerIsolates = new Map<int, Isolate>();
-  //List<SendPort> workersSendPorts = new List<SendPort>();
-
   List<_Worker> workers;
   int workersCount;
+  List<String> workersPaths;
 
   Random(List<String> args, this.sendPortOfController) {
     receivePort = new ReceivePort();
@@ -47,10 +46,12 @@ class Random implements Router {
     workers = new List<_Worker>();
     sendPortOfController.send(receivePort.sendPort);
 
-    Uri workerUri = Uri.parse(args[0]);
+    Uri workerSourceUri = Uri.parse(args[0]);
     workersCount = int.parse(args[1]);
+    workersPaths = JSON.decode(args[2]);
+    print("Paths : $workersPaths");
 
-    spawnWorkers(receivePort, workerUri, workersCount);
+    spawnWorkers(receivePort, workerSourceUri, workersCount);
 
     receivePort.listen((message) {
       _onReceive(message, receivePort);
@@ -105,18 +106,26 @@ class Random implements Router {
     }
   }
 
-  spawnWorkers(ReceivePort receivePort, Uri workerUri, int workersCount) {
-    //print ("Spawning $workersCount workers of $workerUri");
+  spawnWorkers(ReceivePort receivePort, Uri workerSourceUri, int workersCount) {
+    //TODO if remote location then spawn not WorkerSourceUri but Proxy.dart
+    // and pass workerSourceUri to it as an argument
+    //print ("Spawning $workersCount workers of $workerSourceUri");
+    Uri proxyUri = Uri.parse("/Users/sushil/fdd/isolatesystem/lib/worker/Proxy.dart");
     for(int index = 0; index < workersCount; index++) {
       //print("Spawning... $index");
-      Isolate.spawnUri(workerUri, [index.toString()], receivePort.sendPort).then((Isolate isolate) {
-        //workerIsolates[index] = isolate;
-        _Worker w = new _Worker(index.toString(), isolate);
-        workers.add(w);
-        isolate.addOnExitListener(w.exitHandler.sendPort);
-        isolate.addErrorListener(w.errorHandler.sendPort);
+      workersPaths.forEach((String path) {
+        if(path.startsWith("ws://")) {
+          Isolate.spawnUri(proxyUri, [index.toString(), path, workerSourceUri], receivePort.sendPort).then((Isolate isolate) {
+            _Worker w = new _Worker(index.toString(), isolate);
+            workers.add(w);
+          });
+        } else {
+          Isolate.spawnUri(workerSourceUri, [index.toString()], receivePort.sendPort).then((Isolate isolate) {
+            _Worker w = new _Worker(index.toString(), isolate);
+            workers.add(w);
+          });
+        }
       });
-      //print("Spawned $index Worker ");
     }
   }
 
@@ -163,20 +172,7 @@ class _Worker {
   SendPort _sendPort;
   Isolate _isolate;
 
-  ReceivePort exitHandler = new ReceivePort();
-  ReceivePort errorHandler =  new ReceivePort();
-
-  _Worker(this._id, this._isolate) {
-    errorHandler.listen((message) {
-      //TODO: implement
-      print("Exception thrown from isolate $_isolate with message: $message");
-    });
-
-    exitHandler.listen((message) {
-      //TODO: implement
-      //remove this element from list
-    });
-  }
+  _Worker(this._id, this._isolate);
 
   set sendPort(SendPort value) => _sendPort = value;
   get sendPort => _sendPort;
