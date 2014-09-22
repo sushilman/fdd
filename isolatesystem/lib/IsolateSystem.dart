@@ -64,7 +64,7 @@ class IsolateSystem {
       //print ("Event received : ${message[0]}");
       switch(message[0]) {
         case Action.PULL_MESSAGE:
-          //_pullMessage();
+          _pullMessage();
           break;
         case Action.DONE:
           if(message.length > 1) {

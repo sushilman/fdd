@@ -2,6 +2,7 @@ import 'dart:isolate';
 import 'dart:async';
 import 'dart:io' show sleep;
 import 'package:isolatesystem/worker/Worker.dart';
+import 'package:isolatesystem/action/Action.dart';
 import 'dart:math' as Math;
 /**
  * A sample printer isolate
@@ -36,5 +37,8 @@ class PrinterIsolate extends Worker {
     Duration duration = new Duration(seconds: rand);
     print("Printer $id: $text... doing something for $rand seconds");
     sleep(duration);
+
+    //TODO: may be somehow let Worker take care of this DONE action?
+    sendPortOfRouter.send([Action.DONE]);
   }
 }

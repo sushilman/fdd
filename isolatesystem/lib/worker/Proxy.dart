@@ -27,20 +27,19 @@ class Proxy extends Worker {
   SendPort self;
 
   WebSocket ws;
-  String workerSourceUri;
+  Uri workerSourceUri;
 
   /**
    * Need some error prevention here
    * if workerPath is not good websocket uri
    */
   Proxy(List<String> args, SendPort sendPort) : super(args, sendPort) {
-    receivePort = new ReceivePort();
     self = receivePort.sendPort;
 
     String workerPath = args[1];
     workerSourceUri = args[2];
 
-    print("Connecting to webSocket...");
+    print("Proxy: Connecting to webSocket...");
     WebSocket.connect(workerPath).then(handleWebSocket).catchError(onError);
   }
 
@@ -48,7 +47,6 @@ class Proxy extends Worker {
   onReceive(var message) {
     //Serialize and delegate to webSocket
     //TODO: assuming same id is used for the isolate spawned by activator
-
     print("Proxy: Trying to send $message");
     ws.add(JSON.encode([id, message]));
   }
@@ -56,17 +54,16 @@ class Proxy extends Worker {
   void handleWebSocket(WebSocket ws) {
     this.ws = ws;
     if(ws != null && ws.readyState == WebSocket.OPEN) {
-      print("WebSocket Connected !");
+      print("Proxy: WebSocket Connected !");
       sendPortOfRouter.send([id, receivePort.sendPort]);
       // send initialization message
       // SPAWN Isolate on remote location
-      var message = (JSON.encode([Action.SPAWN, workerSourceUri, id]));
+      var message = JSON.encode([Action.SPAWN, workerSourceUri.toString(), id]);
       print("Proxy: $message");
       ws.add(message);
     }
 
     ws.listen(onData);
-
     // send message to self and invoke this
     // ws.add(JSON.encode([Action.SPAWN, workerUri, id]));
     // send spawn messages here?

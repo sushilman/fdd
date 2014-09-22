@@ -29,8 +29,6 @@ class WebSocketServer {
     print('Client connected!');
     webSocket.listen((String s) {
       onData(s);
-      print('Client sent: $s');
-      webSocket.add('echo: $s');
     },
     onDone: () {
       print('Client disconnected');

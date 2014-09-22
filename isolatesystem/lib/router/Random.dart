@@ -60,73 +60,75 @@ class Random implements Router {
   }
 
   _onReceive(var message, ReceivePort receivePort) {
-    //print("Router: $message");
-    if (message is List && message[1] is SendPort) {
-      int id = message[0];
-      SendPort sendPort = message[1];
-      _Worker worker = getWorkerById(id);
-      worker.sendPort = sendPort;
+    print("Router: $message");
+    if (message is List) {
+      if(message.length > 1 && message[1] is SendPort) {
+        int id = message[0];
+        SendPort sendPort = message[1];
+        _Worker worker = getWorkerById(id);
+        worker.sendPort = sendPort;
 
-      /**
-       * TODO: required improvement
-       * Just receiving sendport is not enough for remote isolates
-       * because it goes through proxy isolate
-       * and router gets sendPort from proxy isolate first
-       * so make use of READY event/action would be better
-       */
-      if(workers.length == workersCount) {
-        sendPortOfController.send([Action.READY]);
+        /**
+         * TODO: required improvement
+         * Just receiving sendport is not enough for remote isolates
+         * because it goes through proxy isolate
+         * and router gets sendPort from proxy isolate first
+         * so make use of READY event/action would be better
+         */
+        if(workers.length == workersCount) {
+          sendPortOfController.send([Action.READY]);
+        }
+        //TODO: deprecated
+        //workersSendPorts.add(message);
+      } else {
+        switch (message[0]) {
+          case Action.SPAWN:
+          // TODO: spawn isolate, may be?
+            break;
+          case Action.DONE:
+            sendPortOfController.send(message);
+            break;
+          default:
+            print("RandomRouter: Unknown Action: ${message[0]}");
+            break;
+        }
       }
-      //TODO: deprecated
-      //workersSendPorts.add(message);
     } else if (message is String) {
       //just select and forward the message
+      //TODO: check if worker is alive?
+      // remove if not alive
       _Worker w = selectWorker();
-
-      //w.isAlive().then((alive) {
-      //  if(alive){
-          w.sendPort.send(message);
-      //  } else {
-      //   removeWorker(w);
-          //spawn new worker?
-      //  }
-      //});
-    } else if (message is List) {
-      switch(message[0]) {
-        case Action.SPAWN:
-          // TODO: spawn isolate, may be?
-          break;
-        case Action.DONE:
-          sendPortOfController.send(message);
-          break;
-        default:
-          print("RandomRouter: Unknown Action: ${message[0]}");
-          break;
-      }
+      print("Sending message: $message to ${w.id}");
+      w.sendPort.send(message);
     }
   }
 
   spawnWorkers(ReceivePort receivePort, Uri workerSourceUri, int workersCount) {
-    //TODO if remote location then spawn not WorkerSourceUri but Proxy.dart
+    //TODO: if remote location then spawn – not WorkerSourceUri but Proxy.dart
     // and pass workerSourceUri to it as an argument
     //print ("Spawning $workersCount workers of $workerSourceUri");
     Uri proxyUri = Uri.parse("/Users/sushil/fdd/isolatesystem/lib/worker/Proxy.dart");
-    for(int index = 0; index < workersCount; index++) {
-      //print("Spawning... $index");
-      workersPaths.forEach((String path) {
-        if(path.startsWith("ws://")) {
-          Isolate.spawnUri(proxyUri, [index.toString(), path, workerSourceUri], receivePort.sendPort).then((Isolate isolate) {
-            _Worker w = new _Worker(index.toString(), isolate);
-            workers.add(w);
-          });
-        } else {
-          Isolate.spawnUri(workerSourceUri, [index.toString()], receivePort.sendPort).then((Isolate isolate) {
-            _Worker w = new _Worker(index.toString(), isolate);
-            workers.add(w);
-          });
-        }
-      });
-    }
+
+    //TODO: just a temporary id
+    int index = 0;
+    //print("Spawning... $index");
+    //TODO: FIX bug. For loop changed to forEach, sth is wrong
+    workersPaths.forEach((String path) {
+      if(path.startsWith("ws://")) {
+        Isolate.spawnUri(proxyUri, [index.toString(), path, workerSourceUri], receivePort.sendPort).then((Isolate isolate) {
+          _Worker w = new _Worker(index.toString(), isolate);
+          workers.add(w);
+          index++;
+        });
+      } else {
+        Isolate.spawnUri(workerSourceUri, [index.toString()], receivePort.sendPort).then((Isolate isolate) {
+          _Worker w = new _Worker(index.toString(), isolate);
+          workers.add(w);
+          index++;
+        });
+      }
+    });
+
   }
 
   _Worker selectWorker() {
@@ -147,12 +149,16 @@ class Random implements Router {
 
   _Worker getWorkerById(int id) {
     _Worker selectedWorker = null;
+    workers.forEach((worker){
+      print("${worker.id}");
+    });
+
+    print("Reqd. id : $id");
     workers.forEach((worker) {
       if(worker.id == id) {
         selectedWorker = worker;
       }
     });
-
     //(selectedWorker == null) ? print("RETURNING NULL") : print("returning good worker");
     return selectedWorker;
   }
@@ -161,18 +167,19 @@ class Random implements Router {
     workers.remove(w);
   }
 
-  //TODO: call when Isolate ends
-  onExit() {
-    // remove the from list or workers
-  }
 }
 
+/**
+ * Simply a custom data type
+ */
 class _Worker {
   String _id;
   SendPort _sendPort;
   Isolate _isolate;
 
-  _Worker(this._id, this._isolate);
+  _Worker(this._id, this._isolate) {
+    print ("_Worker: worker with $id created");
+  }
 
   set sendPort(SendPort value) => _sendPort = value;
   get sendPort => _sendPort;

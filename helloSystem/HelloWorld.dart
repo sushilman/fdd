@@ -14,14 +14,8 @@ class HelloWorld {
     String workerUri = "${dirname(Platform.script.toString())}/PrinterIsolate.dart";
     print (workerUri);
 
-    /*
-    List<String> workersPaths = [
-    "localhost"
-    ];
-    */
-
-    List<String> workersPaths = [
-        "ws://localhost:42042/activator"];
+    List<String> workersPaths = ["localhost", "localhost"];
+    //List<String> workersPaths = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
 
     int workersCount = workersPaths.length;
 

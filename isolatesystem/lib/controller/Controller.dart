@@ -48,7 +48,7 @@ class Controller {
   }
 
   _onReceive(var message) {
-    //print("Controller: $message");
+    print("Controller: $message");
     if(message is SendPort) {
       routerSendPort = message;
     } else if (message is List) {
