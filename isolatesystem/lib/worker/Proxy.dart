@@ -7,11 +7,9 @@ import 'dart:isolate';
 import '../action/Action.dart';
 import 'Worker.dart';
 
-import 'dart:io' show sleep;
 /**
  * Receives message from router and sends it via webSocket to respective activator
  */
-
 main(List<String> args, SendPort sendPort) {
   print("Proxy Isolate: $args");
   Proxy proxy = new Proxy(args, sendPort);
@@ -19,9 +17,8 @@ main(List<String> args, SendPort sendPort) {
 
 /**
  * TODO:
- * One idea is not to reply with sendPort immediately (override default behavior of Worker class)
- * send the sendPort only after webSocket connection has been established
- * or the remote isolate has been spawned
+ * Handle when the server connection is lost (or server is shutdown)
+ *
  */
 class Proxy extends Worker {
   SendPort self;
@@ -55,7 +52,6 @@ class Proxy extends Worker {
     this.ws = ws;
     if(ws != null && ws.readyState == WebSocket.OPEN) {
       print("Proxy: WebSocket Connected !");
-      sendPortOfRouter.send([id, receivePort.sendPort]);
       // send initialization message
       // SPAWN Isolate on remote location
       var message = JSON.encode([Action.SPAWN, workerSourceUri.toString(), id]);
@@ -73,7 +69,14 @@ class Proxy extends Worker {
     // Deserialize and send to router
     print("Response from Activator: $message");
     message = isJsonString(message) ? JSON.decode(message) : message;
-    sendPortOfRouter.send(message);
+
+    if(message is List && message.length > 1 && message[1] == Action.READY) {
+      print("READY message sent");
+      //TODO: send this only after receiving READY message
+      sendPortOfRouter.send([message[0], receivePort.sendPort]);
+    } else {
+      sendPortOfRouter.send(message);
+    }
   }
 
   void onError(var message) {

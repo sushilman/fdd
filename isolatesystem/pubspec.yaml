@@ -1,1 +1,3 @@
 name: isolatesystem
+dependencies:
+  uuid: 0.4.0

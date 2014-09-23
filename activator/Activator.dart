@@ -11,7 +11,7 @@ import 'package:isolatesystem/action/Action.dart';
  *
  * Default address is ws://<ip>:42042/activator
  *
- * Spwans isolates that are in the vm where activator is running
+ * Spawns isolates that are in the vm where activator is running
  * or spawns an (controller?) isolate for a physical vm
  *
  * How to separate between physical vm and logical system
@@ -53,11 +53,11 @@ class Activator {
    */
   _onReceive(var message) {
     print("Activator: message received from isolate -> $message");
-    if(message[1] is SendPort) {
+    if(message.length > 1 && message[1] is SendPort) {
       String id = message[0];
       getIsolateById(id).sendPort = message[1];
       print("Adding sendport to $id");
-      wss.send(JSON.encode([Action.DONE]));
+      wss.send(JSON.encode([id, Action.READY]));
     } else {
       wss.send(JSON.encode(message));
     }
@@ -91,12 +91,17 @@ class Activator {
   }
 
   forward(String id, var message) {
+    //try {
     getIsolateById(id).sendPort.send(message);
+    //} catch (e) {
+    //  print("Error: $e");
+    // }
   }
 
   _Isolate getIsolateById(String id) {
     _Isolate selectedIsolate = null;
     isolates.forEach((isolate) {
+      print("Activator: ${isolate.id} vs $id");
       if(isolate.id == id) {
         selectedIsolate = isolate;
       }

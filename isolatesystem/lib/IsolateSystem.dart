@@ -83,7 +83,7 @@ class IsolateSystem {
   }
 
   _spawnController(String routerUri, String workerUri, int workersCount, String workersPaths) {
-    Isolate.spawnUri(Uri.parse('packages/isolatesystem/controller/Controller.dart'), [routerUri, workerUri, workersCount.toString(), workersPaths], receivePort.sendPort)
+    Isolate.spawnUri(Uri.parse('file:///Users/sushil/fdd/isolatesystem/lib/controller/Controller.dart'), [routerUri, workerUri, workersCount.toString(), workersPaths], receivePort.sendPort)
     .then((controller){
       controllerIsolate = controller;
     });

@@ -11,15 +11,19 @@ class HelloWorld {
     //Uri helloIsolate = new Uri.file("PrinterIsolate.dart");
     String routerUri = "../router/Random.dart";
 
-    String workerUri = "${dirname(Platform.script.toString())}/PrinterIsolate.dart";
-    print (workerUri);
+    String printerWorkerUri = "${dirname(Platform.script.toString())}/PrinterIsolate.dart";
+    print (printerWorkerUri);
 
-    List<String> workersPaths = ["localhost", "localhost"];
-    //List<String> workersPaths = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
+    String helloWorldWorkerUri = "${dirname(Platform.script.toString())}/HelloPrinter.dart";
+    print (helloWorldWorkerUri);
+
+    //List<String> workersPaths = ["localhost", "localhost"];
+    List<String> workersPaths = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
 
     int workersCount = workersPaths.length;
 
-    IsolateSystem system = new IsolateSystem(workerUri, workersCount, workersPaths, routerUri); //"HelloSystem", helloIsolate, new Random(), 5
+    IsolateSystem system = new IsolateSystem(printerWorkerUri, workersCount, workersPaths, routerUri); //"HelloSystem", helloIsolate, new Random(), 5
+    IsolateSystem system2 = new IsolateSystem(helloWorldWorkerUri, workersCount, workersPaths, routerUri);
   }
 }
 

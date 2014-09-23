@@ -7,7 +7,7 @@ class WebSocketServer {
   WebSocketServer(int port, String path, void onData(var message)) {
     HttpServer.bind(InternetAddress.ANY_IP_V4, port).then((HttpServer server) {
       print("HttpServer listening...");
-      server.serverHeader = "EchoServer";
+      server.serverHeader = "ActivatorServer";
       server.listen((HttpRequest request) {
         print('listening on $path \n request on ' + request.uri.toString());
         if(request.uri.path == path) {

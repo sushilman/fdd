@@ -6,6 +6,7 @@ import 'Router.dart';
 import '../action/Action.dart';
 import 'dart:math' as Math;
 import 'dart:convert';
+import 'package:uuid/uuid.dart';
 
 /**
  * http://doc.akka.io/docs/akka/snapshot/scala/routing.html
@@ -63,10 +64,11 @@ class Random implements Router {
     print("Router: $message");
     if (message is List) {
       if(message.length > 1 && message[1] is SendPort) {
-        int id = message[0];
+        String id = message[0];
         SendPort sendPort = message[1];
         _Worker worker = getWorkerById(id);
         worker.sendPort = sendPort;
+        print("Router: sendport added for $id");
 
         /**
          * TODO: required improvement
@@ -75,7 +77,8 @@ class Random implements Router {
          * and router gets sendPort from proxy isolate first
          * so make use of READY event/action would be better
          */
-        if(workers.length == workersCount) {
+        if(areAllWorkersReady()) {
+          print("### All wokers are ready !! ###");
           sendPortOfController.send([Action.READY]);
         }
         //TODO: deprecated
@@ -109,26 +112,27 @@ class Random implements Router {
     //print ("Spawning $workersCount workers of $workerSourceUri");
     Uri proxyUri = Uri.parse("/Users/sushil/fdd/isolatesystem/lib/worker/Proxy.dart");
 
-    //TODO: just a temporary id
-    int index = 0;
+    //TODO: increase robustness by assigning (better + unique) or user-defined id
+    //int index = 0;
     //print("Spawning... $index");
-    //TODO: FIX bug. For loop changed to forEach, sth is wrong
-    workersPaths.forEach((String path) {
+    var uuid = new Uuid();
+    // TODO why only 'w' in id???
+    for (int index = 0; index < workersPaths.length; index++) {
+      String path = workersPaths[index];
+      print("Random: path $path");
       if(path.startsWith("ws://")) {
-        Isolate.spawnUri(proxyUri, [index.toString(), path, workerSourceUri], receivePort.sendPort).then((Isolate isolate) {
-          _Worker w = new _Worker(index.toString(), isolate);
+        Isolate.spawnUri(proxyUri, [uuid.v1(), path, workerSourceUri], receivePort.sendPort).then((Isolate isolate) {
+          _Worker w = new _Worker(path + index.toString(), isolate);
           workers.add(w);
-          index++;
         });
       } else {
-        Isolate.spawnUri(workerSourceUri, [index.toString()], receivePort.sendPort).then((Isolate isolate) {
-          _Worker w = new _Worker(index.toString(), isolate);
+        Isolate.spawnUri(workerSourceUri, [uuid.v1()], receivePort.sendPort).then((Isolate isolate) {
+          _Worker w = new _Worker(path + index.toString(), isolate);
           workers.add(w);
-          index++;
         });
       }
-    });
 
+    }
   }
 
   _Worker selectWorker() {
@@ -140,6 +144,28 @@ class Random implements Router {
     return workers[randomInt];
   }
 
+  bool areAllWorkersReady() {
+    print("Are all workers ready? ${workers.length} vs $workersCount");
+
+    if(workers.length != workersCount) {
+      return false;
+    }
+
+    for(int i = 0; i < workers.length; i++) {
+      _Worker worker = workers[i];
+      try {
+        if(worker.sendPort == null) {
+          print("Returning false");
+          return false;
+        }
+      } catch (e) {
+        print("Error $e -> returning false");
+        return false;
+      }
+    }
+    return true;
+  }
+
   /**
    * Checks if the isolate with given sendport is free
    *
@@ -147,10 +173,10 @@ class Random implements Router {
    * send sendports of isolates to this monitoring isolate so that it can ping and forward action?
    */
 
-  _Worker getWorkerById(int id) {
+  _Worker getWorkerById(String id) {
     _Worker selectedWorker = null;
     workers.forEach((worker){
-      print("${worker.id}");
+      print("WorkerId: ${worker.id}");
     });
 
     print("Reqd. id : $id");

@@ -9,13 +9,13 @@ import 'dart:math' as Math;
  */
 main(List<String> args, SendPort sendPort) {
   //print ("Printer Isolate started...");
-  PrinterIsolate printerIsolate = new PrinterIsolate(args, sendPort);
+  HelloPrinter printerIsolate = new HelloPrinter(args, sendPort);
 }
 
-class PrinterIsolate extends Worker {
+class HelloPrinter extends Worker {
   int counter = 0;
 
-  PrinterIsolate(List<String> args, SendPort sendPortOfRouter) : super(args, sendPortOfRouter) {
+  HelloPrinter(List<String> args, SendPort sendPortOfRouter) : super(args, sendPortOfRouter) {
     sendPortOfRouter.send([id, receivePort.sendPort]);
   }
 
@@ -33,9 +33,9 @@ class PrinterIsolate extends Worker {
    * which might take varied amount of time to complete
    */
   outText(String text) {
-    int rand = new Math.Random().nextInt(5);
+    int rand = new Math.Random().nextInt(10);
     Duration duration = new Duration(seconds: rand);
-    print("*** Printer $id: $text... doing something for $rand seconds");
+    print("### Hello $id: $text... doing something for $rand seconds");
     sleep(duration);
 
     //TODO: may be somehow let Worker take care of this DONE action?

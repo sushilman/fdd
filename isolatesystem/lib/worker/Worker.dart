@@ -19,7 +19,7 @@ abstract class Worker {
   }
 
   _onReceive(var message) {
-    print("Worker: $message");
+    print("Worker $id: $message");
     // do something and pass it on
     onReceive(message);
     //sendPortOfRouter.send([Action.DONE, "My message here"]);
