@@ -6,6 +6,8 @@ import 'action/Action.dart';
 import 'router/Random.dart';
 import 'dart:math' as Math;
 import 'dart:convert';
+import 'dart:io';
+import 'package:path/path.dart' show dirname;
 
 
 /**
@@ -83,7 +85,9 @@ class IsolateSystem {
   }
 
   _spawnController(String routerUri, String workerUri, int workersCount, String workersPaths) {
-    Isolate.spawnUri(Uri.parse('file:///Users/sushil/fdd/isolatesystem/lib/controller/Controller.dart'), [routerUri, workerUri, workersCount.toString(), workersPaths], receivePort.sendPort)
+    String curDir = dirname(Platform.script.toString());
+    String controllerUri = curDir + "/packages/isolatesystem/controller/Controller.dart";
+    Isolate.spawnUri(Uri.parse(controllerUri), [routerUri, workerUri, workersCount.toString(), workersPaths], receivePort.sendPort)
     .then((controller){
       controllerIsolate = controller;
     });

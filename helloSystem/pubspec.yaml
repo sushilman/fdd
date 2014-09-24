@@ -1,6 +1,5 @@
 name: helloSystem
 dependencies:
-  path: any
-  uuid: 0.4.0
+  #uuid: 0.4.0
   isolatesystem:
     path: ../isolatesystem

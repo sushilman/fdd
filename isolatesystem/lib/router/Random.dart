@@ -121,13 +121,15 @@ class Random implements Router {
       String path = workersPaths[index];
       print("Random: path $path");
       if(path.startsWith("ws://")) {
-        Isolate.spawnUri(proxyUri, [uuid.v1(), path, workerSourceUri], receivePort.sendPort).then((Isolate isolate) {
-          _Worker w = new _Worker(path + index.toString(), isolate);
+        String id = uuid.v1();
+        Isolate.spawnUri(proxyUri, [id, path, workerSourceUri], receivePort.sendPort).then((Isolate isolate) {
+          _Worker w = new _Worker(id, isolate);
           workers.add(w);
         });
       } else {
-        Isolate.spawnUri(workerSourceUri, [uuid.v1()], receivePort.sendPort).then((Isolate isolate) {
-          _Worker w = new _Worker(path + index.toString(), isolate);
+        String id = uuid.v1();
+        Isolate.spawnUri(workerSourceUri, [id], receivePort.sendPort).then((Isolate isolate) {
+          _Worker w = new _Worker(id, isolate);
           workers.add(w);
         });
       }
