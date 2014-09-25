@@ -33,7 +33,7 @@ class HelloPrinter extends Worker {
    * which might take varied amount of time to complete
    */
   outText(String text) {
-    int rand = new Math.Random().nextInt(10);
+    int rand = new Math.Random().nextInt(5);
     Duration duration = new Duration(seconds: rand);
     print("### Hello $id: $text... doing something for $rand seconds");
     sleep(duration);

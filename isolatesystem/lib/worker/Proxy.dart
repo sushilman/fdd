@@ -70,10 +70,20 @@ class Proxy extends Worker {
     print("Response from Activator: $message");
     message = isJsonString(message) ? JSON.decode(message) : message;
 
-    if(message is List && message.length > 1 && message[1] == Action.READY) {
-      print("READY message sent");
-      //TODO: send this only after receiving READY message
-      sendPortOfRouter.send([message[0], receivePort.sendPort]);
+    if(message is List && message.length > 1) {
+      switch(message[1]) {
+        case Action.READY:
+          print("READY message sent");
+          sendPortOfRouter.send([message[0], receivePort.sendPort]);
+          break;
+        case Action.ERROR:
+          //TODO: end isolate: close sendport, disconnect websocket
+          kill();
+          break;
+        default:
+          sendPortOfRouter.send(message);
+          break;
+      }
     } else {
       sendPortOfRouter.send(message);
     }
@@ -81,6 +91,14 @@ class Proxy extends Worker {
 
   void onError(var message) {
     print('Not connected: $message');
+  }
+
+  void kill() {
+    sendPortOfRouter.send([Action.KILLED, id]);
+    ws.close().then((value) {
+      print("Proxy: WebSocket connection with activator is now closed.");
+    });
+    receivePort.close();
   }
 
   bool isJsonString(var string) {

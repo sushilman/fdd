@@ -91,6 +91,11 @@ class Random implements Router {
           case Action.DONE:
             sendPortOfController.send(message);
             break;
+          case Action.KILLED:
+            print("Isolate has been killed!");
+            String id = message[1];
+            workers.remove(getWorkerById(id));
+            break;
           default:
             print("RandomRouter: Unknown Action: ${message[0]}");
             break;

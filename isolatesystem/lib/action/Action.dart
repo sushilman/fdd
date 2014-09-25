@@ -9,4 +9,7 @@ class Action {
 
   // When isolate spawning has been completed and now it is ready to accept action
   static const String READY = "READY";
+
+  static const String ERROR = "ERROR";
+  static const String KILLED = "KILLED";
 }

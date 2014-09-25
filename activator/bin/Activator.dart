@@ -25,7 +25,7 @@ import 'package:isolatesystem/action/Action.dart';
  *  2. Kill/ping an isolate
  *  3. Forward messages to proper isolate
  *
- * //TODO: ** the ID of each isolate should be unique and based on the id provided by router **
+ * //TODO: Make Activator robust. Must continue running, should not shutdown because of some exception !
  */
 class Activator {
   ReceivePort receivePort;
@@ -76,7 +76,7 @@ class Activator {
 
     if(message[0] == Action.SPAWN) {
       String uri = message[1];
-      List<String> args = message[2];
+      List<String> args = [message[2]];
       spawnWorker(uri, args);
     } else { //if (message[0] is String)
       forward(message[0], message[1]);
@@ -87,7 +87,12 @@ class Activator {
     Isolate.spawnUri(Uri.parse(uri), args, receivePort.sendPort).then((isolate) {
       print("Activator: Spawning completed");
       isolates.add(new _Isolate(args[0], isolate));
-    });
+    }, onError:onError);
+  }
+
+  onError(message) {
+    print("Error: could not spawn isolate. Reason: $message");
+    wss.send(JSON.encode([Action.ERROR, "Reason: $message"]));
   }
 
   forward(String id, var message) {
