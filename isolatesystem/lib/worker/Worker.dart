@@ -6,10 +6,10 @@ import '../action/Action.dart';
 
 abstract class Worker {
   ReceivePort receivePort;
-  SendPort sendPortOfRouter;
+  SendPort sendPort;
   String id;
 
-  Worker(List<String> args, this.sendPortOfRouter) {
+  Worker(List<String> args, this.sendPort) {
     id = args[0];
     receivePort = new ReceivePort();
     //sendPortOfRouter.send([id, receivePort.sendPort]);
@@ -39,6 +39,6 @@ abstract class Worker {
   onReceive(var message);
 
   done([var message]) {
-    message != null ? sendPortOfRouter.send([Action.DONE, message]): sendPortOfRouter.send([Action.DONE]);
+    message != null ? sendPort.send([Action.DONE, message]): sendPort.send([Action.DONE]);
   }
 }

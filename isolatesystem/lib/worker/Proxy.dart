@@ -74,18 +74,18 @@ class Proxy extends Worker {
       switch(message[1]) {
         case Action.READY:
           print("READY message sent");
-          sendPortOfRouter.send([message[0], receivePort.sendPort]);
+          sendPort.send([message[0], receivePort.sendPort]);
           break;
         case Action.ERROR:
           //TODO: end isolate: close sendport, disconnect websocket
           kill();
           break;
         default:
-          sendPortOfRouter.send(message);
+          sendPort.send(message);
           break;
       }
     } else {
-      sendPortOfRouter.send(message);
+      sendPort.send(message);
     }
   }
 
@@ -94,7 +94,7 @@ class Proxy extends Worker {
   }
 
   void kill() {
-    sendPortOfRouter.send([Action.KILLED, id]);
+    sendPort.send([Action.KILLED, id]);
     ws.close().then((value) {
       print("Proxy: WebSocket connection with activator is now closed.");
     });

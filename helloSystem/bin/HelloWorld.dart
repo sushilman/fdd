@@ -18,16 +18,16 @@ class HelloWorld {
     //print (helloWorldWorkerUri);
 
     List<String> workersPaths = ["localhost", "localhost"];
-    List<String> workersPaths2 = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
+    //List<String> workersPaths2 = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
 
     int workersCount = workersPaths.length;
-    int workersCount2 = workersPaths2.length;
+    //int workersCount2 = workersPaths2.length;
 
-    //IsolateSystem system = new IsolateSystem(printerWorkerUri, workersCount, workersPaths, routerUri); //"HelloSystem", helloIsolate, new Random(), 5
-    IsolateSystem system2 = new IsolateSystem(helloWorldWorkerUri, workersCount2, workersPaths2, routerUri);
+    IsolateSystem system = new IsolateSystem(printerWorkerUri, workersCount, workersPaths, routerUri, hotDeployment:true); //"HelloSystem", helloIsolate, new Random(), 5
+    //IsolateSystem system2 = new IsolateSystem(helloWorldWorkerUri, workersCount2, workersPaths2, routerUri);
 
-    sleep(const Duration(seconds: 5));
-    IsolateSystem system3 = new IsolateSystem(printerWorkerUri, workersCount2, workersPaths2, routerUri);
+    //sleep(const Duration(seconds: 5));
+    //IsolateSystem system3 = new IsolateSystem(printerWorkerUri, workersCount2, workersPaths2, routerUri);
   }
 }
 

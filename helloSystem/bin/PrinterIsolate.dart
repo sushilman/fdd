@@ -15,15 +15,15 @@ main(List<String> args, SendPort sendPort) {
 class PrinterIsolate extends Worker {
   int counter = 0;
 
-  PrinterIsolate(List<String> args, SendPort sendPortOfRouter) : super(args, sendPortOfRouter) {
-    sendPortOfRouter.send([id, receivePort.sendPort]);
+  PrinterIsolate(List<String> args, SendPort sendPort) : super(args, sendPort) {
+    sendPort.send([id, receivePort.sendPort]);
   }
 
   @override
   onReceive(message) {
     if(message is SendPort) {
       //TODO: use this to save sendports of spawned temporary isolates
-    } else if(message is String) {
+    } else {
       outText(message);
     }
   }
@@ -33,7 +33,7 @@ class PrinterIsolate extends Worker {
    * which might take varied amount of time to complete
    */
   outText(String text) {
-    int rand = new Math.Random().nextInt(1);
+    int rand = new Math.Random().nextInt(5);
     Duration duration = new Duration(seconds: rand);
     print("*** Printer $id: $text... doing something for $rand seconds");
     sleep(duration);

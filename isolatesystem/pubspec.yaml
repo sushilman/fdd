@@ -2,3 +2,4 @@ name: isolatesystem
 dependencies:
   path: any
   uuid: 0.4.0
+  crypto: any

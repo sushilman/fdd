@@ -15,8 +15,8 @@ main(List<String> args, SendPort sendPort) {
 class HelloPrinter extends Worker {
   int counter = 0;
 
-  HelloPrinter(List<String> args, SendPort sendPortOfRouter) : super(args, sendPortOfRouter) {
-    sendPortOfRouter.send([id, receivePort.sendPort]);
+  HelloPrinter(List<String> args, SendPort sendPort) : super(args, sendPort) {
+    sendPort.send([id, receivePort.sendPort]);
   }
 
   @override

@@ -25,14 +25,22 @@ class IsolateSystem {
   SendPort self;
 
   Isolate controllerIsolate;
+  Isolate fileMonitorIsolate;
+  bool hotDeployment = false;
+
+  String workerUri;
 
   int counter = 0;
 
-  IsolateSystem(String workerUri, int workersCount, List<String> workersPaths, String routerUri) {
+  IsolateSystem(String this.workerUri, int workersCount, List<String> workersPaths, String routerUri, {hotDeployment:false}) {
     receivePort = new ReceivePort();
     self = receivePort.sendPort;
 
     _spawnController(routerUri, workerUri, workersCount, JSON.encode(workersPaths));
+
+    if(hotDeployment) {
+      _spawnFileMonitor();
+    }
 
     receivePort.listen((message) {
       _onReceive(message);
@@ -70,6 +78,14 @@ class IsolateSystem {
     Isolate.spawnUri(Uri.parse(controllerUri), [routerUri, workerUri, workersCount.toString(), workersPaths], receivePort.sendPort)
     .then((controller){
       controllerIsolate = controller;
+    });
+  }
+
+  _spawnFileMonitor() {
+    String curDir = dirname(Platform.script.toString());
+    Uri fileMonitorUri = Uri.parse(curDir + "/packages/isolatesystem/src/FileMonitor.dart");
+    Isolate.spawnUri(fileMonitorUri, ["fileMonitor", workerUri],receivePort.sendPort).then((monitor) {
+      fileMonitorIsolate = monitor;
     });
   }
 
