@@ -4,20 +4,18 @@ import 'dart:async';
 import 'dart:isolate';
 import 'action/Action.dart';
 import 'router/Random.dart';
-import 'dart:math' as Math;
 import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' show dirname;
 
 
 /**
- * Will be spawned/started by Activator?
- *
  * This can probably be merged with controller?
+ * Or is it better to separate?
  */
 
 /**
- * Controller will send a pull request
+ * Controller sends a pull request
  * after which, a message is fetched using messageQueuingSystem
  * from appropriate queue and sent to the controller
  */
@@ -34,36 +32,18 @@ class IsolateSystem {
     receivePort = new ReceivePort();
     self = receivePort.sendPort;
 
-    /**
-     * These values may be in some configuration file or can be passed as a message/argument during initialization
-     */
-//    String routerUri = "router/Random.dart";
-//    String workerUri = "../helloSystem/PrinterIsolate.dart";
-//    int workersCount = 5;
-
     _spawnController(routerUri, workerUri, workersCount, JSON.encode(workersPaths));
 
     receivePort.listen((message) {
       _onReceive(message);
     });
-
-    /**
-     * Test code that sends message to isolate
-     */
-    int counter = 0;
-//    new Timer.periodic(const Duration(milliseconds: 100), (t) {
-//      sendPort.send('Print me: ${counter++}');
-//      print ("Sending $counter");
-//    });
   }
 
   _onReceive(message) {
     //print("IsolateSystem: $message");
     if(message is SendPort) {
       sendPort = message;
-      //sendPort.send(Messages.createEvent(Action.SPAWN, {"router":"router/Random.dart", "count" : "5"}));
     } else if (message is List) {
-      //print ("Event received : ${message[0]}");
       switch(message[0]) {
         case Action.PULL_MESSAGE:
           _pullMessage();
@@ -93,13 +73,16 @@ class IsolateSystem {
     });
   }
 
+  /**
+   * Pulls message from MessageQueuingSystem over websocket connection
+   */
   _pullMessage() {
     // TODO: pull message from appropriate queue from MessageQueuingSystem
     // something like messageQueuingSystem.send(message)
     // then send to sendPort of controller
     // sendPort.send(newMessage);
     //
-    self.send("Simple message #${counter++}, ${new Math.Random().nextInt(99999)}");
+    self.send("Simple message #${counter++}");
   }
 
   _prepareResponse(var message) {

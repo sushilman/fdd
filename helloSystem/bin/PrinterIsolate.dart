@@ -37,8 +37,6 @@ class PrinterIsolate extends Worker {
     Duration duration = new Duration(seconds: rand);
     print("*** Printer $id: $text... doing something for $rand seconds");
     sleep(duration);
-
-    //TODO: may be somehow let Worker take care of this DONE action?
-    sendPortOfRouter.send([Action.DONE]);
+    done();
   }
 }
