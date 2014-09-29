@@ -40,6 +40,7 @@ class Random implements Router {
   List<_Worker> workers;
   int workersCount;
   List<String> workersPaths;
+  Uri workerSourceUri;
 
   Random(List<String> args, this.sendPortOfController) {
     receivePort = new ReceivePort();
@@ -47,10 +48,10 @@ class Random implements Router {
     workers = new List<_Worker>();
     sendPortOfController.send(receivePort.sendPort);
 
-    Uri workerSourceUri = Uri.parse(args[0]);
+    workerSourceUri = Uri.parse(args[0]);
     workersCount = int.parse(args[1]);
     workersPaths = JSON.decode(args[2]);
-    print("Paths : $workersPaths");
+    //print("Paths : $workersPaths");
 
     spawnWorkers(receivePort, workerSourceUri, workersCount);
 
@@ -68,7 +69,7 @@ class Random implements Router {
         SendPort sendPort = message[1];
         _Worker worker = getWorkerById(id);
         worker.sendPort = sendPort;
-        print("Router: sendport added for $id");
+        //print("Router: sendport added for $id");
 
         /**
          * TODO: required improvement
@@ -78,7 +79,7 @@ class Random implements Router {
          * so make use of READY event/action would be better
          */
         if(areAllWorkersReady()) {
-          print("### All wokers are ready !! ###");
+          //print("### All wokers are ready !! ###");
           sendPortOfController.send([Action.READY]);
         }
         //TODO: deprecated
@@ -91,13 +92,44 @@ class Random implements Router {
           case Action.DONE:
             sendPortOfController.send(message);
             break;
+          case Action.KILL:
+            String id = message[1];
+            getWorkerById(id).sendPort.send([Action.KILL]);
+            workers.remove(id);
+            break;
+          case Action.RESTART:
+            String id = message[1];
+            _restart(id);
+            break;
+          case Action.KILL_ALL:
+            _killAll();
+            break;
+          case Action.RESTART_ALL:
+            _restartAll();
+            break;
           case Action.KILLED:
-            print("Isolate has been killed!");
+            //print("Isolate has been killed!");
             String id = message[1];
             workers.remove(getWorkerById(id));
             break;
+          case Action.RESTARTING:
+            String id = message[1];
+            _Worker worker = getWorkerById(id);
+            String path = worker.path;
+            workers.remove(worker);
+            //TODO: Refactor
+            Uuid uuid = new Uuid();
+            String newid = uuid.v1();
+            Isolate.spawnUri(workerSourceUri, [newid], receivePort.sendPort).then((Isolate isolate) {
+              _Worker w = new _Worker(id, path, isolate);
+              workers.add(w);
+            });
+            break;
           default:
-            print("RandomRouter: Unknown Action: ${message[0]}");
+            //print("RandomRouter: Unknown Action: ${message[0]}");
+            _Worker w = selectWorker();
+            //print("Sending message: $message to ${w.id}");
+            w.sendPort.send(message);
             break;
         }
       }
@@ -106,7 +138,7 @@ class Random implements Router {
       //TODO: check if worker is alive?
       // remove if not alive
       _Worker w = selectWorker();
-      print("Sending message: $message to ${w.id}");
+      //print("Sending message: $message to ${w.id}");
       w.sendPort.send(message);
     }
   }
@@ -124,23 +156,47 @@ class Random implements Router {
     // TODO why only 'w' in id???
     for (int index = 0; index < workersPaths.length; index++) {
       String path = workersPaths[index];
-      print("Random: path $path");
+      //print("Random: path $path");
       if(path.startsWith("ws://")) {
         String id = uuid.v1();
         Isolate.spawnUri(proxyUri, [id, path, workerSourceUri], receivePort.sendPort).then((Isolate isolate) {
-          _Worker w = new _Worker(id, isolate);
+          _Worker w = new _Worker(id, path, isolate);
           workers.add(w);
         });
       } else {
         String id = uuid.v1();
         Isolate.spawnUri(workerSourceUri, [id], receivePort.sendPort).then((Isolate isolate) {
-          _Worker w = new _Worker(id, isolate);
+          _Worker w = new _Worker(id, path, isolate);
           workers.add(w);
         });
       }
-
     }
   }
+
+  _restart(String id) {
+    getWorkerById(id).sendPort.send([Action.RESTART]);
+    workers.remove(id);
+  }
+
+  _restartAll() {
+    workers.forEach((worker) {
+      worker.sendPort.send([Action.RESTART]);
+    });
+    workers.clear();
+  }
+
+  _kill(String id) {
+    getWorkerById(id).sendPort.send([Action.KILL]);
+    workers.remove(id);
+  }
+
+  _killAll() {
+    workers.forEach((worker) {
+      worker.sendPort.send([Action.KILL]);
+    });
+    workers.clear();
+  }
+
 
   _Worker selectWorker() {
     Math.Random random = new Math.Random();
@@ -152,7 +208,7 @@ class Random implements Router {
   }
 
   bool areAllWorkersReady() {
-    print("Are all workers ready? ${workers.length} vs $workersCount");
+    //print("Are all workers ready? ${workers.length} vs $workersCount");
 
     if(workers.length != workersCount) {
       return false;
@@ -162,11 +218,11 @@ class Random implements Router {
       _Worker worker = workers[i];
       try {
         if(worker.sendPort == null) {
-          print("Returning false");
+          //print("Returning false");
           return false;
         }
       } catch (e) {
-        print("Error $e -> returning false");
+        //print("Error $e -> returning false");
         return false;
       }
     }
@@ -183,10 +239,10 @@ class Random implements Router {
   _Worker getWorkerById(String id) {
     _Worker selectedWorker = null;
     workers.forEach((worker){
-      print("WorkerId: ${worker.id}");
+      //print("WorkerId: ${worker.id}");
     });
 
-    print("Reqd. id : $id");
+    //print("Reqd. id : $id");
     workers.forEach((worker) {
       if(worker.id == id) {
         selectedWorker = worker;
@@ -209,9 +265,10 @@ class _Worker {
   String _id;
   SendPort _sendPort;
   Isolate _isolate;
+  String _path;
 
-  _Worker(this._id, this._isolate) {
-    print ("_Worker: worker with $id created");
+  _Worker(this._id, this._path, this._isolate) {
+    //print ("_Worker: worker with $id created");
   }
 
   set sendPort(SendPort value) => _sendPort = value;
@@ -222,6 +279,9 @@ class _Worker {
 
   set id(String value) => _id = value;
   get id => _id;
+
+  set path(String value) => _path = value;
+  get path => _path;
 
   //TODO: make use of control port instead of ping() method?
   Future<bool> isAlive() {

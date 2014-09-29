@@ -93,6 +93,7 @@ class Proxy extends Worker {
     print('Not connected: $message');
   }
 
+  @override
   void kill() {
     sendPort.send([Action.KILLED, id]);
     ws.close().then((value) {

@@ -48,7 +48,7 @@ class Controller {
   }
 
   _onReceive(var message) {
-    print("Controller: $message");
+    //print("Controller: $message");
     if(message is SendPort) {
       routerSendPort = message;
     } else if (message is List) {
@@ -71,6 +71,9 @@ class Controller {
           }
 
           sendPortOfIsolateSystem.send([Action.PULL_MESSAGE]);
+          break;
+        case Action.RESTART_ALL:
+          routerSendPort.send(message);
           break;
         default:
           print ("Controller: Unknown Action ${message[0]}");

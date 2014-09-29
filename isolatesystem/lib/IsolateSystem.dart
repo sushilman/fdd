@@ -61,6 +61,9 @@ class IsolateSystem {
             _prepareResponse(message);
           }
           break;
+        case Action.RESTART_ALL:
+          sendPort.send(message);
+          break;
         default:
           print("IsolateSystem: Unknown Action: ${message[0]}");
           break;
@@ -76,7 +79,7 @@ class IsolateSystem {
     String curDir = dirname(Platform.script.toString());
     String controllerUri = curDir + "/packages/isolatesystem/controller/Controller.dart";
     Isolate.spawnUri(Uri.parse(controllerUri), [routerUri, workerUri, workersCount.toString(), workersPaths], receivePort.sendPort)
-    .then((controller){
+    .then((controller) {
       controllerIsolate = controller;
     });
   }

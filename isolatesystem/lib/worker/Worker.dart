@@ -21,7 +21,19 @@ abstract class Worker {
   _onReceive(var message) {
     print("Worker $id: $message");
     // do something and pass it on
-    onReceive(message);
+    if(message is List) {
+      switch(message[0]) {
+        case Action.KILL:
+          kill();
+          break;
+        case Action.RESTART:
+          restart();
+          break;
+      }
+
+    } else {
+      onReceive(message);
+    }
     /**
      * Enabling DONE here creates issues with Proxy Isolate
      * Because, proxy isolate further via websocket spawns another isolate which is also a child of Worker
@@ -40,5 +52,15 @@ abstract class Worker {
 
   done([var message]) {
     message != null ? sendPort.send([Action.DONE, message]): sendPort.send([Action.DONE]);
+  }
+
+  void kill() {
+    sendPort.send([Action.KILLED, id]);
+    receivePort.close();
+  }
+
+  void restart() {
+    sendPort.send([Action.RESTARTING, id]);
+    receivePort.close();
   }
 }

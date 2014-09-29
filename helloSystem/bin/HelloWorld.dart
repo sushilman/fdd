@@ -12,12 +12,14 @@ class HelloWorld {
     String routerUri = "../router/Random.dart";
 
     String printerWorkerUri = "${dirname(Platform.script.toString())}/PrinterIsolate.dart";
+    //String printerWorkerUri = "http://127.0.0.1:8080/bin/PrinterIsolate.dart";
     print (printerWorkerUri);
 
     String helloWorldWorkerUri = "${dirname(Platform.script.toString())}/HelloPrinter1.dart";
     //print (helloWorldWorkerUri);
 
-    List<String> workersPaths = ["localhost", "localhost"];
+    List<String> workersPaths = ["localhost"];
+    //List<String> workersPaths = ["ws://192.168.2.69:42042/activator", "ws://192.168.2.69:42042/activator"];
     //List<String> workersPaths2 = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
 
     int workersCount = workersPaths.length;
