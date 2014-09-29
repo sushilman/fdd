@@ -67,23 +67,27 @@ class Random implements Router {
       if(message.length > 1 && message[1] is SendPort) {
         String id = message[0];
         SendPort sendPort = message[1];
+
         _Worker worker = getWorkerById(id);
-        worker.sendPort = sendPort;
+        //TODO: create worker object only after receiving sendport message from the isolate
+        //temporarily store other variables before creating isolate,
+        // somewhere according to id and access it here
+
+        if(worker == null) {
+          _Worker w = new _Worker(id, "path", null);
+          workers.add(w);
+          w.sendPort = sendPort;
+          print("Adding worker");
+          sendPortOfController.send([Action.DONE]);
+        } else {
+          worker.sendPort = sendPort;
+        }
         //print("Router: sendport added for $id");
 
-        /**
-         * TODO: required improvement
-         * Just receiving sendport is not enough for remote isolates
-         * because it goes through proxy isolate
-         * and router gets sendPort from proxy isolate first
-         * so make use of READY event/action would be better
-         */
         if(areAllWorkersReady()) {
           //print("### All wokers are ready !! ###");
           sendPortOfController.send([Action.READY]);
         }
-        //TODO: deprecated
-        //workersSendPorts.add(message);
       } else {
         switch (message[0]) {
           case Action.SPAWN:
@@ -116,14 +120,16 @@ class Random implements Router {
             String id = message[1];
             _Worker worker = getWorkerById(id);
             String path = worker.path;
-            workers.remove(worker);
+            print(workers.remove(worker));
+            print("After removal : ${workers.length}");
             //TODO: Refactor
             Uuid uuid = new Uuid();
-            String newid = uuid.v1();
-            Isolate.spawnUri(workerSourceUri, [newid], receivePort.sendPort).then((Isolate isolate) {
-              _Worker w = new _Worker(id, path, isolate);
-              workers.add(w);
-            });
+            String newId = uuid.v1();
+            Isolate.spawnUri(workerSourceUri, [newId], receivePort.sendPort);
+//            .then((Isolate isolate) {
+//              //_Worker w = new _Worker(id, path, isolate);
+//              //workers.add(w);
+//            });
             break;
           default:
             //print("RandomRouter: Unknown Action: ${message[0]}");
@@ -144,16 +150,9 @@ class Random implements Router {
   }
 
   spawnWorkers(ReceivePort receivePort, Uri workerSourceUri, int workersCount) {
-    //TODO: if remote location then spawn – not WorkerSourceUri but Proxy.dart
-    // and pass workerSourceUri to it as an argument
-    //print ("Spawning $workersCount workers of $workerSourceUri");
     Uri proxyUri = Uri.parse("/Users/sushil/fdd/isolatesystem/lib/worker/Proxy.dart");
 
-    //TODO: increase robustness by assigning (better + unique) or user-defined id
-    //int index = 0;
-    //print("Spawning... $index");
     var uuid = new Uuid();
-    // TODO why only 'w' in id???
     for (int index = 0; index < workersPaths.length; index++) {
       String path = workersPaths[index];
       //print("Random: path $path");
@@ -182,7 +181,6 @@ class Random implements Router {
     workers.forEach((worker) {
       worker.sendPort.send([Action.RESTART]);
     });
-    workers.clear();
   }
 
   _kill(String id) {
@@ -204,6 +202,7 @@ class Random implements Router {
     if(workers.length > 1) {
       randomInt = random.nextInt(workers.length);
     }
+    print("Workers length: ${workers.length} , [0] -> ${workers[0].id}");
     return workers[randomInt];
   }
 
@@ -255,7 +254,6 @@ class Random implements Router {
   removeWorker(_Worker w) {
     workers.remove(w);
   }
-
 }
 
 /**

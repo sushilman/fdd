@@ -83,7 +83,7 @@ class FileMonitor extends Worker {
   }
 
   _restartIsolate() {
-    //sendPort.send([Action.RESTART_ALL]);
+    sendPort.send([Action.RESTART_ALL]);
     print("Send Restart command !");
   }
 }

@@ -35,7 +35,7 @@ class PrinterIsolate extends Worker {
   outText(String text) {
     int rand = new Math.Random().nextInt(5);
     Duration duration = new Duration(seconds: rand);
-    print("*** Printer $id: $text... doing something for $rand seconds");
+    print("*** MY Printer $id: $text... doing something for $rand seconds");
     sleep(duration);
     done();
   }
