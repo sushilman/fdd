@@ -61,10 +61,10 @@ class Controller {
             sendPortOfIsolateSystem.send([Action.PULL_MESSAGE]);
           }
           break;
-        case Action.DONE:
+        case Action.PULL_MESSAGE:
           // The result message? along with DONE action
           // to be en-queued in MQS
-          if(message.length > 1) {
+          if(message.length > 2) {
             // may be some additional information of
             // the isolate and/or the original sender?
             sendPortOfIsolateSystem.send(message);

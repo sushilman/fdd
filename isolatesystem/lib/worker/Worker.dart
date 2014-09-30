@@ -51,7 +51,8 @@ abstract class Worker {
   onReceive(var message);
 
   done([var message]) {
-    message != null ? sendPort.send([Action.DONE, message]): sendPort.send([Action.DONE]);
+    //TODO: make the order -> id, message?
+    message != null ? sendPort.send([Action.DONE, id, message]): sendPort.send([Action.DONE, id]);
   }
 
   void kill() {

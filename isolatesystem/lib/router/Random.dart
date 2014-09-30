@@ -25,7 +25,8 @@ import 'package:uuid/uuid.dart';
  * Isolate.OnExitListener
  * for supervision of errors?
  *
- * TODO: *important* Should be able to recognize if messages are from isolate or from controller
+ * TODO: do not issue pull_request on done msg from the isolate,
+ * TODO: if it has been issued a kill or restart command
  */
 
 main(List<String> args, SendPort sendPort) {
@@ -78,7 +79,7 @@ class Random implements Router {
           workers.add(w);
           w.sendPort = sendPort;
           print("Adding worker");
-          sendPortOfController.send([Action.DONE]);
+          sendPortOfController.send([Action.PULL_MESSAGE]);
         } else {
           worker.sendPort = sendPort;
         }
@@ -94,7 +95,11 @@ class Random implements Router {
           // TODO: spawn isolate, may be?
             break;
           case Action.DONE:
-            sendPortOfController.send(message);
+            String id = message[1];
+            if(getWorkerById(id).active) {
+              message[0] = Action.PULL_MESSAGE;
+              sendPortOfController.send(message);
+            }
             break;
           case Action.KILL:
             String id = message[1];
@@ -173,24 +178,34 @@ class Random implements Router {
   }
 
   _restart(String id) {
-    getWorkerById(id).sendPort.send([Action.RESTART]);
+
+    getWorkerById(id)
+      ..active = false
+      ..sendPort.send([Action.RESTART]);
+
     workers.remove(id);
   }
 
   _restartAll() {
     workers.forEach((worker) {
-      worker.sendPort.send([Action.RESTART]);
+      worker
+        ..active = false
+        ..sendPort.send([Action.RESTART]);
     });
   }
 
   _kill(String id) {
-    getWorkerById(id).sendPort.send([Action.KILL]);
+    getWorkerById(id)
+      ..active = false
+      ..sendPort.send([Action.KILL]);
     workers.remove(id);
   }
 
   _killAll() {
     workers.forEach((worker) {
-      worker.sendPort.send([Action.KILL]);
+      worker
+        ..active = false
+        ..sendPort.send([Action.KILL]);
     });
     workers.clear();
   }
@@ -264,6 +279,7 @@ class _Worker {
   SendPort _sendPort;
   Isolate _isolate;
   String _path;
+  bool _active = true;
 
   _Worker(this._id, this._path, this._isolate) {
     //print ("_Worker: worker with $id created");
@@ -280,6 +296,9 @@ class _Worker {
 
   set path(String value) => _path = value;
   get path => _path;
+
+  set active(bool value) => _active = value;
+  get active => _active;
 
   //TODO: make use of control port instead of ping() method?
   Future<bool> isAlive() {
