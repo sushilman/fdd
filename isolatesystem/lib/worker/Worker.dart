@@ -1,5 +1,6 @@
 library isolatesystem.worker.Worker;
 
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:async';
 import '../action/Action.dart';
@@ -62,6 +63,8 @@ abstract class Worker {
 
   void restart() {
     sendPort.send([Action.RESTARTING, id]);
+    Duration duration = new Duration(seconds: 10);
+    sleep(duration);
     receivePort.close();
   }
 }

@@ -18,7 +18,7 @@ class HelloWorld {
     String helloWorldWorkerUri = "${dirname(Platform.script.toString())}/HelloPrinter1.dart";
     //print (helloWorldWorkerUri);
 
-    List<String> workersPaths = ["localhost"];
+    List<String> workersPaths = ["localhost", "localhost"];
     //List<String> workersPaths = ["ws://192.168.2.69:42042/activator", "ws://192.168.2.69:42042/activator"];
     //List<String> workersPaths2 = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
 

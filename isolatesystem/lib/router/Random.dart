@@ -27,6 +27,8 @@ import 'package:uuid/uuid.dart';
  *
  * TODO: do not issue pull_request on done msg from the isolate,
  * TODO: if it has been issued a kill or restart command
+ *
+ * TODO: BUG? if a message arrives in router, but it cannot send it anywhere, what happens to that message?
  */
 
 main(List<String> args, SendPort sendPort) {
@@ -70,9 +72,10 @@ class Random implements Router {
         SendPort sendPort = message[1];
 
         _Worker worker = getWorkerById(id);
-        //TODO: create worker object only after receiving sendport message from the isolate
-        //temporarily store other variables before creating isolate,
-        // somewhere according to id and access it here
+        //create worker object only after receiving sendport message from the isolate
+        //temporarily store other variables like path, before restarting/creating isolate,
+        //somewhere according to id and access it here
+        // or let the spawned isolate send the path in its message
 
         if(worker == null) {
           _Worker w = new _Worker(id, "path", null);

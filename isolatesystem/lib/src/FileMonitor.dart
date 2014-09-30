@@ -34,29 +34,52 @@ class FileMonitor extends Worker {
   }
 
   startMonitoring(Uri uri) {
-    int seconds = 5;
+    int seconds = 2;
     var oldHash;
     var hash;
-
+    print ("Monitoring started for uri $uri");
     Duration duration = new Duration(seconds:seconds);
-    new Timer.periodic(duration, (t) {
-      new HttpClient().getUrl(Uri.parse("http://127.0.0.1:8080/bin/PrinterIsolate.dart"))
-      .then((HttpClientRequest request) => request.close())
-      .then((HttpClientResponse response) => response.listen((value) {
-        List<int> fileContent = new List<int>();
-        fileContent.addAll(value);
-        hash = _calcHash(fileContent);
-        print("Hash:" + hash);
-        if (oldHash == null) {
-          oldHash = hash;
-        } else if (hash != null) {
-          if (oldHash != hash) {
+    if(uri.toString().startsWith("http://")
+    || uri.toString().startsWith("https://")
+    || uri.toString().startsWith("ftp://")) {
+      new Timer.periodic(duration, (t) {
+        new HttpClient().getUrl(uri) //Uri.parse("http://127.0.0.1:8080/bin/PrinterIsolate.dart")
+        .then((HttpClientRequest request) => request.close())
+        .then((HttpClientResponse response) => response.listen((value) {
+          List<int> fileContent = new List<int>();
+          fileContent.addAll(value);
+          hash = _calcHash(fileContent);
+          print("Hash:" + hash);
+          if (oldHash == null) {
             oldHash = hash;
-            _restartIsolate();
+          } else if (hash != null) {
+            if (oldHash != hash) {
+              oldHash = hash;
+              _restartIsolate();
+            }
           }
-        }
-      }));
-    });
+        }));
+      });
+    } else {
+      print("Inside else block");
+      new Timer.periodic(duration, (t) {
+        new File.fromUri(uri).readAsBytes().then((bytes) {
+          print ("File read !");
+          List<int> fileContent = new List<int>();
+          fileContent.addAll(bytes);
+          hash = _calcHash(fileContent);
+          print("Hash:" + hash);
+          if (oldHash == null) {
+            oldHash = hash;
+          } else if (hash != null) {
+            if (oldHash != hash) {
+              oldHash = hash;
+              _restartIsolate();
+            }
+          }
+        });
+      });
+    }
   }
 
   _calcHash(bytes) {
