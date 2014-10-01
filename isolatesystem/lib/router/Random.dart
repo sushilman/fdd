@@ -36,6 +36,7 @@ main(List<String> args, SendPort sendPort) {
 }
 
 class Random implements Router {
+  String id;
   ReceivePort receivePort;
   SendPort sendPortOfController;
   SendPort self;
@@ -255,14 +256,11 @@ class Random implements Router {
 
   _Worker getWorkerById(String id) {
     _Worker selectedWorker = null;
-    workers.forEach((worker){
-      //print("WorkerId: ${worker.id}");
-    });
-
     //print("Reqd. id : $id");
     workers.forEach((worker) {
       if(worker.id == id) {
         selectedWorker = worker;
+        //return worker; //Why now simply this instead of variable declarations and all
       }
     });
     //(selectedWorker == null) ? print("RETURNING NULL") : print("returning good worker");

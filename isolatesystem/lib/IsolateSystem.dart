@@ -2,12 +2,24 @@ library isolatesystem.IsolateSystem;
 
 import 'dart:async';
 import 'dart:isolate';
-import 'action/Action.dart';
-import 'router/Random.dart';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:path/path.dart' show dirname;
 
+import 'action/Action.dart';
+import 'router/Random.dart';
+import 'message/MessageUtil.dart';
+import 'message/SenderType.dart';
+
+
+/**
+ * Message Structure:
+ * [0] -> Message From <Type> - type: isolate system, controller, router, worker
+ * [1] -> ID
+ * [2] -> Action
+ * [3] -> message -> can be String or List
+ */
 
 /**
  * This can probably be merged with controller?
@@ -23,6 +35,7 @@ class IsolateSystem {
   ReceivePort receivePort;
   SendPort sendPort;
   SendPort self;
+  String id;
 
   Isolate controllerIsolate;
   Isolate fileMonitorIsolate;
@@ -32,7 +45,7 @@ class IsolateSystem {
 
   int counter = 0;
 
-  IsolateSystem(String this.workerUri, int workersCount, List<String> workersPaths, String routerUri, {hotDeployment:false}) {
+  IsolateSystem(String this.id, String this.workerUri, int workersCount, List<String> workersPaths, String routerUri, {hotDeployment:false}) {
     receivePort = new ReceivePort();
     self = receivePort.sendPort;
 
@@ -47,7 +60,7 @@ class IsolateSystem {
     });
   }
 
-  _onReceive(message) {
+  _onReceive1(message) {
     //print("IsolateSystem: $message");
     if(message is SendPort) {
       sendPort = message;
@@ -75,6 +88,44 @@ class IsolateSystem {
     }
   }
 
+  _onReceive(message) {
+    if(message is SendPort) {
+      sendPort = message;
+    } else if (MessageUtil.isValidMessage(message)) {
+      String senderType = MessageUtil.getSenderType(message);
+      String senderId = MessageUtil.getId(message);
+      String action = MessageUtil.getAction(message);
+      String payload = MessageUtil.getPayload(message);
+
+      if (senderType == SenderType.CONTROLLER) {
+        switch (action) {
+          case Action.PULL_MESSAGE:
+            _pullMessage();
+            break;
+          case Action.DONE:
+            if(payload != null) {
+              _prepareResponse(payload);
+            }
+            break;
+          case Action.RESTART_ALL:
+            sendPort.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, id, Action.RESTART_ALL, payload));
+            break;
+          default:
+            print("IsolateSystem: Unknown Action: $action");
+        }
+      } else {
+        if(action == Action.NONE) {
+          sendPort.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, id, Action.NONE, payload));
+        } else {
+          print("IsolateSystem: Unknown Sender: $senderType");
+        }
+      }
+    } else {
+      print ("IsolateSystem: Unknown message: $message");
+    }
+  }
+
+
   _spawnController(String routerUri, String workerUri, int workersCount, String workersPaths) {
     String curDir = dirname(Platform.script.toString());
     String controllerUri = curDir + "/packages/isolatesystem/controller/Controller.dart";
@@ -101,9 +152,10 @@ class IsolateSystem {
     // then send to sendPort of controller
     // sendPort.send(newMessage);
     //
-    self.send("Simple message #${counter++}");
+    self.send(MessageUtil.create(SenderType.SELF, id, Action.NONE, "Simple message #${counter++}"));
   }
 
+  //TODO: some more information along with payload?
   _prepareResponse(var message) {
     var ResponseMessage = message[1];
     print("IsolateSystem: Enqueue this response : ${message[1]}");
