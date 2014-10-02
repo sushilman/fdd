@@ -103,10 +103,12 @@ class Random implements Router {
       case Action.KILL_ALL:
         break;
       case Action.RESTART_ALL:
+        _restartAllWorkers();
         break;
       case Action.NONE:
         _Worker worker = selectWorker();
         worker.sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.NONE, payload));
+        //print("message $payload Sent to worker ${worker.id}");
         break;
       default:
         print("Router: Unknown action from Controller -> $action");
@@ -138,6 +140,14 @@ class Random implements Router {
         }
         break;
       case Action.RESTARTING:
+        _Worker worker = _getWorkerById(senderId);
+        String path = worker.path;
+        print(workers.remove(worker));
+        print("After removal : ${workers.length}");
+        //TODO: Refactor
+        Uuid uuid = new Uuid();
+        String newId = uuid.v1();
+        Isolate.spawnUri(workerSourceUri, [newId], receivePort.sendPort);
         break;
       case Action.NONE:
         break;
@@ -192,13 +202,13 @@ class Random implements Router {
             break;
           case Action.RESTART:
             String id = message[1];
-            _restart(id);
+            _restartWorker(id);
             break;
           case Action.KILL_ALL:
-            _killAll();
+            _killAllWorkers();
             break;
           case Action.RESTART_ALL:
-            _restartAll();
+            _restartAllWorkers();
             break;
           case Action.KILLED:
             //print("Isolate has been killed!");
@@ -261,16 +271,19 @@ class Random implements Router {
     }
   }
 
-  _restart(String id) {
-
+  _restartWorker(String id) {
     _getWorkerById(id)
       ..active = false
       ..sendPort.send([Action.RESTART]);
-
     workers.remove(id);
   }
 
-  _restartAll() {
+  /*
+   * Simply restarting router instead of individual workers is NOT feasible
+   * as response messages from the workers will could be lost
+   *
+   */
+  _restartAllWorkers() {
     workers.forEach((worker) {
       worker
         ..active = false
@@ -278,14 +291,14 @@ class Random implements Router {
     });
   }
 
-  _kill(String id) {
+  _killWorker(String id) {
     _getWorkerById(id)
       ..active = false
       ..sendPort.send([Action.KILL]);
     workers.remove(id);
   }
 
-  _killAll() {
+  _killAllWorkers() {
     workers.forEach((worker) {
       worker
         ..active = false
@@ -350,6 +363,7 @@ class Random implements Router {
   removeWorker(_Worker w) {
     workers.remove(w);
   }
+
 }
 
 /**
@@ -380,21 +394,4 @@ class _Worker {
 
   set active(bool value) => _active = value;
   get active => _active;
-
-  //TODO: make use of control port instead of ping() method?
-  Future<bool> isAlive() {
-    Completer completer = new Completer();
-
-    ReceivePort rp = new ReceivePort();
-    //_isolate.controlPort.send("PING");
-    //_isolate.addErrorListener(new ReceivePort().sendPort);
-    //_isolate.kill(Isolate.IMMEDIATE);
-    //_isolate.ping(rp.sendPort, Isolate.IMMEDIATE);
-    rp.listen((message) {
-      if(message == null) {
-        completer.complete(true);
-      }
-    });
-    return completer.future;
-  }
 }

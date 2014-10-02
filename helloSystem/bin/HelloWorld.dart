@@ -19,7 +19,7 @@ class HelloWorld {
     String helloWorldWorkerUri = "${dirname(Platform.script.toString())}/HelloPrinter.dart";
     //print (helloWorldWorkerUri);
 
-    List<String> workersPaths = ["localhost/p1", "localhost/p2", "localhost/p3"];
+    List<String> workersPaths = ["localhost/p1", "localhost/p2"];
     //List<String> workersPaths = ["ws://192.168.2.69:42042/activator", "ws://192.168.2.69:42042/activator"];
     //List<String> workersPaths2 = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
 
@@ -30,7 +30,7 @@ class HelloWorld {
 
     IsolateSystem system = new IsolateSystem("mySystem");
     system.addIsolate("simplePrinter", printerWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
-    system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
+    //system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
     //IsolateSystem system2 = new IsolateSystem(helloWorldWorkerUri, workersCount2, workersPaths2, routerUri);
 
     //sleep(const Duration(seconds: 5));

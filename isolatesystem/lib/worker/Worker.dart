@@ -24,14 +24,15 @@ abstract class Worker {
   Worker.withoutReadyMessage(List<String> args, this.sendPort) {
     id = args[0];
     receivePort = new ReceivePort();
-    receivePort.listen((var message) {
-      _onReceive(message);
-    });
+    receivePort.listen(_onReceive, onDone:_onDone, cancelOnError:false);
+  }
+
+  _onDone() {
+    print("On done: Receive port closed");
   }
 
   _onReceive(var message) {
     print("Worker $id: $message");
-    // do something and pass it on
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -66,6 +67,7 @@ abstract class Worker {
 
   /**
    * onReceive can be made to return Future
+   * May be Future.sync() will become handy
    * So that only after onReceive is completed, DONE message is sent to router
    *
    * will this make it possible to include async calls in onReceive?
@@ -77,14 +79,12 @@ abstract class Worker {
   }
 
   void kill() {
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.KILLED, null));
     receivePort.close();
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.KILLED, null));
   }
 
   void restart() {
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.RESTARTING, null));
-//    Duration duration = new Duration(seconds: 10);
-//    sleep(duration);
     receivePort.close();
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.RESTARTING, null));
   }
 }

@@ -40,7 +40,6 @@ class IsolateSystem {
   bool _isSystemReady = false;
 
   Isolate _controllerIsolate;
-  Isolate _fileMonitorIsolate;
   bool _hotDeployment = false;
 
   List<List<String>> _startupBufferedCreationMessages;
@@ -168,14 +167,6 @@ class IsolateSystem {
     Isolate.spawnUri(Uri.parse(controllerUri), ["controller"], _receivePort.sendPort)
     .then((controller) {
       _controllerIsolate = controller;
-    });
-  }
-
-  _spawnFileMonitor() {
-    String curDir = dirname(Platform.script.toString());
-    Uri fileMonitorUri = Uri.parse(curDir + "/packages/isolatesystem/src/FileMonitor.dart");
-    Isolate.spawnUri(fileMonitorUri, ["fileMonitor", _workerUri],_receivePort.sendPort).then((monitor) {
-      _fileMonitorIsolate = monitor;
     });
   }
 

@@ -2,15 +2,19 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:async';
 import 'dart:math' as Math;
+
 import 'package:path/path.dart';
+import 'package:crypto/crypto.dart';
+
 import '../worker/Worker.dart';
 import '../action/Action.dart';
-import 'package:crypto/crypto.dart';
+import '../message/MessageUtil.dart';
+import '../message/SenderType.dart';
 
 /**
  * For: HOT DEPLOYMENT CONCEPT
- * Idea is to have a monitor running for each isolate system
- * and each isolate system can have it enabled or disabled
+ * Idea is to have a monitor running for each isolate group
+ * and each isolate group can have it enabled or disabled
  */
 
 main(List<String> args, SendPort sendPort) {
@@ -18,10 +22,12 @@ main(List<String> args, SendPort sendPort) {
 }
 
 class FileMonitor extends Worker {
+  String routerId;
 
-  FileMonitor(List<String> args, SendPort sendPort):super(args, sendPort) {
-    sendPort.send([id, receivePort.sendPort]);
-    startMonitoring(Uri.parse(args[1]));
+  FileMonitor(List<String> args, SendPort sendPort) : super.withoutReadyMessage(args, sendPort) {
+    sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.READY, receivePort.sendPort));
+    routerId = args[1];
+    startMonitoring(Uri.parse(args[2]));
   }
 
   onReceive(var message) {
@@ -94,19 +100,8 @@ class FileMonitor extends Worker {
     return sb.toString();
   }
 
-  String _randomString() {
-    String alphabets = "abcdefghijklmnopqrstuvwxyz0123456789";
-    Math.Random random = new Math.Random();
-    int length = 3 + random.nextInt(9);
-    StringBuffer filename = new StringBuffer();
-    for(int i = 0; i<length; i++) {
-      filename.write(alphabets[random.nextInt(alphabets.length)]);
-    }
-    return filename.toString();
-  }
-
   _restartIsolate() {
-    sendPort.send([Action.RESTART_ALL]);
-    print("Send Restart command !");
+    sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.RESTART, [routerId]));
+    print("Restart command sent !");
   }
 }

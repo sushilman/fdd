@@ -1,11 +1,13 @@
 library isolatesystem.controller.Controller;
 
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:async';
 
+import 'package:path/path.dart' show dirname;
+
 import '../message/MessageUtil.dart';
 import '../message/SenderType.dart';
-
 import '../action/Action.dart';
 import '../IsolateSystem.dart';
 
@@ -16,32 +18,33 @@ import '../IsolateSystem.dart';
  * Should keep track of free isolates (with the help of router)
  * and send pull request to IsolateSystem
  *
- * TODO: determine from which router the message was sent
- * TODO: also determine to which router the message should be forwarded
+ * TODO: determine from which router the message was sent -> router name (senderId)
+ *
+ * TODO: also determine to which router the message should be forwarded -> router name (senderId)
  */
 main(List<String> args, SendPort sendPort) {
   Controller controller = new Controller(args, sendPort);
 }
 
 class Controller {
-  String id;
-  ReceivePort receivePort;
-  SendPort sendPortOfIsolateSystem;
-  SendPort self;
+  String _id;
+  ReceivePort _receivePort;
+  SendPort _sendPortOfIsolateSystem;
+  SendPort _self;
   /**
-   * Send port the router this controller has spawned
+   * Send port of the routers this controller has spawned
    */
   List<_Router> routers;
 
-  Controller(List<String> args, this.sendPortOfIsolateSystem) {
-    receivePort = new ReceivePort();
-    self = receivePort.sendPort;
-    sendPortOfIsolateSystem.send(receivePort.sendPort);
-    id = args[0];
+  Controller(List<String> args, this._sendPortOfIsolateSystem) {
+    _receivePort = new ReceivePort();
+    _self = _receivePort.sendPort;
+    _sendPortOfIsolateSystem.send(_receivePort.sendPort);
+    _id = args[0];
 
     routers = new List<_Router>();
 
-    receivePort.listen((message) {
+    _receivePort.listen((message) {
       _onReceive(message);
     });
 
@@ -64,7 +67,7 @@ class Controller {
             break;
           case Action.READY:
             for (int i = 0; i < router.workersCount; i++) {
-              sendPortOfIsolateSystem.send([id, Action.PULL_MESSAGE]);
+              _sendPortOfIsolateSystem.send([id, Action.PULL_MESSAGE]);
             }
             break;
           case Action.PULL_MESSAGE:
@@ -73,10 +76,10 @@ class Controller {
             if(message.length > 2) {
               // may be some additional information of
               // the isolate and/or the original sender?
-              sendPortOfIsolateSystem.send(message);
+              _sendPortOfIsolateSystem.send(message);
             }
 
-            sendPortOfIsolateSystem.send([Action.PULL_MESSAGE]);
+            _sendPortOfIsolateSystem.send([Action.PULL_MESSAGE]);
             break;
           case Action.RESTART_ALL:
             router.sendPort.send(message);
@@ -100,12 +103,18 @@ class Controller {
       String action = MessageUtil.getAction(message);
       String payload = MessageUtil.getPayload(message);
 
-      if(senderType == SenderType.ISOLATE_SYSTEM) {
-        _handleMessagesFromIsolateSystem(action, payload);
-      } else if (senderType == SenderType.ROUTER) {
-        _handleMessagesFromRouters(senderId, action, payload);
-      } else {
-        print ("Controller: Unknown Sender Type -> $senderType");
+      switch(senderType) {
+        case SenderType.ISOLATE_SYSTEM:
+          _handleMessagesFromIsolateSystem(action, payload);
+          break;
+        case SenderType.ROUTER:
+          _handleMessagesFromRouters(senderId, action, payload);
+          break;
+        case SenderType.FILE_MONITOR:
+          _handleMessagesFromFileMonitor(senderId, action, payload);
+          break;
+        default:
+          print ("Controller: Unknown Sender Type -> $senderType");
       }
     } else {
       print ("Controller: Unknown message: $message");
@@ -119,8 +128,17 @@ class Controller {
         String workerUri = payload[1];
         List<String> workersPaths = payload[2];
         Uri routerUri = Uri.parse(payload[3]);
+        bool hotDeployment = false;
+        if(payload.length == 5) {
+          hotDeployment = payload[4];
+        }
 
         _spawnRouter(routerId, routerUri, workerUri, workersPaths);
+
+        if(hotDeployment) {
+          _spawnFileMonitor(routerId, workerUri);
+        }
+
         break;
       case Action.RESTART:
         //TODO: means to restart all isolates of a router?
@@ -128,17 +146,17 @@ class Controller {
         // get id of router, send restart command to that router
         String routerId = payload[0];
         _Router router = _getRouterById(routerId);
-        router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, id, Action.RESTART_ALL, null));
+        router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
         break;
       case Action.RESTART_ALL:
         routers.forEach((router) {
-          router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, id, Action.RESTART_ALL, null));
+          router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
         });
         break;
       case Action.NONE:
         String routerId = payload[0];
         _Router router = _getRouterById(routerId);
-        router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, id, Action.NONE, payload[1]));
+        router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload[1]));
         break;
       default:
         print("Controller: Unknown Action from System -> $action");
@@ -146,7 +164,7 @@ class Controller {
   }
 
   _handleMessagesFromRouters(String senderId, String action, var payload) {
-    print ("Rotuer: getting router $senderId");
+    print ("Controller: getting router $senderId");
     _Router router = _getRouterById(senderId);
     if(payload is SendPort) {
       print ("Setting sendport");
@@ -156,17 +174,33 @@ class Controller {
       //When all isolates have been spawned
         case Action.READY:
           for (int i = 0; i < router.workersCount; i++) {
-            sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
+            _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           }
           break;
         case Action.PULL_MESSAGE:
         //TODO: should the response message be sent along with pullmessage or should it be a separate action?
-          sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, payload));
+          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, payload));
           break;
         default:
           print("Controller: Unknown Action from Router: $action");
           break;
       }
+    }
+  }
+
+  _handleMessagesFromFileMonitor(String senderId, String action, var payload) {
+    print("Controller: Message from file monitor $payload");
+    switch(action) {
+      case Action.RESTART:
+        //TODO: means to restart all isolates of a router?
+        //issuing a restart command for single isolate does not make sense
+        // get id of router, send restart command to that router
+        String routerId = payload[0];
+        _Router router = _getRouterById(routerId);
+        router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
+        break;
+      default:
+        break;
     }
   }
 
@@ -178,10 +212,16 @@ class Controller {
   }
 
   _spawnRouter(String routerId, Uri routerUri, String workerUri, List<String> workersPaths) {
-    Isolate.spawnUri(routerUri, [routerId, workerUri, workersPaths], receivePort.sendPort).then((isolate) {
+    Isolate.spawnUri(routerUri, [routerId, workerUri, workersPaths], _receivePort.sendPort).then((isolate) {
       _Router router = new _Router(routerId, routerUri, workersPaths.length);
       routers.add(router);
     });
+  }
+
+  _spawnFileMonitor(String routerId, String workerUri) {
+    String curDir = dirname(Platform.script.toString());
+    Uri fileMonitorUri = Uri.parse(curDir + "/../src/FileMonitor.dart");
+    Isolate.spawnUri(fileMonitorUri, ["fileMonitor_$routerId", routerId, workerUri], _receivePort.sendPort);
   }
 
   _Router _getRouterById(String id) {
@@ -202,6 +242,7 @@ class _Router {
   String _type;
   Uri _uri;
   Isolate _isolate;
+  Isolate _fileMonitorIsolate;
 
   String get id => _id;
   set id(String value) => _id = value;
