@@ -4,6 +4,8 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:async';
 import '../action/Action.dart';
+import '../message/MessageUtil.dart';
+import '../message/SenderType.dart';
 
 abstract class Worker {
   ReceivePort receivePort;
@@ -13,7 +15,15 @@ abstract class Worker {
   Worker(List<String> args, this.sendPort) {
     id = args[0];
     receivePort = new ReceivePort();
-    //sendPortOfRouter.send([id, receivePort.sendPort]);
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.READY, receivePort.sendPort));
+    receivePort.listen((var message) {
+      _onReceive(message);
+    });
+  }
+
+  Worker.withoutReadyMessage(List<String> args, this.sendPort) {
+    id = args[0];
+    receivePort = new ReceivePort();
     receivePort.listen((var message) {
       _onReceive(message);
     });
@@ -22,7 +32,12 @@ abstract class Worker {
   _onReceive(var message) {
     print("Worker $id: $message");
     // do something and pass it on
-    if(message is List) {
+    if(MessageUtil.isValidMessage(message)) {
+      String senderType = MessageUtil.getSenderType(message);
+      String senderId = MessageUtil.getId(message);
+      String action = MessageUtil.getAction(message);
+      var payload = MessageUtil.getPayload(message);
+
       switch(message[0]) {
         case Action.KILL:
           kill();
@@ -30,11 +45,17 @@ abstract class Worker {
         case Action.RESTART:
           restart();
           break;
+        case Action.NONE:
+          onReceive(payload);
+          break;
+        default:
+          onReceive(payload);
       }
-
     } else {
+      print("Worker: WARNING: incorrect message format, but still forwarding $message");
       onReceive(message);
     }
+
     /**
      * Enabling DONE here creates issues with Proxy Isolate
      * Because, proxy isolate further via websocket spawns another isolate which is also a child of Worker
@@ -52,19 +73,18 @@ abstract class Worker {
   onReceive(var message);
 
   done([var message]) {
-    //TODO: make the order -> id, message?
-    message != null ? sendPort.send([Action.DONE, id, message]): sendPort.send([Action.DONE, id]);
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.DONE, message));
   }
 
   void kill() {
-    sendPort.send([Action.KILLED, id]);
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.KILLED, null));
     receivePort.close();
   }
 
   void restart() {
-    sendPort.send([Action.RESTARTING, id]);
-    Duration duration = new Duration(seconds: 10);
-    sleep(duration);
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.RESTARTING, null));
+//    Duration duration = new Duration(seconds: 10);
+//    sleep(duration);
     receivePort.close();
   }
 }

@@ -37,17 +37,16 @@ class Controller {
     receivePort = new ReceivePort();
     self = receivePort.sendPort;
     sendPortOfIsolateSystem.send(receivePort.sendPort);
+    id = args[0];
 
-    Uri routerUri = Uri.parse(args[0]);
-    String workerUri = args[1];
-    int workersCount = int.parse(args[2]);
-    String workersPaths = args[3];
+    routers = new List<_Router>();
 
     receivePort.listen((message) {
       _onReceive(message);
     });
 
-    _spawnRouter(receivePort, routerUri, workerUri, workersCount, workersPaths);
+    print("Controller: Ready...");
+    //_spawnRouter1(receivePort, routerUri, workerUri, workersCount, workersPaths);
   }
 
   _onReceive1(var message) {
@@ -102,7 +101,7 @@ class Controller {
       String payload = MessageUtil.getPayload(message);
 
       if(senderType == SenderType.ISOLATE_SYSTEM) {
-        _handleMessagesFromIsolateSystem(action);
+        _handleMessagesFromIsolateSystem(action, payload);
       } else if (senderType == SenderType.ROUTER) {
         _handleMessagesFromRouters(senderId, action, payload);
       } else {
@@ -113,14 +112,21 @@ class Controller {
     }
   }
 
-  _handleMessagesFromIsolateSystem(String action) {
+  _handleMessagesFromIsolateSystem(String action, var payload) {
     switch(action) {
       case Action.SPAWN:
+        String routerId = payload[0];
+        String workerUri = payload[1];
+        List<String> workersPaths = payload[2];
+        Uri routerUri = Uri.parse(payload[3]);
+
+        _spawnRouter(routerId, routerUri, workerUri, workersPaths);
         break;
       case Action.RESTART:
         //TODO: means to restart all isolates of a router?
         //issuing a restart command for single isolate does not make sense
         // get id of router, send restart command to that router
+        String routerId = payload[0];
         _Router router = _getRouterById(routerId);
         router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, id, Action.RESTART_ALL, null));
         break;
@@ -129,37 +135,63 @@ class Controller {
           router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, id, Action.RESTART_ALL, null));
         });
         break;
+      case Action.NONE:
+        String routerId = payload[0];
+        _Router router = _getRouterById(routerId);
+        router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, id, Action.NONE, payload[1]));
+        break;
+      default:
+        print("Controller: Unknown Action from System -> $action");
     }
   }
 
   _handleMessagesFromRouters(String senderId, String action, var payload) {
+    print ("Rotuer: getting router $senderId");
     _Router router = _getRouterById(senderId);
-    switch(action) {
-      case Action.READY:
-        for (int i = 0; i < router.workersCount; i++) {
-          sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, id, Action.PULL_MESSAGE, null));
-        }
-        break;
-      case Action.PULL_MESSAGE:
-      //TODO: should the response message be sent along with pullmessage or should it be a separate action?
-        sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, id, Action.PULL_MESSAGE, payload));
-        break;
+    if(payload is SendPort) {
+      print ("Setting sendport");
+      router.sendPort = payload;
+    } else {
+      switch (action) {
+      //When all isolates have been spawned
+        case Action.READY:
+          for (int i = 0; i < router.workersCount; i++) {
+            sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
+          }
+          break;
+        case Action.PULL_MESSAGE:
+        //TODO: should the response message be sent along with pullmessage or should it be a separate action?
+          sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, payload));
+          break;
+        default:
+          print("Controller: Unknown Action from Router: $action");
+          break;
+      }
     }
   }
 
-  _spawnRouter(ReceivePort receivePort, Uri routerUri, String workerUri, int workersCount, String workersPaths) {
+  _spawnRouter1(ReceivePort receivePort, Uri routerUri, String workerUri, int workersCount, String workersPaths) {
     Isolate.spawnUri(routerUri, [workerUri, workersCount.toString(), workersPaths], receivePort.sendPort).then((isolate) {
       _Router router = new _Router("id", routerUri, workersCount);
+      routers.add(router);
+    });
+  }
+
+  _spawnRouter(String routerId, Uri routerUri, String workerUri, List<String> workersPaths) {
+    Isolate.spawnUri(routerUri, [routerId, workerUri, workersPaths], receivePort.sendPort).then((isolate) {
+      _Router router = new _Router(routerId, routerUri, workersPaths.length);
+      routers.add(router);
     });
   }
 
   _Router _getRouterById(String id) {
-    routers.forEach((router) {
-      if(router.id == id){
-        return router;
+    _Router router;
+    routers.forEach((_router) {
+      if(_router.id == id){
+        router = _router;
       }
     });
-    return null;
+    return router;
   }
 }
 

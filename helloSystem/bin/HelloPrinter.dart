@@ -1,11 +1,12 @@
 import 'dart:isolate';
 import 'dart:async';
 import 'dart:io' show sleep;
-import 'package:isolatesystem/worker/Worker.dart';
-import 'package:isolatesystem/action/Action.dart';
 import 'dart:math' as Math;
+
+import 'package:isolatesystem/worker/Worker.dart';
+
 /**
- * A sample printer isolate
+ * A sample hello isolate
  */
 main(List<String> args, SendPort sendPort) {
   //print ("Printer Isolate started...");
@@ -15,9 +16,7 @@ main(List<String> args, SendPort sendPort) {
 class HelloPrinter extends Worker {
   int counter = 0;
 
-  HelloPrinter(List<String> args, SendPort sendPort) : super(args, sendPort) {
-    sendPort.send([id, receivePort.sendPort]);
-  }
+  HelloPrinter(List<String> args, SendPort sendPort) : super(args, sendPort);
 
   @override
   onReceive(message) {
@@ -37,8 +36,6 @@ class HelloPrinter extends Worker {
     Duration duration = new Duration(seconds: rand);
     print("### Hello $id: $text... doing something for $rand seconds");
     sleep(duration);
-
-    //TODO: may be somehow let Worker take care of this DONE action?
-    sendPortOfRouter.send([Action.DONE]);
+    done();
   }
 }

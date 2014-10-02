@@ -30,7 +30,7 @@ class Proxy extends Worker {
    * Need some error prevention here
    * if workerPath is not good websocket uri
    */
-  Proxy(List<String> args, SendPort sendPort) : super(args, sendPort) {
+  Proxy(List<String> args, SendPort sendPort) : super.withoutReadyMessage(args, sendPort) {
     self = receivePort.sendPort;
 
     String workerPath = args[1];

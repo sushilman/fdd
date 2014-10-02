@@ -21,19 +21,35 @@ class MessageUtil {
   }
 
   static getSenderType(List<String> message) {
-    return message[0];
+    try {
+      return message[0];
+    } catch (e) {
+      return null;
+    }
   }
 
   static getId(List<String> message) {
-    return message[1];
+    try {
+      return message[1];
+    } catch (e) {
+      return null;
+    }
   }
 
   static getAction(List<String> message) {
-    return message[2];
+    try {
+      return message[2];
+    } catch (e) {
+      return null;
+    }
   }
 
   static getPayload(List<String> message) {
-    return message[3];
+    try {
+      return message[3];
+    } catch (e) {
+      return null;
+    }
   }
 
   static isValidMessage(var message) {

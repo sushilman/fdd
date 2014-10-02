@@ -1,6 +1,7 @@
 library isolatesystem.actions.Action;
 
 class Action {
+  static const String ADD = "ADD";
   static const String SPAWN = "SPAWN";
   static const String NONE = "NONE";
   static const String PULL_MESSAGE = "PULL_MESSAGE";

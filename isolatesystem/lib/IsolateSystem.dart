@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:path/path.dart' show dirname;
 
 import 'action/Action.dart';
+import 'router/Router.dart';
 import 'router/Random.dart';
 import 'message/MessageUtil.dart';
 import 'message/SenderType.dart';
@@ -32,42 +33,57 @@ import 'message/SenderType.dart';
  * from appropriate queue and sent to the controller
  */
 class IsolateSystem {
-  ReceivePort receivePort;
-  SendPort sendPort;
-  SendPort self;
-  String id;
+  ReceivePort _receivePort;
+  SendPort _sendPortOfController;
+  SendPort _self;
+  String _id;
+  bool _isSystemReady = false;
 
-  Isolate controllerIsolate;
-  Isolate fileMonitorIsolate;
-  bool hotDeployment = false;
+  Isolate _controllerIsolate;
+  Isolate _fileMonitorIsolate;
+  bool _hotDeployment = false;
 
-  String workerUri;
+  List<List<String>> _startupBufferedCreationMessages;
+
+  String _workerUri;
 
   int counter = 0;
 
-  IsolateSystem(String this.id, String this.workerUri, int workersCount, List<String> workersPaths, String routerUri, {hotDeployment:false}) {
-    receivePort = new ReceivePort();
-    self = receivePort.sendPort;
+  /// @name - Name of this isolate system
+  IsolateSystem(String name) {
+    _receivePort = new ReceivePort();
+    _self = _receivePort.sendPort;
+    _receivePort.listen(_onReceive);
+    _id = name;
 
-    _spawnController(routerUri, workerUri, workersCount, JSON.encode(workersPaths));
+    _startupBufferedCreationMessages = new List<List<String>>();
+    _startController();
+  }
 
-    if(hotDeployment) {
-      _spawnFileMonitor();
+  //TODO: make custom routers possible by considering uri instead of routerType
+  void addIsolate(String name, String uri, workersPaths, String routerType, {hotDeployment: true}) {
+    String routerUri = routerType;
+
+    if(routerType == Router.RANDOM) {
+      routerUri = "../router/Random.dart";
     }
 
-    receivePort.listen((message) {
-      _onReceive(message);
-    });
+    if(_sendPortOfController == null) {
+      print("Waiting for controller to be ready");
+      _startupBufferedCreationMessages.add([name, uri, workersPaths, routerUri, hotDeployment]);
+    } else {
+      _self.send(MessageUtil.create(SenderType.SELF, _id, Action.ADD, [name, uri, workersPaths, routerUri, hotDeployment]));
+    }
   }
 
   _onReceive1(message) {
     //print("IsolateSystem: $message");
     if(message is SendPort) {
-      sendPort = message;
+      _sendPortOfController = message;
     } else if (message is List) {
       switch(message[0]) {
         case Action.PULL_MESSAGE:
-          _pullMessage();
+          _pullMessage("abc");
           break;
         case Action.DONE:
           if(message.length > 1) {
@@ -75,22 +91,29 @@ class IsolateSystem {
           }
           break;
         case Action.RESTART_ALL:
-          sendPort.send(message);
+          _sendPortOfController.send(message);
           break;
         default:
           print("IsolateSystem: Unknown Action: ${message[0]}");
           break;
       }
     } else if (message is String) {
-      sendPort.send(message);
+      _sendPortOfController.send(message);
     } else {
       print ("IsolateSystem: Unknown message: $message");
     }
   }
 
   _onReceive(message) {
+    print("IsolateSystem: $message");
     if(message is SendPort) {
-      sendPort = message;
+      _sendPortOfController = message;
+      if(!_startupBufferedCreationMessages.isEmpty) {
+        _startupBufferedCreationMessages.forEach((message) {
+          _self.send(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
+        });
+        _startupBufferedCreationMessages.clear();
+      }
     } else if (MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -98,61 +121,74 @@ class IsolateSystem {
       String payload = MessageUtil.getPayload(message);
 
       if (senderType == SenderType.CONTROLLER) {
-        switch (action) {
-          case Action.PULL_MESSAGE:
-            _pullMessage();
-            break;
-          case Action.DONE:
-            if(payload != null) {
-              _prepareResponse(payload);
-            }
-            break;
-          case Action.RESTART_ALL:
-            sendPort.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, id, Action.RESTART_ALL, payload));
-            break;
-          default:
-            print("IsolateSystem: Unknown Action: $action");
-        }
+        _handleMessagesFromController(senderId, action, payload);
       } else {
-        if(action == Action.NONE) {
-          sendPort.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, id, Action.NONE, payload));
-        } else {
-          print("IsolateSystem: Unknown Sender: $senderType");
-        }
+        _handleOtherMessages(action, payload, senderType);
       }
     } else {
       print ("IsolateSystem: Unknown message: $message");
     }
   }
 
+  _handleMessagesFromController(String senderId, String action, var payload) {
+    switch (action) {
+      case Action.PULL_MESSAGE:
+        _pullMessage(senderId);
+        break;
+      case Action.DONE:
+        if(payload != null) {
+          _prepareResponse(payload);
+        }
+        break;
+      case Action.RESTART_ALL:
+        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.RESTART_ALL, payload));
+        break;
+      default:
+        print("IsolateSystem: Unknown Action: $action");
+    }
+  }
 
-  _spawnController(String routerUri, String workerUri, int workersCount, String workersPaths) {
+  _handleOtherMessages(action, payload, senderType) {
+    switch(action) {
+      case Action.ADD:
+        print ("IsolateSystem: ADD action with $payload");
+        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.SPAWN, payload));
+        break;
+      case Action.NONE:
+        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.NONE, payload));
+        break;
+      default:
+        print("IsolateSystem: Unknown Sender: $senderType");
+    }
+  }
+
+  _startController() {
     String curDir = dirname(Platform.script.toString());
     String controllerUri = curDir + "/packages/isolatesystem/controller/Controller.dart";
-    Isolate.spawnUri(Uri.parse(controllerUri), [routerUri, workerUri, workersCount.toString(), workersPaths], receivePort.sendPort)
+    Isolate.spawnUri(Uri.parse(controllerUri), ["controller"], _receivePort.sendPort)
     .then((controller) {
-      controllerIsolate = controller;
+      _controllerIsolate = controller;
     });
   }
 
   _spawnFileMonitor() {
     String curDir = dirname(Platform.script.toString());
     Uri fileMonitorUri = Uri.parse(curDir + "/packages/isolatesystem/src/FileMonitor.dart");
-    Isolate.spawnUri(fileMonitorUri, ["fileMonitor", workerUri],receivePort.sendPort).then((monitor) {
-      fileMonitorIsolate = monitor;
+    Isolate.spawnUri(fileMonitorUri, ["fileMonitor", _workerUri],_receivePort.sendPort).then((monitor) {
+      _fileMonitorIsolate = monitor;
     });
   }
 
   /**
    * Pulls message from MessageQueuingSystem over websocket connection
    */
-  _pullMessage() {
+  _pullMessage(String senderId) {
     // TODO: pull message from appropriate queue from MessageQueuingSystem
     // something like messageQueuingSystem.send(message)
     // then send to sendPort of controller
     // sendPort.send(newMessage);
     //
-    self.send(MessageUtil.create(SenderType.SELF, id, Action.NONE, "Simple message #${counter++}"));
+    _self.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, [senderId,"Simple message #${counter++}"]));
   }
 
   //TODO: some more information along with payload?
