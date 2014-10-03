@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:convert';
 import 'WebSocketServer.dart';
 import 'package:isolatesystem/action/Action.dart';
+import 'package:isolatesystem/message/MessageUtil.dart';
+import 'package:isolatesystem/message/SenderType.dart';
+
 
 /*
  * Web socket handler
@@ -29,7 +33,6 @@ import 'package:isolatesystem/action/Action.dart';
  */
 class Activator {
   ReceivePort receivePort;
-  SendPort sendPort;
   List<_Isolate> isolates;
 
   WebSocketServer wss;
@@ -40,9 +43,7 @@ class Activator {
   Activator() {
     isolates = new List<_Isolate>();
     receivePort = new ReceivePort();
-    receivePort.listen((message) {
-      _onReceive(message);
-    });
+    receivePort.listen(_onReceive, onError:_onErrorDuringListening);
 
     listenOn(defaultPort, defaultPath);
   }
@@ -53,54 +54,111 @@ class Activator {
    */
   _onReceive(var message) {
     print("Activator: message received from isolate -> $message");
-    if(message.length > 1 && message[1] is SendPort) {
-      String id = message[0];
-      getIsolateById(id).sendPort = message[1];
-      print("Adding sendport to $id");
-      wss.send(JSON.encode([id, Action.READY]));
-    } else {
-      wss.send(JSON.encode(message));
+
+    if(MessageUtil.isValidMessage(message)) {
+      String senderType = MessageUtil.getSenderType(message);
+      String senderId = MessageUtil.getId(message);
+      String action = MessageUtil.getAction(message);
+      var payload = MessageUtil.getPayload(message);
+
+      switch(senderType) {
+        case SenderType.SELF:
+        case SenderType.WORKER:
+          _handleMessageFromWorker(message, senderType, senderId, action, payload);
+          break;
+      }
     }
   }
+
+  _handleMessageFromWorker(String message, String senderType, String senderId, String action, var payload) {
+    _Isolate worker = getIsolateById(senderId);
+    if(worker != null) {
+      switch (action) {
+        case Action.READY:
+          worker.sendPort = payload;
+          worker.socket.add(JSON.encode(MessageUtil.create(senderType, senderId, action, null)));
+          break;
+        case Action.DONE:
+          worker.socket.add(JSON.encode(message));
+          break;
+        case Action.NONE:
+          worker.socket.add(JSON.encode(message));
+          break;
+        default:
+          print("Activator: Unknown action -> $action");
+          worker.socket.add(JSON.encode(message));
+      }
+    } else {
+      print("Activator: No active connections");
+    }
+  }
+
+  _onErrorDuringListening(message) {
+
+  }
+
   /*
    * Listen on a websocket address
    */
   void listenOn(int port, String path) {
-    wss = new WebSocketServer(port, path, _onData);
+    wss = new WebSocketServer(port, path, _onConnect, _onData, _onDisconnect);
   }
 
-  _onData(msg) {
+  _onConnect(WebSocket socket) {
+
+  }
+
+  _onDisconnect(WebSocket socket) {
+    isolates.remove(_getWorkerBySocket(socket));
+    socket.close();
+  }
+
+  // message from Proxy via websocket
+  _onData(WebSocket socket, var msg) {
+    print("$msg");
+
     var message = JSON.decode(msg);
     print("$message");
-    print("From onData: ${message[0]}");
 
-    if(message[0] == Action.SPAWN) {
-      String uri = message[1];
-      List<String> args = [message[2]];
-      spawnWorker(uri, args);
-    } else { //if (message[0] is String)
-      forward(message[0], message[1]);
+    String senderType = MessageUtil.getSenderType(message);
+    String senderId = MessageUtil.getId(message);
+    String action = MessageUtil.getAction(message);
+    String payload = MessageUtil.getPayload(message);
+
+    print("Inside onData: ${senderId}");
+
+    switch(action) {
+      case Action.SPAWN:
+        String uri = payload[0];
+        String path = payload[1];
+        List<String> args = [senderId, path];
+        _spawnWorker(uri, args, socket);
+        break;
+      case Action.RESTART:
+      case Action.NONE:
+        _forward(senderId, message);
+        break;
+      default:
+        print("Activator: Unknown action -> $action");
     }
   }
 
-  spawnWorker(String uri, List<String> args) {
+  _spawnWorker(String uri, List<String> args, WebSocket socket) {
     Isolate.spawnUri(Uri.parse(uri), args, receivePort.sendPort).then((isolate) {
       print("Activator: Spawning completed");
-      isolates.add(new _Isolate(args[0], isolate));
-    }, onError:onError);
+      isolates.add(new _Isolate(args[0], isolate, socket));
+    }, onError:((message) {
+        onErrorDuringSpawn(socket, message);
+    }));
   }
 
-  onError(message) {
+  onErrorDuringSpawn(WebSocket socket, var message) {
     print("Error: could not spawn isolate. Reason: $message");
-    wss.send(JSON.encode([Action.ERROR, "Reason: $message"]));
+    socket.add(JSON.encode([Action.ERROR, "Reason: $message"]));
   }
 
-  forward(String id, var message) {
-    //try {
+  _forward(String id, var message) {
     getIsolateById(id).sendPort.send(message);
-    //} catch (e) {
-    //  print("Error: $e");
-    // }
   }
 
   _Isolate getIsolateById(String id) {
@@ -113,6 +171,16 @@ class Activator {
     });
     return selectedIsolate;
   }
+
+  _getWorkerBySocket(WebSocket socket) {
+    _Isolate foundIsolate;
+    isolates.forEach((isolate){
+      if(isolate.socket == socket) {
+        foundIsolate = isolate;
+      }
+    });
+    return foundIsolate;
+  }
 }
 
 void main() {
@@ -123,15 +191,20 @@ class _Isolate {
   String _id;
   SendPort _sendPort;
   Isolate _isolate;
+  WebSocket _socket;
 
-  _Isolate(this._id, this._isolate);
+  _Isolate(this._id, this._isolate, this._socket);
 
   set sendPort(SendPort value) => _sendPort = value;
-  get sendPort => _sendPort;
+  SendPort get sendPort => _sendPort;
 
   set isolate(Isolate value) => _isolate = value;
-  get isolate => _isolate;
+  Isolate get isolate => _isolate;
 
   set id(String value) => _id = value;
-  get id => _id;
+  String get id => _id;
+
+  WebSocket get socket => _socket;
+  set socket(WebSocket value) => _socket = value;
+
 }

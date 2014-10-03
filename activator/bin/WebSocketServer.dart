@@ -2,19 +2,16 @@ import 'dart:io';
 
 class WebSocketServer {
 
-  WebSocket webSocket;
-
-  WebSocketServer(int port, String path, void onData(var message)) {
+  WebSocketServer(int port, String path, void onConnect(WebSocket socket), void onData(WebSocket socket, var message), void onDisconnect(WebSocket socket)) {
     HttpServer.bind(InternetAddress.ANY_IP_V4, port).then((HttpServer server) {
       print("HttpServer listening...");
       server.serverHeader = "ActivatorServer";
       server.listen((HttpRequest request) {
         print('listening on $path \n request on ' + request.uri.toString());
-        if(request.uri.path == path) {
+        if (request.uri.path == path) {
           if (WebSocketTransformer.isUpgradeRequest(request)) {
             WebSocketTransformer.upgrade(request).then((socket) {
-              webSocket = socket;
-              handleWebSocket(onData);
+              handleWebSocket(socket, onConnect, onData, onDisconnect);
             });
           } else {
             print("Regular ${request.method} request for: ${request.uri.path}");
@@ -25,21 +22,18 @@ class WebSocketServer {
     });
   }
 
-  handleWebSocket(void onData(var message)) {
+  handleWebSocket(WebSocket socket, void onConnect(WebSocket socket), void onData(WebSocket socket, var message), void onDisconnect(WebSocket socket)) {
     print('Client connected!');
-    webSocket.listen((String s) {
-      onData(s);
-    },
-    onDone: () {
+    onConnect(socket);
+    socket.listen((String s) {
+      onData(socket, s);
+    }, onDone: () {
       print('Client disconnected');
+      onDisconnect(socket);
     });
   }
 
-  send(String message) {
-    webSocket.add(message);
-  }
-
-  serveRequest(HttpRequest request){
+  serveRequest(HttpRequest request) {
     request.response.statusCode = HttpStatus.FORBIDDEN;
     request.response.reasonPhrase = "WebSocket connections only";
     request.response.close();

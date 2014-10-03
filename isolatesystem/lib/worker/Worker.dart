@@ -39,7 +39,7 @@ abstract class Worker {
       String action = MessageUtil.getAction(message);
       var payload = MessageUtil.getPayload(message);
 
-      switch(message[0]) {
+      switch(action) {
         case Action.KILL:
           kill();
           break;
@@ -50,7 +50,7 @@ abstract class Worker {
           onReceive(payload);
           break;
         default:
-          onReceive(payload);
+          print("Worker: unknown action -> $action");
       }
     } else {
       print("Worker: WARNING: incorrect message format, but still forwarding $message");

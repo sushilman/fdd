@@ -62,7 +62,7 @@ class Random implements Router {
 
     //print("Paths : $workersPaths");
 
-    spawnWorkers(receivePort, workerSourceUri);
+    spawnWorkers();
 
     receivePort.listen(_onReceive);
   }
@@ -80,6 +80,7 @@ class Random implements Router {
         case SenderType.CONTROLLER:
           _handleMessageFromController(action, payload);
           break;
+        case SenderType.PROXY:
         case SenderType.WORKER:
           _handleMessageFromWorker(action, senderId, payload);
           break;
@@ -119,7 +120,10 @@ class Random implements Router {
     switch(action) {
       case Action.READY:
         _Worker worker = _getWorkerById(senderId);
+
+        //TODO: fix for remote worker
         if(worker == null) {
+          print("Worker still NULL so creating new local worker?");
           _Worker w = new _Worker(senderId, "TODO: setpath", null);
           workers.add(w);
           w.sendPort = payload;
@@ -147,7 +151,7 @@ class Random implements Router {
         //TODO: Refactor
         Uuid uuid = new Uuid();
         String newId = uuid.v1();
-        Isolate.spawnUri(workerSourceUri, [newId], receivePort.sendPort);
+        spawnWorker(newId, path);
         break;
       case Action.NONE:
         break;
@@ -224,7 +228,8 @@ class Random implements Router {
             //TODO: Refactor
             Uuid uuid = new Uuid();
             String newId = uuid.v1();
-            Isolate.spawnUri(workerSourceUri, [newId], receivePort.sendPort);
+            spawnWorker(newId, path);
+            //Isolate.spawnUri(workerSourceUri, [newId], receivePort.sendPort);
 //            .then((Isolate isolate) {
 //              //_Worker w = new _Worker(id, path, isolate);
 //              //workers.add(w);
@@ -248,33 +253,36 @@ class Random implements Router {
     }
   }
 
-  spawnWorkers(ReceivePort receivePort, Uri workerSourceUri) {
-    Uri proxyUri = Uri.parse("/Users/sushil/fdd/isolatesystem/lib/worker/Proxy.dart");
-
+  spawnWorkers() {
     var uuid = new Uuid();
     for (int index = 0; index < workersPaths.length; index++) {
       String path = workersPaths[index];
-      //print("Random: path $path");
-      if(path.startsWith("ws://")) {
-        String id = uuid.v1();
-        Isolate.spawnUri(proxyUri, [id, path, workerSourceUri], receivePort.sendPort).then((Isolate isolate) {
-          _Worker w = new _Worker(id, path, isolate);
-          workers.add(w);
-        });
-      } else {
-        String id = uuid.v1();
-        Isolate.spawnUri(workerSourceUri, [id], receivePort.sendPort).then((Isolate isolate) {
-          _Worker w = new _Worker(id, path, isolate);
-          workers.add(w);
-        });
-      }
+      String id = uuid.v1();
+      spawnWorker(id, path);
+    }
+  }
+
+  spawnWorker(String id, String path) {
+    Uri proxyUri = Uri.parse("/Users/sushil/fdd/isolatesystem/lib/worker/Proxy.dart");
+    if(path.startsWith("ws://")) {
+      print("Spawning remote isolate");
+      Isolate.spawnUri(proxyUri, [id, path, workerSourceUri], receivePort.sendPort).then((Isolate isolate) {
+        _Worker w = new _Worker(id, path, isolate);
+        workers.add(w);
+      });
+    } else {
+      print("Spawning local isolate");
+      Isolate.spawnUri(workerSourceUri, [id, path], receivePort.sendPort).then((Isolate isolate) {
+        _Worker w = new _Worker(id, path, isolate);
+        workers.add(w);
+      });
     }
   }
 
   _restartWorker(String id) {
     _getWorkerById(id)
       ..active = false
-      ..sendPort.send([Action.RESTART]);
+      ..sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.RESTART, null));
     workers.remove(id);
   }
 
@@ -287,14 +295,14 @@ class Random implements Router {
     workers.forEach((worker) {
       worker
         ..active = false
-        ..sendPort.send([Action.RESTART]);
+        ..sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.RESTART, null));
     });
   }
 
   _killWorker(String id) {
     _getWorkerById(id)
       ..active = false
-      ..sendPort.send([Action.KILL]);
+      ..sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.KILL, null));
     workers.remove(id);
   }
 
@@ -302,7 +310,7 @@ class Random implements Router {
     workers.forEach((worker) {
       worker
         ..active = false
-        ..sendPort.send([Action.KILL]);
+        ..sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.KILL, null));
     });
     workers.clear();
   }
@@ -349,8 +357,8 @@ class Random implements Router {
 
   _Worker _getWorkerById(String id) {
     _Worker selectedWorker = null;
-    //print("Reqd. id : $id");
     workers.forEach((worker) {
+      print("Reqd. id : $id vs woker id : ${worker.id}");
       if(worker.id == id) {
         selectedWorker = worker;
         //return worker; //Why now simply this instead of variable declarations and all
