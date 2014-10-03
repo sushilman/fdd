@@ -53,7 +53,7 @@ class Activator {
    * will send id along with its send port
    */
   _onReceive(var message) {
-    print("Activator: message received from isolate -> $message");
+    //print("Activator: message received from isolate -> $message");
 
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
@@ -115,17 +115,14 @@ class Activator {
 
   // message from Proxy via websocket
   _onData(WebSocket socket, var msg) {
-    print("$msg");
-
     var message = JSON.decode(msg);
-    print("$message");
 
     String senderType = MessageUtil.getSenderType(message);
     String senderId = MessageUtil.getId(message);
     String action = MessageUtil.getAction(message);
     String payload = MessageUtil.getPayload(message);
 
-    print("Inside onData: ${senderId}");
+    //print("Inside onData: ${senderId}");
 
     switch(action) {
       case Action.SPAWN:
@@ -145,7 +142,6 @@ class Activator {
 
   _spawnWorker(String uri, List<String> args, WebSocket socket) {
     Isolate.spawnUri(Uri.parse(uri), args, receivePort.sendPort).then((isolate) {
-      print("Activator: Spawning completed");
       isolates.add(new _Isolate(args[0], isolate, socket));
     }, onError:((message) {
         onErrorDuringSpawn(socket, message);
@@ -164,7 +160,6 @@ class Activator {
   _Isolate getIsolateById(String id) {
     _Isolate selectedIsolate = null;
     isolates.forEach((isolate) {
-      print("Activator: ${isolate.id} vs $id");
       if(isolate.id == id) {
         selectedIsolate = isolate;
       }

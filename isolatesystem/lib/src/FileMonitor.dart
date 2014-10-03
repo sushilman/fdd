@@ -31,7 +31,7 @@ class FileMonitor extends Worker {
   }
 
   onReceive(var message) {
-    print("FileMonitor: $message");
+    //print("FileMonitor: $message");
     if(message is SendPort) {
 
     } else {
@@ -55,7 +55,7 @@ class FileMonitor extends Worker {
           List<int> fileContent = new List<int>();
           fileContent.addAll(value);
           hash = _calcHash(fileContent);
-          print("Hash:" + hash);
+          //print("Hash:" + hash);
           if (oldHash == null) {
             oldHash = hash;
           } else if (hash != null) {
@@ -67,14 +67,12 @@ class FileMonitor extends Worker {
         }));
       });
     } else {
-      print("Inside else block");
       new Timer.periodic(duration, (t) {
         new File.fromUri(uri).readAsBytes().then((bytes) {
-          print ("File read !");
           List<int> fileContent = new List<int>();
           fileContent.addAll(bytes);
           hash = _calcHash(fileContent);
-          print("Hash:" + hash);
+          //print("Hash:" + hash);
           if (oldHash == null) {
             oldHash = hash;
           } else if (hash != null) {
@@ -102,6 +100,6 @@ class FileMonitor extends Worker {
 
   _restartIsolate() {
     sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.RESTART, [routerId]));
-    print("Restart command sent !");
+    print("Restart command issued !");
   }
 }

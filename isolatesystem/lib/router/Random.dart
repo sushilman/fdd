@@ -59,16 +59,12 @@ class Random implements Router {
     workersPaths = args[2];
 
     sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.NONE, receivePort.sendPort));
-
-    //print("Paths : $workersPaths");
-
     spawnWorkers();
-
     receivePort.listen(_onReceive);
   }
 
   _onReceive(var message) {
-    print("Router: $message");
+    //print("Router: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -123,11 +119,10 @@ class Random implements Router {
 
         //TODO: fix for remote worker
         if(worker == null) {
-          print("Worker still NULL so creating new local worker?");
+          //print("Worker still NULL so creating new local worker?");
           _Worker w = new _Worker(senderId, "TODO: setpath", null);
           workers.add(w);
           w.sendPort = payload;
-          print("Adding worker");
           sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.PULL_MESSAGE, null));
         } else {
           worker.sendPort = payload;
@@ -146,110 +141,13 @@ class Random implements Router {
       case Action.RESTARTING:
         _Worker worker = _getWorkerById(senderId);
         String path = worker.path;
-        print(workers.remove(worker));
-        print("After removal : ${workers.length}");
-        //TODO: Refactor
+        workers.remove(worker);
         Uuid uuid = new Uuid();
         String newId = uuid.v1();
         spawnWorker(newId, path);
         break;
       case Action.NONE:
         break;
-    }
-  }
-
-  _onReceive1(var message, ReceivePort receivePort) {
-    print("Router: $message");
-    if (message is List) {
-      if(message.length > 1 && message[1] is SendPort) {
-        String id = message[0];
-        SendPort sendPort = message[1];
-
-        _Worker worker = _getWorkerById(id);
-        //create worker object only after receiving sendport message from the isolate
-        //temporarily store other variables like path, before restarting/creating isolate,
-        //somewhere according to id and access it here
-        // or let the spawned isolate send the path in its message
-
-        if(worker == null) {
-          _Worker w = new _Worker(id, "path", null);
-          workers.add(w);
-          w.sendPort = sendPort;
-          print("Adding worker");
-          sendPortOfController.send([Action.PULL_MESSAGE]);
-          //sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.PULL_MESSAGE, null))
-        } else {
-          worker.sendPort = sendPort;
-        }
-        //print("Router: sendport added for $id");
-
-        if(areAllWorkersReady()) {
-          //print("### All wokers are ready !! ###");
-          sendPortOfController.send([Action.READY]);
-        }
-      } else {
-        switch (message[0]) {
-          case Action.SPAWN:
-          // TODO: spawn isolate, may be?
-            break;
-          case Action.DONE:
-            String id = message[1];
-            if(_getWorkerById(id).active) {
-              message[0] = Action.PULL_MESSAGE;
-              sendPortOfController.send(message);
-            }
-            break;
-          case Action.KILL:
-            String id = message[1];
-            _getWorkerById(id).sendPort.send([Action.KILL]);
-            workers.remove(id);
-            break;
-          case Action.RESTART:
-            String id = message[1];
-            _restartWorker(id);
-            break;
-          case Action.KILL_ALL:
-            _killAllWorkers();
-            break;
-          case Action.RESTART_ALL:
-            _restartAllWorkers();
-            break;
-          case Action.KILLED:
-            //print("Isolate has been killed!");
-            String id = message[1];
-            workers.remove(_getWorkerById(id));
-            break;
-          case Action.RESTARTING:
-            String id = message[1];
-            _Worker worker = _getWorkerById(id);
-            String path = worker.path;
-            print(workers.remove(worker));
-            print("After removal : ${workers.length}");
-            //TODO: Refactor
-            Uuid uuid = new Uuid();
-            String newId = uuid.v1();
-            spawnWorker(newId, path);
-            //Isolate.spawnUri(workerSourceUri, [newId], receivePort.sendPort);
-//            .then((Isolate isolate) {
-//              //_Worker w = new _Worker(id, path, isolate);
-//              //workers.add(w);
-//            });
-            break;
-          default:
-            //print("RandomRouter: Unknown Action: ${message[0]}");
-            _Worker w = selectWorker();
-            //print("Sending message: $message to ${w.id}");
-            w.sendPort.send(message);
-            break;
-        }
-      }
-    } else if (message is String) {
-      //just select and forward the message
-      //TODO: check if worker is alive?
-      // remove if not alive
-      _Worker w = selectWorker();
-      //print("Sending message: $message to ${w.id}");
-      w.sendPort.send(message);
     }
   }
 
@@ -265,13 +163,13 @@ class Random implements Router {
   spawnWorker(String id, String path) {
     Uri proxyUri = Uri.parse("/Users/sushil/fdd/isolatesystem/lib/worker/Proxy.dart");
     if(path.startsWith("ws://")) {
-      print("Spawning remote isolate");
+      //print("Spawning remote isolate");
       Isolate.spawnUri(proxyUri, [id, path, workerSourceUri], receivePort.sendPort).then((Isolate isolate) {
         _Worker w = new _Worker(id, path, isolate);
         workers.add(w);
       });
     } else {
-      print("Spawning local isolate");
+      //print("Spawning local isolate");
       Isolate.spawnUri(workerSourceUri, [id, path], receivePort.sendPort).then((Isolate isolate) {
         _Worker w = new _Worker(id, path, isolate);
         workers.add(w);
@@ -350,21 +248,17 @@ class Random implements Router {
 
   /**
    * Checks if the isolate with given sendport is free
-   *
-   * TODO: think about moving this to another separate isolate/actor
-   * send sendports of isolates to this monitoring isolate so that it can ping and forward action?
+   * send sendports of isolates to this monitoring isolate
+   * so that it can ping and forward action?
    */
 
   _Worker _getWorkerById(String id) {
     _Worker selectedWorker = null;
     workers.forEach((worker) {
-      print("Reqd. id : $id vs woker id : ${worker.id}");
       if(worker.id == id) {
         selectedWorker = worker;
-        //return worker; //Why now simply this instead of variable declarations and all
       }
     });
-    //(selectedWorker == null) ? print("RETURNING NULL") : print("returning good worker");
     return selectedWorker;
   }
 
@@ -384,9 +278,7 @@ class _Worker {
   String _path;
   bool _active = true;
 
-  _Worker(this._id, this._path, this._isolate) {
-    //print ("_Worker: worker with $id created");
-  }
+  _Worker(this._id, this._path, this._isolate);
 
   set sendPort(SendPort value) => _sendPort = value;
   get sendPort => _sendPort;

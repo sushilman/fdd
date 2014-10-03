@@ -23,11 +23,6 @@ import 'message/SenderType.dart';
  */
 
 /**
- * This can probably be merged with controller?
- * Or is it better to separate?
- */
-
-/**
  * Controller sends a pull request
  * after which, a message is fetched using messageQueuingSystem
  * from appropriate queue and sent to the controller
@@ -75,36 +70,8 @@ class IsolateSystem {
     }
   }
 
-  _onReceive1(message) {
-    //print("IsolateSystem: $message");
-    if(message is SendPort) {
-      _sendPortOfController = message;
-    } else if (message is List) {
-      switch(message[0]) {
-        case Action.PULL_MESSAGE:
-          _pullMessage("abc");
-          break;
-        case Action.DONE:
-          if(message.length > 1) {
-            _prepareResponse(message);
-          }
-          break;
-        case Action.RESTART_ALL:
-          _sendPortOfController.send(message);
-          break;
-        default:
-          print("IsolateSystem: Unknown Action: ${message[0]}");
-          break;
-      }
-    } else if (message is String) {
-      _sendPortOfController.send(message);
-    } else {
-      print ("IsolateSystem: Unknown message: $message");
-    }
-  }
-
   _onReceive(message) {
-    print("IsolateSystem: $message");
+    //print("IsolateSystem: $message");
     if(message is SendPort) {
       _sendPortOfController = message;
       if(!_startupBufferedCreationMessages.isEmpty) {

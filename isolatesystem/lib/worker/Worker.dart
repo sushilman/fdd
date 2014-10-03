@@ -28,11 +28,10 @@ abstract class Worker {
   }
 
   _onDone() {
-    print("On done: Receive port closed");
   }
 
   _onReceive(var message) {
-    print("Worker $id: $message");
+    //print("Worker $id: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);

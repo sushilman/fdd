@@ -42,7 +42,7 @@ class Proxy extends Worker {
     workerSourceUri = args[2];
 
     print("Proxy: Connecting to webSocket...");
-    WebSocket.connect(workerPath).then(handleWebSocket).catchError(onError);
+    WebSocket.connect(workerPath).then(_handleWebSocket).catchError(onError);
   }
 
   @override
@@ -50,33 +50,26 @@ class Proxy extends Worker {
     //Serialize and delegate to webSocket
     //TODO: same id should be used for the isolate spawned by activator
     // i.e. id of proxy and remote isolate will be the same
-    print("Proxy: Sending message -> $message");
-    
+    //print("Proxy: Sending message -> $message");
     ws.add(JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.NONE, message)));
-
   }
 
-  void handleWebSocket(WebSocket ws) {
+  void _handleWebSocket(WebSocket ws) {
     this.ws = ws;
     if(ws != null && ws.readyState == WebSocket.OPEN) {
       print("Proxy: WebSocket Connected !");
       // send initialization message
       // SPAWN Isolate on remote location
-      //var message = JSON.encode([Action.SPAWN, workerSourceUri.toString(), id]);
       var message = JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.SPAWN, [workerSourceUri.toString(), workerPath]));
-      print("Proxy: $message");
+      //print("Proxy: $message");
       ws.add(message);
     }
-
-    ws.listen(onData);
-    // send message to self and invoke this
-    // ws.add(JSON.encode([Action.SPAWN, workerUri, id]));
-    // send spawn messages here?
+    ws.listen(_onData);
   }
 
-  void onData(String msg) {
+  void _onData(String msg) {
     // Deserialize and send to itself first? router
-    print("Response from Activator: $msg");
+    // print("Response from Activator: $msg");
     List<String> message = isJsonString(msg) ? JSON.decode(msg) : msg;
 
     if(MessageUtil.isValidMessage(message)) {
@@ -106,24 +99,6 @@ class Proxy extends Worker {
           break;
       }
     }
-
-//    if(message is List && message.length > 1) {
-//      switch(message[1]) {
-//        case Action.READY:
-//          print("READY message sent");
-//          sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.READY, receivePort.sendPort));
-//          break;
-//        case Action.ERROR:
-//          //TODO: end isolate: close sendport, disconnect websocket
-//          kill();
-//          break;
-//        default:
-//          sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.NONE, message));
-//          break;
-//      }
-//    } else {
-//      sendPort.send(message);
-//    }
   }
 
   void onError(var message) {
@@ -134,17 +109,14 @@ class Proxy extends Worker {
   void kill() {
     sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.KILLED,null));
     ws.close().then((value) {
-      print("Proxy: WebSocket connection with activator is now closed.");
+      print("Proxy: WebSocket Disconnected.");
     });
     receivePort.close();
   }
 
   @override
   void restart() {
-    print("Restart command being forwarded");
     ws.add(JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.RESTART, null)));
-    //TOOD: move following code to .. after response from activator/worker
-
   }
 
   bool isJsonString(var string) {

@@ -31,9 +31,7 @@ class Controller {
   ReceivePort _receivePort;
   SendPort _sendPortOfIsolateSystem;
   SendPort _self;
-  /**
-   * Send port of the routers this controller has spawned
-   */
+
   List<_Router> routers;
 
   Controller(List<String> args, this._sendPortOfIsolateSystem) {
@@ -48,55 +46,10 @@ class Controller {
       _onReceive(message);
     });
 
-    print("Controller: Ready...");
-    //_spawnRouter1(receivePort, routerUri, workerUri, workersCount, workersPaths);
-  }
-
-  _onReceive1(var message) {
-    //print("Controller: $message");
-    if(message is List) {
-      String id = message[0];
-      _Router router = _getRouterById(id);
-      if(message[1] is SendPort) {
-        router.sendPort = message;
-      } else {
-        String senderId = message[0];
-        switch(message[1]) {
-          case Action.SPAWN:
-            //Do Nothing
-            break;
-          case Action.READY:
-            for (int i = 0; i < router.workersCount; i++) {
-              _sendPortOfIsolateSystem.send([id, Action.PULL_MESSAGE]);
-            }
-            break;
-          case Action.PULL_MESSAGE:
-            // The result message? along with DONE action
-            // to be en-queued in MQS
-            if(message.length > 2) {
-              // may be some additional information of
-              // the isolate and/or the original sender?
-              _sendPortOfIsolateSystem.send(message);
-            }
-
-            _sendPortOfIsolateSystem.send([Action.PULL_MESSAGE]);
-            break;
-          case Action.RESTART_ALL:
-            router.sendPort.send(message);
-            break;
-          default:
-            print ("Controller: Unknown Action, delegating to router ${message[0]}");
-            router.sendPort.send(message);
-            break;
-        }
-      }
-    } else if (message is String) {
-      print ("Controller: Unhandled message -> $message");
-    }
   }
 
   _onReceive(message) {
-    print("Controller: $message");
+    //print("Controller: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -141,8 +94,8 @@ class Controller {
 
         break;
       case Action.RESTART:
-        //TODO: means to restart all isolates of a router?
-        //issuing a restart command for single isolate does not make sense
+        // means to restart all isolates of a router
+        // issuing a restart command for single isolate does not make sense
         // get id of router, send restart command to that router
         String routerId = payload[0];
         _Router router = _getRouterById(routerId);
@@ -164,10 +117,8 @@ class Controller {
   }
 
   _handleMessagesFromRouters(String senderId, String action, var payload) {
-    print ("Controller: getting router $senderId");
     _Router router = _getRouterById(senderId);
     if(payload is SendPort) {
-      print ("Setting sendport");
       router.sendPort = payload;
     } else {
       switch (action) {
@@ -189,7 +140,7 @@ class Controller {
   }
 
   _handleMessagesFromFileMonitor(String senderId, String action, var payload) {
-    print("Controller: Message from file monitor $payload");
+    //print("Controller: Message from file monitor $payload");
     switch(action) {
       case Action.RESTART:
         //TODO: means to restart all isolates of a router?
@@ -202,13 +153,6 @@ class Controller {
       default:
         break;
     }
-  }
-
-  _spawnRouter1(ReceivePort receivePort, Uri routerUri, String workerUri, int workersCount, String workersPaths) {
-    Isolate.spawnUri(routerUri, [workerUri, workersCount.toString(), workersPaths], receivePort.sendPort).then((isolate) {
-      _Router router = new _Router("id", routerUri, workersCount);
-      routers.add(router);
-    });
   }
 
   _spawnRouter(String routerId, Uri routerUri, String workerUri, List<String> workersPaths) {

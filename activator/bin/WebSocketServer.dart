@@ -4,7 +4,7 @@ class WebSocketServer {
 
   WebSocketServer(int port, String path, void onConnect(WebSocket socket), void onData(WebSocket socket, var message), void onDisconnect(WebSocket socket)) {
     HttpServer.bind(InternetAddress.ANY_IP_V4, port).then((HttpServer server) {
-      print("HttpServer listening...");
+      print("HttpServer listening for websocket connections...");
       server.serverHeader = "ActivatorServer";
       server.listen((HttpRequest request) {
         print('listening on $path \n request on ' + request.uri.toString());
@@ -14,7 +14,6 @@ class WebSocketServer {
               handleWebSocket(socket, onConnect, onData, onDisconnect);
             });
           } else {
-            print("Regular ${request.method} request for: ${request.uri.path}");
             serveRequest(request);
           }
         }
