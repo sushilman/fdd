@@ -3,6 +3,7 @@ library isolatesystem.worker.Worker;
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:async';
+
 import '../action/Action.dart';
 import '../message/MessageUtil.dart';
 import '../message/SenderType.dart';
@@ -11,9 +12,17 @@ abstract class Worker {
   ReceivePort receivePort;
   SendPort sendPort;
   String id;
+  String _deployedPath;
 
   Worker(List<String> args, this.sendPort) {
-    id = args[0];
+    id = args.removeAt(0);
+
+    _deployedPath;
+    if(args.length > 1) {
+      _deployedPath = args.removeAt(0);
+      print ("PATH - $_deployedPath");
+    }
+
     receivePort = new ReceivePort();
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.READY, receivePort.sendPort));
     receivePort.listen((var message) {
@@ -22,7 +31,7 @@ abstract class Worker {
   }
 
   Worker.withoutReadyMessage(List<String> args, this.sendPort) {
-    id = args[0];
+    id = args.removeAt(0);
     receivePort = new ReceivePort();
     receivePort.listen(_onReceive, onDone:_onDone, cancelOnError:false);
   }

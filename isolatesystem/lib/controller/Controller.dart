@@ -49,7 +49,7 @@ class Controller {
   }
 
   _onReceive(message) {
-    //print("Controller: $message");
+    print("Controller: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -81,12 +81,16 @@ class Controller {
         String workerUri = payload[1];
         List<String> workersPaths = payload[2];
         Uri routerUri = Uri.parse(payload[3]);
+        var extraArgs;
         bool hotDeployment = false;
-        if(payload.length == 5) {
+        if(payload.length > 4) {
           hotDeployment = payload[4];
+          if(payload.length > 5) {
+            extraArgs = payload[5];
+          }
         }
 
-        _spawnRouter(routerId, routerUri, workerUri, workersPaths);
+        _spawnRouter(routerId, routerUri, workerUri, workersPaths, extraArgs);
 
         if(hotDeployment) {
           _spawnFileMonitor(routerId, workerUri);
@@ -155,8 +159,8 @@ class Controller {
     }
   }
 
-  _spawnRouter(String routerId, Uri routerUri, String workerUri, List<String> workersPaths) {
-    Isolate.spawnUri(routerUri, [routerId, workerUri, workersPaths], _receivePort.sendPort).then((isolate) {
+  _spawnRouter(String routerId, Uri routerUri, String workerUri, List<String> workersPaths, var extraArgs) {
+    Isolate.spawnUri(routerUri, [routerId, workerUri, workersPaths, extraArgs], _receivePort.sendPort).then((isolate) {
       _Router router = new _Router(routerId, routerUri, workersPaths.length);
       routers.add(router);
     });

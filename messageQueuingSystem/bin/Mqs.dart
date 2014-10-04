@@ -1,5 +1,10 @@
+import 'dart:io';
 import "dart:isolate";
 import "dart:async";
+import "package:path/path.dart" show dirname;
+
+import "package:isolatesystem/IsolateSystem.dart";
+import "package:isolatesystem/router/Router.dart";
 
 /**
  * TODO:
@@ -20,8 +25,17 @@ class Mqs {
   ReceivePort receivePortDequeue;
   Uri enqueueIsolate = Uri.parse("enqueueIsolate.dart");
   Uri dequeueIsolate = Uri.parse("dequeueIsolate.dart");
+
+  String enqueuerUri = "${dirname(Platform.script.toString())}/enqueueIsolate.dart";
+  String dequeuerUri = "${dirname(Platform.script.toString())}/dequeueIsolate.dart";
+
   SendPort enqueueSendPort;
   SendPort dequeueSendPort;
+
+  List<String> workersPathsEnqueuer = ["localhost/e1", "localhost/e2"];
+  List<String> workersPathsDequeuer = ["localhost/d1", "localhost/d2"];
+  IsolateSystem system = new IsolateSystem("mySystem");
+
 //
 //  StompClient client;
 
@@ -38,11 +52,13 @@ class Mqs {
   }
 
   _startEnqueuerIsolate(List<String> args) {
-    Isolate.spawnUri(enqueueIsolate, args, receivePortEnqueue.sendPort);
+    system.addIsolate("simplePrinter", enqueuerUri, workersPathsEnqueuer, Router.RANDOM, hotDeployment:true);
+    //Isolate.spawnUri(enqueueIsolate, args, receivePortEnqueue.sendPort);
   }
 
   _startDequeuerIsolate(List<String> args) {
-    Isolate.spawnUri(dequeueIsolate, args, receivePortDequeue.sendPort);
+    system.addIsolate("simplePrinter", dequeuerUri, workersPathsDequeuer, Router.RANDOM, hotDeployment:true);
+    //Isolate.spawnUri(dequeueIsolate, args, receivePortDequeue.sendPort);
   }
 
   _onReceiveFromEnqueueIsolate(message) {
@@ -86,7 +102,7 @@ main() {
   new Timer.periodic(const Duration(seconds:0.1), (t) {
     //mqs.enqueue("Message ${counter++}");
   });
-  new Timer.periodic(const Duration(seconds:0.1), (t) {
+  new Timer.periodic(const Duration(seconds:1), (t) {
     mqs.dequeue();
   });
 

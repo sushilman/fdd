@@ -16,7 +16,12 @@ main(List<String> args, SendPort sendPort) {
 class PrinterIsolate extends Worker {
   int counter = 0;
 
-  PrinterIsolate(List<String> args, SendPort sendPort) : super(args, sendPort);
+  PrinterIsolate(List<String> args, SendPort sendPort) : super(args, sendPort) {
+    print("Extra Args : $args");
+    int rand = 10;
+    Duration duration = new Duration(seconds: rand);
+    sleep(duration);
+  }
 
   @override
   onReceive(message) {

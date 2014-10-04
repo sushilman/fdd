@@ -54,12 +54,16 @@ class Random implements Router {
     self = receivePort.sendPort;
     workers = new List<_Worker>();
 
+
     id = args[0];
     workerSourceUri = Uri.parse(args[1]);
     workersPaths = args[2];
+    var extraArgs;
+  if(args.length > 3)
+      extraArgs = args[3];
 
     sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.NONE, receivePort.sendPort));
-    spawnWorkers();
+    spawnWorkers(extraArgs);
     receivePort.listen(_onReceive);
   }
 
@@ -151,26 +155,26 @@ class Random implements Router {
     }
   }
 
-  spawnWorkers() {
+  spawnWorkers([args]) {
     var uuid = new Uuid();
     for (int index = 0; index < workersPaths.length; index++) {
       String path = workersPaths[index];
       String id = uuid.v1();
-      spawnWorker(id, path);
+      spawnWorker(id, path, args:args);
     }
   }
 
-  spawnWorker(String id, String path) {
-    Uri proxyUri = Uri.parse("/Users/sushil/fdd/isolatesystem/lib/worker/Proxy.dart");
+  spawnWorker(String id, String path, {var args}) {
+    Uri proxyUri = Uri.parse("../worker/Proxy.dart");
     if(path.startsWith("ws://")) {
       //print("Spawning remote isolate");
-      Isolate.spawnUri(proxyUri, [id, path, workerSourceUri], receivePort.sendPort).then((Isolate isolate) {
+      Isolate.spawnUri(proxyUri, [id, path, workerSourceUri, args], receivePort.sendPort).then((Isolate isolate) {
         _Worker w = new _Worker(id, path, isolate);
         workers.add(w);
       });
     } else {
       //print("Spawning local isolate");
-      Isolate.spawnUri(workerSourceUri, [id, path], receivePort.sendPort).then((Isolate isolate) {
+      Isolate.spawnUri(workerSourceUri, [id, path, args], receivePort.sendPort).then((Isolate isolate) {
         _Worker w = new _Worker(id, path, isolate);
         workers.add(w);
       });

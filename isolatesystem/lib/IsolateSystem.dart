@@ -55,18 +55,19 @@ class IsolateSystem {
   }
 
   //TODO: make custom routers possible by considering uri instead of routerType
-  void addIsolate(String name, String uri, workersPaths, String routerType, {hotDeployment: true}) {
+  void addIsolate(String name, String uri, workersPaths, String routerType, {hotDeployment: true, args}) {
     String routerUri = routerType;
 
     if(routerType == Router.RANDOM) {
       routerUri = "../router/Random.dart";
     }
 
+    var message = [name, uri, workersPaths, routerUri, hotDeployment, args];
     if(_sendPortOfController == null) {
       print("Waiting for controller to be ready");
-      _startupBufferedCreationMessages.add([name, uri, workersPaths, routerUri, hotDeployment]);
+      _startupBufferedCreationMessages.add(message);
     } else {
-      _self.send(MessageUtil.create(SenderType.SELF, _id, Action.ADD, [name, uri, workersPaths, routerUri, hotDeployment]));
+      _self.send(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
     }
   }
 

@@ -26,8 +26,8 @@ class FileMonitor extends Worker {
 
   FileMonitor(List<String> args, SendPort sendPort) : super.withoutReadyMessage(args, sendPort) {
     sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.READY, receivePort.sendPort));
-    routerId = args[1];
-    startMonitoring(Uri.parse(args[2]));
+    routerId = args[0];
+    startMonitoring(Uri.parse(args[1]));
   }
 
   onReceive(var message) {

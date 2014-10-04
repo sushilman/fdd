@@ -128,7 +128,8 @@ class Activator {
       case Action.SPAWN:
         String uri = payload[0];
         String path = payload[1];
-        List<String> args = [senderId, path];
+        var extraArgs = payload[2];
+        List<String> args = [senderId, path, extraArgs];
         _spawnWorker(uri, args, socket);
         break;
       case Action.RESTART:

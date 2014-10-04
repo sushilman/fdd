@@ -30,7 +30,7 @@ class Proxy extends Worker {
   WebSocket ws;
   Uri workerSourceUri;
   String workerPath;
-
+  var extraArgs;
   /**
    * Need some error prevention here
    * if workerPath is not good websocket uri
@@ -38,8 +38,9 @@ class Proxy extends Worker {
   Proxy(List<String> args, SendPort sendPort) : super.withoutReadyMessage(args, sendPort) {
     self = receivePort.sendPort;
 
-    workerPath = args[1];
-    workerSourceUri = args[2];
+    workerPath = args[0];
+    workerSourceUri = args[1];
+    extraArgs = args[2];
 
     print("Proxy: Connecting to webSocket...");
     WebSocket.connect(workerPath).then(_handleWebSocket).catchError(onError);
@@ -60,7 +61,7 @@ class Proxy extends Worker {
       print("Proxy: WebSocket Connected !");
       // send initialization message
       // SPAWN Isolate on remote location
-      var message = JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.SPAWN, [workerSourceUri.toString(), workerPath]));
+      var message = JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.SPAWN, [workerSourceUri.toString(), workerPath, extraArgs]));
       //print("Proxy: $message");
       ws.add(message);
     }

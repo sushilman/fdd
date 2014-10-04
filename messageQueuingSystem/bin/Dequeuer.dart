@@ -1,9 +1,10 @@
-import "package:stomp/stomp.dart";
-import "package:stomp/vm.dart" show connect;
 
 import 'dart:isolate';
 import 'dart:async';
 
+import "package:stomp/stomp.dart";
+import "package:stomp/vm.dart" show connect;
+import "package:isolatesystem/worker/Worker.dart";
 import "Mqs.dart";
 
 StompClient client;
@@ -32,6 +33,22 @@ main(List<String> args, SendPort sendport) {
   receivePort.listen((msg) {
     _onData(msg);
   });
+}
+
+class Dequeuer extends Worker {
+
+  String host = args[0];
+  int port = args[1];
+  String username = args[2];
+  String password = args[3];
+
+  Dequeuer(List<String> args, SendPort sendPort):super(args, sendPort) {
+
+  }
+
+  onReceive(var message) {
+
+  }
 }
 
 _handleStompClient(StompClient stompclient) {
@@ -70,7 +87,7 @@ _subscribeMessage(String topic) {
 void _onData(message) {
   if(message is SendPort) {
     print("Send port received !");
-  //else if message is "dequeue" (from topic?)
+    //else if message is "dequeue" (from topic?)
   } else {
     //print("Dequeue a message from message_broker_system");
     _flushBuffer(bufferMailBox);
