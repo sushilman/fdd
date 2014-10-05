@@ -13,6 +13,18 @@ import 'router/Random.dart';
 import 'message/MessageUtil.dart';
 import 'message/SenderType.dart';
 
+/**
+ * TODO: Take care of theses Possible Issues
+ * 1. Pull requests are not answered by Message Queuing System
+ *  - May be the queue is empty
+ *  - may be the pull message does not reach message queuing system
+ *  - solution: request again in certain interval... by controller / router ... periodic pull requests?
+ *   -- keep track of number of pull requests and number of messages sent to router from controller?
+ *   -- OR simply keep track of PULL MESSAGES ?
+ *   -- OR poll for free isolate if the router is sitting idle for few seconds
+ *   -- and send pull request based on that
+ * 2.
+ */
 
 /**
  * Message Structure:
@@ -147,6 +159,7 @@ class IsolateSystem {
     // then send to sendPort of controller
     // sendPort.send(newMessage);
     //
+    // send message to self once message arrives from Message Queuing System
     _self.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, [senderId,"Simple message #${counter++}"]));
   }
 

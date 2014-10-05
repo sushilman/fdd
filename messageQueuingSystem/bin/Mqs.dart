@@ -1,16 +1,19 @@
-import 'dart:io';
 import "dart:isolate";
 import "dart:async";
-import "package:path/path.dart" show dirname;
-
-import "package:isolatesystem/IsolateSystem.dart";
-import "package:isolatesystem/router/Router.dart";
 
 /**
- * TODO:
- * 1. Receive message in the system
- *   => Receive message via ? -> websocket?
+ * Oct 5, 2014
+ * MQS should handle at webSocket connections with three subsystems:
+ *  1. over STOMP with Message Broker System
+ *    - as a client
+ *
+ *  2. With Registry
+ *    - as a client
+ *  3. With Isolate Systems
+ *    - as a Server
+ *    - each IsolateSystem opens a webSocket connection with MQS
  */
+
 class Mqs {
 
   static const String LOCALHOST = "127.0.0.1";
@@ -25,19 +28,9 @@ class Mqs {
   ReceivePort receivePortDequeue;
   Uri enqueueIsolate = Uri.parse("enqueueIsolate.dart");
   Uri dequeueIsolate = Uri.parse("dequeueIsolate.dart");
-
-  String enqueuerUri = "${dirname(Platform.script.toString())}/enqueueIsolate.dart";
-  String dequeuerUri = "${dirname(Platform.script.toString())}/dequeueIsolate.dart";
-
   SendPort enqueueSendPort;
   SendPort dequeueSendPort;
 
-  List<String> workersPathsEnqueuer = ["localhost/e1", "localhost/e2"];
-  List<String> workersPathsDequeuer = ["localhost/d1", "localhost/d2"];
-  IsolateSystem system = new IsolateSystem("mySystem");
-
-//
-//  StompClient client;
 
   Mqs({host:LOCALHOST, port:RABBITMQ_DEFAULT_PORT, username:GUEST_LOGIN, password:GUEST_PASSWORD}) {
     receivePortEnqueue = new ReceivePort();
@@ -52,13 +45,11 @@ class Mqs {
   }
 
   _startEnqueuerIsolate(List<String> args) {
-    system.addIsolate("simplePrinter", enqueuerUri, workersPathsEnqueuer, Router.RANDOM, hotDeployment:true);
-    //Isolate.spawnUri(enqueueIsolate, args, receivePortEnqueue.sendPort);
+    Isolate.spawnUri(enqueueIsolate, args, receivePortEnqueue.sendPort);
   }
 
   _startDequeuerIsolate(List<String> args) {
-    system.addIsolate("simplePrinter", dequeuerUri, workersPathsDequeuer, Router.RANDOM, hotDeployment:true);
-    //Isolate.spawnUri(dequeueIsolate, args, receivePortDequeue.sendPort);
+    Isolate.spawnUri(dequeueIsolate, args, receivePortDequeue.sendPort);
   }
 
   _onReceiveFromEnqueueIsolate(message) {
@@ -100,9 +91,9 @@ main() {
   Mqs mqs = new Mqs(host:"127.0.0.1", port:61613);
   int counter = 0;
   new Timer.periodic(const Duration(seconds:0.1), (t) {
-    //mqs.enqueue("Message ${counter++}");
+    mqs.enqueue("Message ${counter++}");
   });
-  new Timer.periodic(const Duration(seconds:1), (t) {
+  new Timer.periodic(const Duration(seconds:0.1), (t) {
     mqs.dequeue();
   });
 

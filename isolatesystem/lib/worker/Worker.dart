@@ -23,6 +23,8 @@ abstract class Worker {
       print ("PATH - $_deployedPath");
     }
 
+    args = _extractExtraArguments(args);
+
     receivePort = new ReceivePort();
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.READY, receivePort.sendPort));
     receivePort.listen((var message) {
@@ -32,6 +34,7 @@ abstract class Worker {
 
   Worker.withoutReadyMessage(List<String> args, this.sendPort) {
     id = args.removeAt(0);
+    args = args[0];
     receivePort = new ReceivePort();
     receivePort.listen(_onReceive, onDone:_onDone, cancelOnError:false);
   }
@@ -94,5 +97,19 @@ abstract class Worker {
   void restart() {
     receivePort.close();
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.RESTARTING, null));
+  }
+
+  _extractExtraArguments(var args) {
+    if(args[0] is List) {
+      List<String> temp = new List<String>();
+      temp.addAll(args[0]);
+      args.clear();
+      args.addAll(temp);
+    } else {
+      String temp = args[0];
+      args.clear();
+      args.add(temp);
+    }
+    return args;
   }
 }
