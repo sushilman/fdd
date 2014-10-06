@@ -74,7 +74,7 @@ class IsolateSystem {
       routerUri = "../router/Random.dart";
     }
 
-    var message = [name, uri, workersPaths, routerUri, hotDeployment, args];
+    var message = {'name':name, 'uri':uri, 'workerPaths':workersPaths, 'routerUri':routerUri, 'hotDeployment':hotDeployment, 'args':args};
     if(_sendPortOfController == null) {
       print("Waiting for controller to be ready");
       _startupBufferedCreationMessages.add(message);
@@ -84,7 +84,7 @@ class IsolateSystem {
   }
 
   _onReceive(message) {
-    //print("IsolateSystem: $message");
+    print("IsolateSystem: $message");
     if(message is SendPort) {
       _sendPortOfController = message;
       if(!_startupBufferedCreationMessages.isEmpty) {
@@ -160,7 +160,8 @@ class IsolateSystem {
     // sendPort.send(newMessage);
     //
     // send message to self once message arrives from Message Queuing System
-    _self.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, [senderId,"Simple message #${counter++}"]));
+    var sendMsg = [senderId, [9, counter++]];
+    _self.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, sendMsg));
   }
 
   //TODO: some more information along with payload?

@@ -77,18 +77,12 @@ class Controller {
   _handleMessagesFromIsolateSystem(String action, var payload) {
     switch(action) {
       case Action.SPAWN:
-        String routerId = payload[0];
-        String workerUri = payload[1];
-        List<String> workersPaths = payload[2];
-        Uri routerUri = Uri.parse(payload[3]);
-        var extraArgs;
-        bool hotDeployment = false;
-        if(payload.length > 4) {
-          hotDeployment = payload[4];
-          if(payload.length > 5) {
-            extraArgs = payload[5];
-          }
-        }
+        String routerId = payload['name'];
+        String workerUri = payload['uri'];
+        List<String> workersPaths = payload['workerPaths'];
+        Uri routerUri = Uri.parse(payload['routerUri']);
+        bool hotDeployment = payload['hotDeployment'];
+        var extraArgs = payload['args'];
 
         _spawnRouter(routerId, routerUri, workerUri, workersPaths, extraArgs);
 

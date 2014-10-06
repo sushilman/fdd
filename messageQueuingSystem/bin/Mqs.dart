@@ -1,6 +1,9 @@
+import 'dart:io';
 import "dart:isolate";
 import "dart:async";
+import 'dart:convert';
 
+import "WebSocketServer.dart";
 /**
  * Oct 5, 2014
  * MQS should handle at webSocket connections with three subsystems:
@@ -9,9 +12,13 @@ import "dart:async";
  *
  *  2. With Registry
  *    - as a client
+ *
  *  3. With Isolate Systems
  *    - as a Server
  *    - each IsolateSystem opens a webSocket connection with MQS
+ *
+ * Each Enqueuing and Dequeuing isolate for each TOPIC? or one for all
+ * if One for all, then Dequeuer will have to subscribe to each
  */
 
 class Mqs {
@@ -26,10 +33,16 @@ class Mqs {
 
   ReceivePort receivePortEnqueue;
   ReceivePort receivePortDequeue;
-  Uri enqueueIsolate = Uri.parse("enqueueIsolate.dart");
-  Uri dequeueIsolate = Uri.parse("dequeueIsolate.dart");
   SendPort enqueueSendPort;
   SendPort dequeueSendPort;
+
+  Uri enqueueIsolate = Uri.parse("enqueueIsolate.dart");
+  Uri dequeueIsolate = Uri.parse("dequeueIsolate.dart");
+
+  WebSocketServer wss;
+
+  String webSocketPath = "/mqs";
+  String listeningPort = "42043";
 
 
   Mqs({host:LOCALHOST, port:RABBITMQ_DEFAULT_PORT, username:GUEST_LOGIN, password:GUEST_PASSWORD}) {
@@ -42,6 +55,32 @@ class Mqs {
     receivePortDequeue = new ReceivePort();
     receivePortDequeue.listen(_onReceiveFromDequeueIsolate);
     _startDequeuerIsolate(args);
+
+    wss = new WebSocketServer(listeningPort, webSocketPath, _onConnect, _onData, _onDisconnect);
+  }
+
+  _onConnect(WebSocket socket) {
+
+  }
+
+  _onData(WebSocket socket, var msg) {
+    //TODO: listen to pull requests
+    var message = JSON.decode(msg);
+    String senderId = message[0];
+    String action = message[1];
+
+
+    if(action == "PULL") {
+      // TODO: find topic-queue using senderId
+      // 1. query registry with given senderId
+
+      // 2. onReceive from registry
+      // -> From registry : queue-topic and isolate_system_location
+    }
+  }
+
+  _onDisconnect(WebSocket socket) {
+
   }
 
   _startEnqueuerIsolate(List<String> args) {
@@ -96,5 +135,17 @@ main() {
   new Timer.periodic(const Duration(seconds:0.1), (t) {
     mqs.dequeue();
   });
+
+}
+
+class _IsolateSystem {
+  String _id;
+  WebSocket _socket;
+
+  String get id => _id;
+  set id(String value) => _id = value;
+
+  WebSocket get socket => _socket;
+  set socket(WebSocket value) => _socket = value;
 
 }

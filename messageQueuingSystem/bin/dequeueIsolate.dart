@@ -13,6 +13,10 @@ Map<String, String> bufferMailBox = new Map();
 
 /**
  * TODO: There are some ugly hacks that needs to be taken care of !
+ *
+ *
+ * Each Enqueuing and Dequeuing isolate for each TOPIC? or one for all
+ * if One for all, then Dequeuer will have to subscribe to each topic that is not yet subscribed
  */
 
 main(List<String> args, SendPort sendport) {

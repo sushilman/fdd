@@ -10,49 +10,48 @@ library isolatesystem.message.MessageUtil;
 
 class MessageUtil {
   static create(String senderType, String id, String action, var payload) {
-    return [senderType, id, action, payload];
+    //return [senderType, id, action, payload];
+    return {'senderType' : senderType, 'id' : id, 'action': action, 'payload' : payload};
   }
 
-  // Just an idea for performance improvement?
-  static update(String senderType, String id, var message) {
-    message[0] = senderType;
-    message[1] = id;
-    return message;
-  }
-
-  static getSenderType(List<String> message) {
+  static getSenderType(Map message) {
     try {
-      return message[0];
+      return message['senderType'];
+    } catch (e) {
+      return null;
+    }
+//    try {
+//      return message[0];
+//    } catch (e) {
+//      return null;
+//    }
+  }
+
+  static getId(Map message) {
+    try {
+      return message['id'];
     } catch (e) {
       return null;
     }
   }
 
-  static getId(List<String> message) {
+  static getAction(Map message) {
     try {
-      return message[1];
+      return message['action'];
     } catch (e) {
       return null;
     }
   }
 
-  static getAction(List<String> message) {
+  static getPayload(Map message) {
     try {
-      return message[2];
-    } catch (e) {
-      return null;
-    }
-  }
-
-  static getPayload(List<String> message) {
-    try {
-      return message[3];
+      return message['payload'];
     } catch (e) {
       return null;
     }
   }
 
   static isValidMessage(var message) {
-    return (message is List);
+    return (message is Map);
   }
 }

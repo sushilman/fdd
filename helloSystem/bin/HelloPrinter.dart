@@ -22,7 +22,7 @@ class HelloPrinter extends Worker {
   onReceive(message) {
     if(message is SendPort) {
       //use this to save sendports of spawned temporary isolates
-    } else if(message is String) {
+    } else {
       outText(message);
     }
   }
