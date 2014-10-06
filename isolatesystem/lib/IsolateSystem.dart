@@ -84,7 +84,7 @@ class IsolateSystem {
   }
 
   _onReceive(message) {
-    print("IsolateSystem: $message");
+    //print("IsolateSystem: $message");
     if(message is SendPort) {
       _sendPortOfController = message;
       if(!_startupBufferedCreationMessages.isEmpty) {

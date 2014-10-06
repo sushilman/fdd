@@ -68,7 +68,7 @@ class Random implements Router {
   }
 
   _onReceive(var message) {
-    print("Router: $message");
+    //print("Router: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);

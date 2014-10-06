@@ -49,7 +49,7 @@ class Controller {
   }
 
   _onReceive(message) {
-    print("Controller: $message");
+    //print("Controller: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);

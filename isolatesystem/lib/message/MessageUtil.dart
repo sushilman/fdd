@@ -10,7 +10,6 @@ library isolatesystem.message.MessageUtil;
 
 class MessageUtil {
   static create(String senderType, String id, String action, var payload) {
-    //return [senderType, id, action, payload];
     return {'senderType' : senderType, 'id' : id, 'action': action, 'payload' : payload};
   }
 
@@ -20,11 +19,6 @@ class MessageUtil {
     } catch (e) {
       return null;
     }
-//    try {
-//      return message[0];
-//    } catch (e) {
-//      return null;
-//    }
   }
 
   static getId(Map message) {
