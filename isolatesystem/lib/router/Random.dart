@@ -68,7 +68,7 @@ class Random implements Router {
   }
 
   _onReceive(var message) {
-    //print("Router: $message");
+    print("Router: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -80,6 +80,7 @@ class Random implements Router {
         case SenderType.CONTROLLER:
           _handleMessageFromController(action, payload);
           break;
+        case SenderType.EXTERNAL:
         case SenderType.PROXY:
         case SenderType.WORKER:
           _handleMessageFromWorker(action, senderId, payload);
@@ -137,7 +138,11 @@ class Random implements Router {
           sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.CREATED, null));
         }
         break;
+      case Action.REPLY:
+        sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.REPLY, payload));
+        break;
       case Action.DONE:
+      case Action.NONE:
         if(_getWorkerById(senderId).active) {
           sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.PULL_MESSAGE, payload));
         }
@@ -150,8 +155,8 @@ class Random implements Router {
         String newId = uuid.v1();
         spawnWorker(newId, path);
         break;
-      case Action.NONE:
-        break;
+      default:
+        print("Routern: Unknown Action -> $action");
     }
   }
 
@@ -168,13 +173,13 @@ class Random implements Router {
     Uri proxyUri = Uri.parse("../worker/Proxy.dart");
     if(path.startsWith("ws://")) {
       //print("Spawning remote isolate");
-      Isolate.spawnUri(proxyUri, [id, path, workerSourceUri, args], receivePort.sendPort).then((Isolate isolate) {
+      Isolate.spawnUri(proxyUri, [id, this.id, path, workerSourceUri, args], receivePort.sendPort).then((Isolate isolate) {
         _Worker w = new _Worker(id, path, isolate);
         workers.add(w);
       });
     } else {
       //print("Spawning local isolate");
-      Isolate.spawnUri(workerSourceUri, [id, path, args], receivePort.sendPort).then((Isolate isolate) {
+      Isolate.spawnUri(workerSourceUri, [id, this.id, path, args], receivePort.sendPort).then((Isolate isolate) {
         _Worker w = new _Worker(id, path, isolate);
         workers.add(w);
       });

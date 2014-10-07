@@ -8,6 +8,7 @@ class Action {
 
   // when tasks are completed by an isolate.
   static const String DONE = "action.done";
+  static const String REPLY = "action.reply";
 
   // When isolate spawning has been completed and now it is ready to accept action
   static const String CREATED = "action.created";

@@ -102,14 +102,17 @@ class IsolateSystem {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
       String action = MessageUtil.getAction(message);
-      String payload = MessageUtil.getPayload(message);
+      var payload = MessageUtil.getPayload(message);
 
       if (senderType == SenderType.CONTROLLER) {
         _handleMessagesFromController(senderId, action, payload);
-      } else {
+      } else if (senderType == SenderType.SELF){
         _handleOtherMessages(action, payload, senderType, message);
+      } else {
+        _handleExternalMessages(message);
       }
     } else {
+      _handleExternalMessages(message);
       print ("IsolateSystem: Unknown message: $message");
     }
   }
@@ -120,6 +123,7 @@ class IsolateSystem {
       case Action.PULL_MESSAGE:
         _pullMessage(senderId);
         break;
+      case Action.REPLY:
       case Action.DONE:
         if(payload != null) {
           _prepareResponse(payload);
@@ -145,10 +149,19 @@ class IsolateSystem {
         case Action.NONE:
           _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.NONE, payload));
           break;
+        case Action.DONE:
+          if(payload != null) {
+            _prepareResponse(payload);
+          }
+          break;
         default:
           print("IsolateSystem: Unknown Sender: $senderType");
       }
     }
+  }
+
+  _handleExternalMessages(var message) {
+    _me.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, message));
   }
 
   _startController() {
@@ -170,13 +183,17 @@ class IsolateSystem {
     // sendPort.send(newMessage);
     //
     // send message to self once message arrives from Message Queuing System
-    //var sendMsg = [senderId, [9, counter++]];
+    //var sendMsg = {'to': senderId, 'message': [9, counter++]};
     //_me.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, sendMsg));
   }
 
-  //TODO: some more information along with payload?
   _prepareResponse(var message) {
-    var ResponseMessage = message[1];
-    print("IsolateSystem: Enqueue this response : ${message[1]}");
+    print("IsolateSystem: Enqueue this response to '${message['to']}': '${message['message']}' with replyTo '${message['replyTo']}'");
+
+    // Assume the message is enqueued.. and dequeued
+    // To emulate
+    // simply call dequeue function here
   }
+
+
 }

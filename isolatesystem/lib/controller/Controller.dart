@@ -56,7 +56,7 @@ class Controller {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
       String action = MessageUtil.getAction(message);
-      String payload = MessageUtil.getPayload(message);
+      var payload = MessageUtil.getPayload(message);
 
       switch(senderType) {
         case SenderType.ISOLATE_SYSTEM:
@@ -97,7 +97,7 @@ class Controller {
         // means to restart all isolates of a router
         // issuing a restart command for single isolate does not make sense
         // get id of router, send restart command to that router
-        String routerId = payload[0];
+        String routerId = payload['to'];
         _Router router = _getRouterById(routerId);
         router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
         break;
@@ -107,12 +107,12 @@ class Controller {
         });
         break;
       case Action.NONE:
-        String routerId = payload[0];
+        String routerId = payload['to'];
         _Router router = _getRouterById(routerId);
         if(router == null || router.sendPort == null) {
           _bufferedMessagesIfRouterNotReady.add(fullMessage);
         } else {
-          router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload[1]));
+          router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload));
         }
         break;
       default:
@@ -137,6 +137,9 @@ class Controller {
             _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           }
           break;
+        case Action.REPLY:
+          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.REPLY, payload));
+          break;
         case Action.PULL_MESSAGE:
         //TODO: should the response message be sent along with pullmessage or should it be a separate action?
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, payload));
@@ -155,7 +158,7 @@ class Controller {
         //TODO: means to restart all isolates of a router?
         //issuing a restart command for single isolate does not make sense
         // get id of router, send restart command to that router
-        String routerId = payload[0];
+        String routerId = payload['to'];
         _Router router = _getRouterById(routerId);
         router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
         break;

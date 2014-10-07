@@ -8,12 +8,15 @@ import 'message/MessageUtil.dart';
 import 'message/SenderType.dart';
 
 class IsolateRef {
-  String name;
-  SendPort isolateSystemSendPort;
+  String _name;
+  SendPort _isolateSystemSendPort;
 
-  IsolateRef(this.name, this.isolateSystemSendPort);
+  IsolateRef(this._name, this._isolateSystemSendPort);
 
-  send(var message) {
-    isolateSystemSendPort.send(MessageUtil.create(SenderType.EXTERNAL, null, Action.NONE, [name, message]));
+  send(var message, {IsolateRef replyTo}) {
+    // send message to self for enqueuing
+    _isolateSystemSendPort.send(MessageUtil.create(SenderType.SELF, null, Action.DONE, {'to': _name, 'message': message, 'replyTo': (replyTo != null) ? replyTo._name : null }));
+    //_isolateSystemSendPort.send({'to': _name, 'message': message, 'replyTo': (replyTo != null) ? replyTo._name : null });
+    // OR simply enqueue the message to QUEUE of "to" actor?
   }
 }

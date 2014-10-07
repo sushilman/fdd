@@ -24,9 +24,9 @@ class HelloWorld {
     String helloWorldWorkerUri = "${dirname(Platform.script.toString())}/HelloPrinter.dart";
     //print (helloWorldWorkerUri);
 
-    //List<String> workersPaths = ["localhost/p1", "localhost/p2"];
+    List<String> workersPaths = ["localhost/p1", "localhost/p2"];
     //List<String> workersPaths = ["ws://192.168.2.69:42042/activator", "ws://192.168.2.69:42042/activator"];
-    List<String> workersPaths = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
+    //List<String> workersPaths = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
 
     //int workersCount = workersPaths.length;
     //int workersCount2 = workersPaths2.length;
@@ -36,14 +36,14 @@ class HelloWorld {
     IsolateSystem system = new IsolateSystem("mySystem");
     //system.addIsolate("Multiplier", multiplierWorkerUri, workersPaths, Router.RANDOM,  args:"test");
 
-    IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
+    IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.RANDOM, hotDeployment:false);
 //    Duration duration = new Duration(seconds:2);
 //    sleep(duration);
-    helloPrinter.send("Print me! 1");
-    helloPrinter.send("Print me! 2");
-    helloPrinter.send("Print me! 3");
-    helloPrinter.send("Print me! 4");
-    helloPrinter.send("Print me! 5");
+    helloPrinter.send("Print me! 1",replyTo: helloPrinter);
+//    helloPrinter.send("Print me! 2",replyTo: helloPrinter);
+//    helloPrinter.send("Print me! 3",replyTo: helloPrinter);
+//    helloPrinter.send("Print me! 4");
+//    helloPrinter.send("Print me! 5");
 
     //IsolateSystem system2 = new IsolateSystem(helloWorldWorkerUri, workersCount2, workersPaths2, routerUri);
 

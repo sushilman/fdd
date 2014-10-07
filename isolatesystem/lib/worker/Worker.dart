@@ -13,11 +13,13 @@ abstract class Worker {
   SendPort sendPort;
   SendPort me;
   String id;
+  String name;
   String _deployedPath;
+  String replyTo;
 
   Worker(List<String> args, this.sendPort) {
     id = args.removeAt(0);
-
+    name = args.removeAt(0);
     _deployedPath;
     if(args.length > 1) {
       _deployedPath = args.removeAt(0);
@@ -36,7 +38,9 @@ abstract class Worker {
 
   Worker.withoutReadyMessage(List<String> args, this.sendPort) {
     id = args.removeAt(0);
+    name = args.removeAt(0);
     args = args[0];
+
     receivePort = new ReceivePort();
     me = receivePort.sendPort;
     receivePort.listen(_onReceive, onDone:_onDone, cancelOnError:false);
@@ -46,12 +50,13 @@ abstract class Worker {
   }
 
   _onReceive(var message) {
-    //print("Worker $id: $message");
+    print("Worker $id: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
       String action = MessageUtil.getAction(message);
       var payload = MessageUtil.getPayload(message);
+      replyTo = payload['replyTo'];
 
       switch(action) {
         case Action.KILL:
@@ -61,7 +66,7 @@ abstract class Worker {
           restart();
           break;
         case Action.NONE:
-          onReceive(payload);
+          onReceive(payload['message']);
           break;
         default:
           print("Worker: unknown action -> $action");
@@ -90,6 +95,11 @@ abstract class Worker {
 
   done([var message]) {
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.DONE, message));
+  }
+
+  reply(var message, {String replyTo}) {
+    var msg = {'to': this.replyTo, 'message': message, 'replyTo': replyTo };
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 
   void kill() {

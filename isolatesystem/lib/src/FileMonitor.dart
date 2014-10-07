@@ -27,6 +27,7 @@ class FileMonitor extends Worker {
   FileMonitor(List<String> args, SendPort sendPort) : super.withoutReadyMessage(args, sendPort) {
     sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.CREATED, receivePort.sendPort));
     routerId = args[0];
+
     startMonitoring(Uri.parse(args[1]));
   }
 
@@ -99,7 +100,7 @@ class FileMonitor extends Worker {
   }
 
   _restartIsolate() {
-    sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.RESTART, [routerId]));
+    sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.RESTART, {'to': routerId}));
     print("Restart command issued !");
   }
 }

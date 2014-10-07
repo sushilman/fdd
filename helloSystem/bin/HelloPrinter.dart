@@ -1,10 +1,10 @@
 import 'dart:isolate';
+import 'dart:convert';
 import 'dart:async';
 import 'dart:io' show sleep;
 import 'dart:math' as Math;
 
 import 'package:isolatesystem/worker/Worker.dart';
-
 /**
  * A sample hello isolate
  */
@@ -31,11 +31,12 @@ class HelloPrinter extends Worker {
    * Just an example of long running method
    * which might take varied amount of time to complete
    */
-  outText(String text) {
+  outText(var message) {
     int rand = new Math.Random().nextInt(5);
     Duration duration = new Duration(seconds: rand);
-    print("### Hello $id: $text... doing something for $rand seconds");
-    sleep(duration);
-    done();
+    print("### Hello $id: $message... doing something for $rand seconds");
+    reply("DONE !");
+    //sleep(duration);
+    //done();
   }
 }
