@@ -80,9 +80,9 @@ class Proxy extends Worker {
       String payload = MessageUtil.getPayload(message);
 
       switch(action) {
-        case Action.READY:
+        case Action.CREATED:
           print("READY message sent");
-          sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.READY, receivePort.sendPort));
+          sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.CREATED, receivePort.sendPort));
           break;
         case Action.ERROR:
         //TODO: end isolate: close sendport, disconnect websocket

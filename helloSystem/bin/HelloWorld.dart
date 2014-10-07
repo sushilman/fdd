@@ -1,8 +1,12 @@
 import 'package:isolatesystem/IsolateSystem.dart';
 import 'package:isolatesystem/router/Router.dart';
+import 'package:isolatesystem/IsolateRef.dart';
 import "package:path/path.dart" show dirname;
+
+import 'dart:async';
 import 'dart:isolate';
 import 'dart:io';
+
 
 class HelloWorld {
   ReceivePort receivePort;
@@ -32,7 +36,15 @@ class HelloWorld {
     IsolateSystem system = new IsolateSystem("mySystem");
     //system.addIsolate("Multiplier", multiplierWorkerUri, workersPaths, Router.RANDOM,  args:"test");
 
-    system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
+    IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
+//    Duration duration = new Duration(seconds:2);
+//    sleep(duration);
+    helloPrinter.send("Print me! 1");
+    helloPrinter.send("Print me! 2");
+    helloPrinter.send("Print me! 3");
+    helloPrinter.send("Print me! 4");
+    helloPrinter.send("Print me! 5");
+
     //IsolateSystem system2 = new IsolateSystem(helloWorldWorkerUri, workersCount2, workersPaths2, routerUri);
 
     //sleep(const Duration(seconds: 5));

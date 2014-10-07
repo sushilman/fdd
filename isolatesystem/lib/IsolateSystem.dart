@@ -12,6 +12,7 @@ import 'router/Router.dart';
 import 'router/Random.dart';
 import 'message/MessageUtil.dart';
 import 'message/SenderType.dart';
+import 'IsolateRef.dart';
 
 /**
  * TODO: Take care of theses Possible Issues
@@ -42,34 +43,36 @@ import 'message/SenderType.dart';
 class IsolateSystem {
   ReceivePort _receivePort;
   SendPort _sendPortOfController;
-  SendPort _self;
+  SendPort _me;
   String _id;
   bool _isSystemReady = false;
 
   Isolate _controllerIsolate;
   bool _hotDeployment = false;
 
-  List<List<String>> _startupBufferedCreationMessages;
+  List<Map> _bufferedMessages;
 
   String _workerUri;
 
   int counter = 0;
 
+  var completer;
+
   /// @name - Name of this isolate system
   IsolateSystem(String name) {
     _receivePort = new ReceivePort();
-    _self = _receivePort.sendPort;
+    _me = _receivePort.sendPort;
     _receivePort.listen(_onReceive);
     _id = name;
 
-    _startupBufferedCreationMessages = new List<List<String>>();
+    _bufferedMessages = new List<Map>();
     _startController();
   }
 
-  //TODO: make custom routers possible by considering uri instead of routerType
-  void addIsolate(String name, String uri, workersPaths, String routerType, {hotDeployment: true, args}) {
+  /// if path to router is sent in RouterType, it will be used as the router, it should be absolute uri
+  IsolateRef addIsolate(String name, String uri, workersPaths, String routerType, {hotDeployment: true, args}) {
     String routerUri = routerType;
-
+    completer = new Completer();
     if(routerType == Router.RANDOM) {
       routerUri = "../router/Random.dart";
     }
@@ -77,21 +80,23 @@ class IsolateSystem {
     var message = {'name':name, 'uri':uri, 'workerPaths':workersPaths, 'routerUri':routerUri, 'hotDeployment':hotDeployment, 'args':args};
     if(_sendPortOfController == null) {
       print("Waiting for controller to be ready");
-      _startupBufferedCreationMessages.add(message);
+      _bufferedMessages.add(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
     } else {
-      _self.send(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
+      _me.send(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
     }
+
+    return new IsolateRef(name, _me);
   }
 
   _onReceive(message) {
-    //print("IsolateSystem: $message");
+    print("IsolateSystem: $message");
     if(message is SendPort) {
       _sendPortOfController = message;
-      if(!_startupBufferedCreationMessages.isEmpty) {
-        _startupBufferedCreationMessages.forEach((message) {
-          _self.send(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
+      if(!_bufferedMessages.isEmpty) {
+        _bufferedMessages.forEach((message) {
+          _me.send(message);
         });
-        _startupBufferedCreationMessages.clear();
+        _bufferedMessages.clear();
       }
     } else if (MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
@@ -102,7 +107,7 @@ class IsolateSystem {
       if (senderType == SenderType.CONTROLLER) {
         _handleMessagesFromController(senderId, action, payload);
       } else {
-        _handleOtherMessages(action, payload, senderType);
+        _handleOtherMessages(action, payload, senderType, message);
       }
     } else {
       print ("IsolateSystem: Unknown message: $message");
@@ -111,6 +116,7 @@ class IsolateSystem {
 
   _handleMessagesFromController(String senderId, String action, var payload) {
     switch (action) {
+      case Action.CREATED:
       case Action.PULL_MESSAGE:
         _pullMessage(senderId);
         break;
@@ -127,17 +133,21 @@ class IsolateSystem {
     }
   }
 
-  _handleOtherMessages(action, payload, senderType) {
-    switch(action) {
-      case Action.ADD:
-        print ("IsolateSystem: ADD action with $payload");
-        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.SPAWN, payload));
-        break;
-      case Action.NONE:
-        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.NONE, payload));
-        break;
-      default:
-        print("IsolateSystem: Unknown Sender: $senderType");
+  _handleOtherMessages(action, payload, senderType, fullMessage) {
+    if(_sendPortOfController == null) {
+      _bufferedMessages.add(fullMessage);
+    } else {
+      switch (action) {
+        case Action.ADD:
+          print("IsolateSystem: ADD action with $payload");
+          _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.SPAWN, payload));
+          break;
+        case Action.NONE:
+          _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.NONE, payload));
+          break;
+        default:
+          print("IsolateSystem: Unknown Sender: $senderType");
+      }
     }
   }
 
@@ -160,8 +170,8 @@ class IsolateSystem {
     // sendPort.send(newMessage);
     //
     // send message to self once message arrives from Message Queuing System
-    var sendMsg = [senderId, [9, counter++]];
-    _self.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, sendMsg));
+    //var sendMsg = [senderId, [9, counter++]];
+    //_me.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, sendMsg));
   }
 
   //TODO: some more information along with payload?

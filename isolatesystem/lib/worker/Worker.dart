@@ -11,6 +11,7 @@ import '../message/SenderType.dart';
 abstract class Worker {
   ReceivePort receivePort;
   SendPort sendPort;
+  SendPort me;
   String id;
   String _deployedPath;
 
@@ -26,7 +27,8 @@ abstract class Worker {
     args = _extractExtraArguments(args);
 
     receivePort = new ReceivePort();
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.READY, receivePort.sendPort));
+    me = receivePort.sendPort;
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.CREATED, receivePort.sendPort));
     receivePort.listen((var message) {
       _onReceive(message);
     });
@@ -36,6 +38,7 @@ abstract class Worker {
     id = args.removeAt(0);
     args = args[0];
     receivePort = new ReceivePort();
+    me = receivePort.sendPort;
     receivePort.listen(_onReceive, onDone:_onDone, cancelOnError:false);
   }
 

@@ -9,4 +9,5 @@ class SenderType {
   static const String PROXY = "senderType.proxy";
 
   static const String SELF = "senderType.self";
+  static const String EXTERNAL = "senderType.external";
 }

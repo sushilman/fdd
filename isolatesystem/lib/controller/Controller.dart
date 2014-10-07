@@ -30,13 +30,15 @@ class Controller {
   String _id;
   ReceivePort _receivePort;
   SendPort _sendPortOfIsolateSystem;
-  SendPort _self;
+  SendPort _me;
 
   List<_Router> routers;
 
+  List<Map> _bufferedMessagesIfRouterNotReady = new List<Map>();
+
   Controller(List<String> args, this._sendPortOfIsolateSystem) {
     _receivePort = new ReceivePort();
-    _self = _receivePort.sendPort;
+    _me = _receivePort.sendPort;
     _sendPortOfIsolateSystem.send(_receivePort.sendPort);
     _id = args[0];
 
@@ -49,7 +51,7 @@ class Controller {
   }
 
   _onReceive(message) {
-    //print("Controller: $message");
+    print("Controller: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -58,7 +60,7 @@ class Controller {
 
       switch(senderType) {
         case SenderType.ISOLATE_SYSTEM:
-          _handleMessagesFromIsolateSystem(action, payload);
+          _handleMessagesFromIsolateSystem(action, payload, message);
           break;
         case SenderType.ROUTER:
           _handleMessagesFromRouters(senderId, action, payload);
@@ -74,7 +76,7 @@ class Controller {
     }
   }
 
-  _handleMessagesFromIsolateSystem(String action, var payload) {
+  _handleMessagesFromIsolateSystem(String action, var payload, var fullMessage) {
     switch(action) {
       case Action.SPAWN:
         String routerId = payload['name'];
@@ -107,7 +109,11 @@ class Controller {
       case Action.NONE:
         String routerId = payload[0];
         _Router router = _getRouterById(routerId);
-        router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload[1]));
+        if(router == null || router.sendPort == null) {
+          _bufferedMessagesIfRouterNotReady.add(fullMessage);
+        } else {
+          router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload[1]));
+        }
         break;
       default:
         print("Controller: Unknown Action from System -> $action");
@@ -121,8 +127,13 @@ class Controller {
     } else {
       switch (action) {
       //When all isolates have been spawned
-        case Action.READY:
-          for (int i = 0; i < router.workersCount; i++) {
+        case Action.CREATED:
+          if(!_bufferedMessagesIfRouterNotReady.isEmpty) {
+            _bufferedMessagesIfRouterNotReady.forEach((message){
+              _me.send(message);
+            });
+          }
+          for (int i = 0; i < (_bufferedMessagesIfRouterNotReady.length - router.workersCount); i++) {
             _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           }
           break;
@@ -167,8 +178,10 @@ class Controller {
   }
 
   _Router _getRouterById(String id) {
+    print("getting router by id, length = ${routers.length}");
     _Router router;
     routers.forEach((_router) {
+      print ("${_router.id} vs $id");
       if(_router.id == id){
         router = _router;
       }

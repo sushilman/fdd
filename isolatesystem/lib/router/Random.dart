@@ -43,7 +43,7 @@ class Random implements Router {
   String id;
   ReceivePort receivePort;
   SendPort sendPortOfController;
-  SendPort self;
+  SendPort me;
 
   List<_Worker> workers;
   List<String> workersPaths;
@@ -51,7 +51,7 @@ class Random implements Router {
 
   Random(List<String> args, this.sendPortOfController) {
     receivePort = new ReceivePort();
-    self = receivePort.sendPort;
+    me = receivePort.sendPort;
     workers = new List<_Worker>();
 
 
@@ -118,7 +118,7 @@ class Random implements Router {
 
   _handleMessageFromWorker(String action, String senderId, var payload) {
     switch(action) {
-      case Action.READY:
+      case Action.CREATED:
         _Worker worker = _getWorkerById(senderId);
 
         //TODO: fix for remote worker
@@ -134,7 +134,7 @@ class Random implements Router {
 
         if(areAllWorkersReady()) {
           //print("### All workers are ready !! ###");
-          sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.READY, null));
+          sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.CREATED, null));
         }
         break;
       case Action.DONE:

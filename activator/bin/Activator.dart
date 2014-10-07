@@ -74,7 +74,7 @@ class Activator {
     _Isolate worker = getIsolateById(senderId);
     if(worker != null) {
       switch (action) {
-        case Action.READY:
+        case Action.CREATED:
           worker.sendPort = payload;
           worker.socket.add(JSON.encode(MessageUtil.create(senderType, senderId, action, null)));
           break;

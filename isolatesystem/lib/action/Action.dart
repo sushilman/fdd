@@ -10,7 +10,7 @@ class Action {
   static const String DONE = "action.done";
 
   // When isolate spawning has been completed and now it is ready to accept action
-  static const String READY = "action.ready";
+  static const String CREATED = "action.created";
 
   static const String DOWNLOAD = "action.download";
   static const String ERROR = "action.error";
