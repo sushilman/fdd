@@ -121,6 +121,9 @@ class IsolateSystem {
     switch (action) {
       case Action.CREATED:
       case Action.PULL_MESSAGE:
+        if(payload != null) {
+          _prepareResponse(payload);
+        }
         _pullMessage(senderId);
         break;
       case Action.REPLY:
@@ -193,6 +196,15 @@ class IsolateSystem {
     // Assume the message is enqueued.. and dequeued
     // To emulate
     // simply call dequeue function here
+
+    _onData(message); /* emulating  async call over websocket */
+  }
+
+  /**
+   * On data received from WebSocket (of MessageQueuingSystem)
+   */
+  _onData(var message) {
+    _me.send(message);
   }
 
 

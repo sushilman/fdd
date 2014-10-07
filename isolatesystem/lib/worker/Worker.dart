@@ -94,7 +94,8 @@ abstract class Worker {
   onReceive(var message);
 
   done([var message]) {
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.DONE, message));
+    var msg = {'to': this.replyTo, 'message': message };
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.DONE, msg));
   }
 
   reply(var message, {String replyTo}) {

@@ -35,7 +35,7 @@ class HelloPrinter extends Worker {
     int rand = new Math.Random().nextInt(5);
     Duration duration = new Duration(seconds: rand);
     print("### Hello $id: $message... doing something for $rand seconds");
-    reply("DONE !");
+    done("DONE !");
     //sleep(duration);
     //done();
   }
