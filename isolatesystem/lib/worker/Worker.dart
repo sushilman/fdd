@@ -13,6 +13,8 @@ abstract class Worker {
   SendPort sendPort;
   SendPort me;
   String id;
+
+  /// Name is the name of the pool of isolate this isolate belongs to, i.e. router name
   String name;
   String _deployedPath;
   String replyTo;

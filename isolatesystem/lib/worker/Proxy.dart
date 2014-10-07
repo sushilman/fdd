@@ -51,8 +51,10 @@ class Proxy extends Worker {
     //Serialize and delegate to webSocket
     //TODO: same id should be used for the isolate spawned by activator
     // i.e. id of proxy and remote isolate will be the same
-    //print("Proxy: Sending message -> $message");
-    ws.add(JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.NONE, message)));
+    print("Proxy: Sending message -> $message");
+
+    //'to':name can be included here, but not it's not significant
+    ws.add(JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.NONE, {'message': message, 'replyTo': replyTo})));
   }
 
   void _handleWebSocket(WebSocket ws) {

@@ -53,7 +53,7 @@ class Activator {
    * will send id along with its send port
    */
   _onReceive(var message) {
-    //print("Activator: message received from isolate -> $message");
+    print("Activator: message received from isolate -> $message");
 
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);

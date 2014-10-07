@@ -7,14 +7,15 @@ import 'dart:math' as Math;
 import 'package:isolatesystem/worker/Worker.dart';
 
 /**
- * A sample isolate for ping pong
+ * A sample isolate for pong pong
  */
 main(List<String> args, SendPort sendPort) {
-  new Ping(args, sendPort);
+  new Pong(args, sendPort);
 }
 
-class Ping extends Worker {
-  Ping(List<String> args, SendPort sendPort) : super(args, sendPort);
+class Pong extends Worker {
+
+  Pong(List<String> args, SendPort sendPort) : super(args, sendPort);
 
   @override
   onReceive(message) {
@@ -34,12 +35,10 @@ class Ping extends Worker {
     Duration duration = new Duration(seconds: rand);
     //sleep(duration);
 
-    if(message == "START") {
-      reply({'value': "PING", 'count' : "1" }, replyTo: name);
-    } else if (message['value'].startsWith("PONG")) {
+    if (message['value'].startsWith("PING")) {
       int count = int.parse(message['count']) + 1;
       print("** ${message['value']} $count **");
-      reply({'value': "PING", 'count' :  "$count"}, replyTo: name);
+      reply({'value': "PONG", 'count' : "$count"}, replyTo: name);
     }
   }
 }

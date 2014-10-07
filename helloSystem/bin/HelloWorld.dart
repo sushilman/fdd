@@ -24,6 +24,10 @@ class HelloWorld {
     String helloWorldWorkerUri = "${dirname(Platform.script.toString())}/HelloPrinter.dart";
     //print (helloWorldWorkerUri);
 
+
+    String pingUri = "${dirname(Platform.script.toString())}/Ping.dart";
+    String pongUri = "${dirname(Platform.script.toString())}/Pong.dart";
+
     List<String> workersPaths = ["localhost/p1", "localhost/p2"];
     //List<String> workersPaths = ["ws://192.168.2.69:42042/activator", "ws://192.168.2.69:42042/activator"];
     //List<String> workersPaths = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
@@ -36,10 +40,10 @@ class HelloWorld {
     IsolateSystem system = new IsolateSystem("mySystem");
     //system.addIsolate("Multiplier", multiplierWorkerUri, workersPaths, Router.RANDOM,  args:"test");
 
-    IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.RANDOM, hotDeployment:false);
+//    IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.RANDOM, hotDeployment:false);
 //    Duration duration = new Duration(seconds:2);
 //    sleep(duration);
-    helloPrinter.send("Print me! 1",replyTo: helloPrinter);
+    //helloPrinter.send("Print me! 1",replyTo: helloPrinter);
 //    helloPrinter.send("Print me! 2",replyTo: helloPrinter);
 //    helloPrinter.send("Print me! 3",replyTo: helloPrinter);
 //    helloPrinter.send("Print me! 4");
@@ -49,6 +53,13 @@ class HelloWorld {
 
     //sleep(const Duration(seconds: 5));
     //IsolateSystem system3 = new IsolateSystem(printerWorkerUri, workersCount2, workersPaths2, routerUri);
+
+
+    IsolateRef ping = system.addIsolate("ping", pingUri, workersPaths, Router.RANDOM, hotDeployment:false);
+    IsolateRef pong = system.addIsolate("pong", pongUri, workersPaths, Router.RANDOM, hotDeployment:false);
+
+    ping.send("START", replyTo: pong);
+
   }
 }
 

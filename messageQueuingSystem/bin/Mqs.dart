@@ -56,7 +56,7 @@ class Mqs {
     receivePortDequeue.listen(_onReceiveFromDequeueIsolate);
     _startDequeuerIsolate(args);
 
-    wss = new WebSocketServer(listeningPort, webSocketPath, _onConnect, _onData, _onDisconnect);
+    wss = new WebSocketServer(int.parse(listeningPort), webSocketPath, _onConnect, _onData, _onDisconnect);
   }
 
   _onConnect(WebSocket socket) {

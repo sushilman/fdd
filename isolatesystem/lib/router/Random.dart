@@ -49,6 +49,8 @@ class Random implements Router {
   List<String> workersPaths;
   Uri workerSourceUri;
 
+  List _bufferedMessages = new List();
+
   Random(List<String> args, this.sendPortOfController) {
     receivePort = new ReceivePort();
     me = receivePort.sendPort;
@@ -108,8 +110,13 @@ class Random implements Router {
         _restartAllWorkers();
         break;
       case Action.NONE:
-        _Worker worker = selectWorker();
-        worker.sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.NONE, payload));
+        var tempMsg = MessageUtil.create(SenderType.ROUTER, id, Action.NONE, payload);
+        if(workers.length == 0) {
+          _bufferedMessages.add(tempMsg);
+        } else {
+          _Worker worker = selectWorker();
+          worker.sendPort.send(tempMsg);
+        }
         //print("message $payload Sent to worker ${worker.id}");
         break;
       default:
@@ -121,7 +128,6 @@ class Random implements Router {
     switch(action) {
       case Action.CREATED:
         _Worker worker = _getWorkerById(senderId);
-
         //TODO: fix for remote worker
         if(worker == null) {
           //print("Worker still NULL so creating new local worker?");
@@ -131,6 +137,9 @@ class Random implements Router {
           sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.PULL_MESSAGE, null));
         } else {
           worker.sendPort = payload;
+          _bufferedMessages.forEach((m) {
+            me.send(m);
+          });
         }
 
         if(areAllWorkersReady()) {

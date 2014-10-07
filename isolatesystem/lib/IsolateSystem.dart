@@ -196,7 +196,7 @@ class IsolateSystem {
     // Assume the message is enqueued.. and dequeued
     // To emulate
     // simply call dequeue function here
-
+    //sleep(const Duration(seconds:1));
     _onData(message); /* emulating  async call over websocket */
   }
 
