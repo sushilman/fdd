@@ -132,7 +132,9 @@ class Controller {
             _bufferedMessagesIfRouterNotReady.forEach((message){
               _me.send(message);
             });
+            _bufferedMessagesIfRouterNotReady.clear();
           }
+
           for (int i = 0; i < (_bufferedMessagesIfRouterNotReady.length - router.workersCount); i++) {
             _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           }

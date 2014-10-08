@@ -28,7 +28,7 @@ class HelloWorld {
     String pingUri = "${dirname(Platform.script.toString())}/Ping.dart";
     String pongUri = "${dirname(Platform.script.toString())}/Pong.dart";
 
-    List<String> workersPaths = ["localhost/p1", "localhost/p2"];
+    List<String> workersPaths = ["localhost/p1"];
     //List<String> workersPaths = ["ws://192.168.2.69:42042/activator", "ws://192.168.2.69:42042/activator"];
     //List<String> workersPaths = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
 
@@ -55,8 +55,8 @@ class HelloWorld {
     //IsolateSystem system3 = new IsolateSystem(printerWorkerUri, workersCount2, workersPaths2, routerUri);
 
 
-    IsolateRef ping = system.addIsolate("ping", pingUri, workersPaths, Router.RANDOM, hotDeployment:false);
-    IsolateRef pong = system.addIsolate("pong", pongUri, workersPaths, Router.RANDOM, hotDeployment:false);
+    IsolateRef ping = system.addIsolate("ping", pingUri, workersPaths, Router.RANDOM, hotDeployment:true);
+    IsolateRef pong = system.addIsolate("pong", pongUri, workersPaths, Router.RANDOM, hotDeployment:true);
 
     ping.send("START", replyTo: pong);
 

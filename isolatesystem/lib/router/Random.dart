@@ -143,7 +143,9 @@ class Random implements Router {
           worker.sendPort = payload;
           _bufferedMessages.forEach((m) {
             me.send(m);
+            print ("Router: clearing buffers and sending message to self $m" );
           });
+          _bufferedMessages.clear();
         }
 
         if(areAllWorkersReady()) {

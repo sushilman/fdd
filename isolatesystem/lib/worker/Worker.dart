@@ -58,7 +58,9 @@ abstract class Worker {
       String senderId = MessageUtil.getId(message);
       String action = MessageUtil.getAction(message);
       var payload = MessageUtil.getPayload(message);
-      replyTo = payload['replyTo'];
+      if(payload is Map && payload.containsKey('replyTo')) {
+        replyTo = payload['replyTo'];
+      }
 
       switch(action) {
         case Action.KILL:

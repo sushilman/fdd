@@ -22,13 +22,11 @@ main(List<String> args, SendPort sendPort) {
 }
 
 class FileMonitor extends Worker {
-  String routerId;
 
   FileMonitor(List<String> args, SendPort sendPort) : super.withoutReadyMessage(args, sendPort) {
     sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.CREATED, receivePort.sendPort));
-    routerId = args[0];
 
-    startMonitoring(Uri.parse(args[1]));
+    startMonitoring(Uri.parse(args[0]));
   }
 
   onReceive(var message) {
@@ -100,7 +98,7 @@ class FileMonitor extends Worker {
   }
 
   _restartIsolate() {
-    sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.RESTART, {'to': routerId}));
+    sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.RESTART, {'to': name}));
     print("Restart command issued !");
   }
 }
