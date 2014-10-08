@@ -70,7 +70,7 @@ class Random implements Router {
   }
 
   _onReceive(var message) {
-    print("Router: $message");
+    //print("Router: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -115,7 +115,11 @@ class Random implements Router {
           _bufferedMessages.add(tempMsg);
         } else {
           _Worker worker = selectWorker();
-          worker.sendPort.send(tempMsg);
+          if(worker.sendPort == null) {
+            _bufferedMessages.add(tempMsg);
+          } else {
+            worker.sendPort.send(tempMsg);
+          }
         }
         //print("message $payload Sent to worker ${worker.id}");
         break;

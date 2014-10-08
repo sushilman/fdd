@@ -1,6 +1,5 @@
 library isolatesystem.IsolateRef;
 
-import 'dart:async';
 import 'dart:isolate';
 
 import 'action/Action.dart';
@@ -18,5 +17,12 @@ class IsolateRef {
     _isolateSystemSendPort.send(MessageUtil.create(SenderType.SELF, null, Action.DONE, {'to': _name, 'message': message, 'replyTo': (replyTo != null) ? replyTo._name : null }));
     //_isolateSystemSendPort.send({'to': _name, 'message': message, 'replyTo': (replyTo != null) ? replyTo._name : null });
     // OR simply enqueue the message to QUEUE of "to" actor?
+  }
+
+  // Not used anywhere right now
+  /// Bypass queue and send message directly
+  sendDirect(var message, {IsolateRef replyTo}) {
+    _isolateSystemSendPort.send(MessageUtil.create(SenderType.SELF, null, Action.NONE, {'to': _name, 'message': message, 'replyTo': (replyTo != null) ? replyTo._name : null }));
+    //_isolateSystemSendPort.send({'to': _name, 'message': message, 'replyTo': (replyTo != null) ? replyTo._name : null });
   }
 }

@@ -63,7 +63,7 @@ class Proxy extends Worker {
       print("Proxy: WebSocket Connected !");
       // send initialization message
       // SPAWN Isolate on remote location
-      var message = JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.SPAWN, [workerSourceUri.toString(), workerPath, extraArgs]));
+      var message = JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.SPAWN, [name, workerSourceUri.toString(), workerPath, extraArgs]));
       //print("Proxy: $message");
       ws.add(message);
     }

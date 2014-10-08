@@ -24,7 +24,8 @@ import 'IsolateRef.dart';
  *   -- OR simply keep track of PULL MESSAGES ?
  *   -- OR poll for free isolate if the router is sitting idle for few seconds
  *   -- and send pull request based on that
- * 2.
+ *
+ *  2. Actor Supervision - Exception escalation?
  */
 
 /**

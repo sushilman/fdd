@@ -78,6 +78,7 @@ class Activator {
           worker.sendPort = payload;
           worker.socket.add(JSON.encode(MessageUtil.create(senderType, senderId, action, null)));
           break;
+        case Action.REPLY:
         case Action.DONE:
           worker.socket.add(JSON.encode(message));
           break;
@@ -116,7 +117,7 @@ class Activator {
   // message from Proxy via websocket
   _onData(WebSocket socket, var msg) {
     var message = JSON.decode(msg);
-
+    print("Activator: Received via websocket $message");
     String senderType = MessageUtil.getSenderType(message);
     String senderId = MessageUtil.getId(message);
     String action = MessageUtil.getAction(message);
@@ -126,10 +127,11 @@ class Activator {
 
     switch(action) {
       case Action.SPAWN:
-        String uri = payload[0];
-        String path = payload[1];
-        var extraArgs = payload[2];
-        List<String> args = [senderId, path, extraArgs];
+        String poolName = payload[0];
+        String uri = payload[1];
+        String path = payload[2];
+        var extraArgs = payload[3];
+        List<String> args = [senderId, poolName, path, extraArgs];
         _spawnWorker(uri, args, socket);
         break;
       case Action.RESTART:
