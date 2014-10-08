@@ -35,11 +35,11 @@ class Ping extends Worker {
     sleep(duration);
 
     if(message == "START") {
-      reply({'value': "PING", 'count' : "1" }, replyTo: name);
+      reply({'value': "PING", 'count' : "1" });
     } else if (message['value'].startsWith("PONG")) {
       print("** ${message['value']} ${message['count']} **");
       int count = int.parse(message['count']) + 1;
-      reply({'value': "PING", 'count' :  "$count"}, replyTo: name);
+      reply({'value': "PING", 'count' :  "$count"});
     }
   }
 }

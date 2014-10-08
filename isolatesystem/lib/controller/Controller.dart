@@ -32,7 +32,7 @@ class Controller {
   SendPort _sendPortOfIsolateSystem;
   SendPort _me;
 
-  List<_Router> routers;
+  List<_Router> _routers;
 
   List<Map> _bufferedMessagesIfRouterNotReady = new List<Map>();
 
@@ -42,7 +42,7 @@ class Controller {
     _sendPortOfIsolateSystem.send(_receivePort.sendPort);
     _id = args[0];
 
-    routers = new List<_Router>();
+    _routers = new List<_Router>();
 
     _receivePort.listen((message) {
       _onReceive(message);
@@ -102,7 +102,7 @@ class Controller {
         router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
         break;
       case Action.RESTART_ALL:
-        routers.forEach((router) {
+        _routers.forEach((router) {
           router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
         });
         break;
@@ -172,7 +172,7 @@ class Controller {
   _spawnRouter(String routerId, Uri routerUri, String workerUri, List<String> workersPaths, var extraArgs) {
     Isolate.spawnUri(routerUri, [routerId, workerUri, workersPaths, extraArgs], _receivePort.sendPort).then((isolate) {
       _Router router = new _Router(routerId, routerUri, workersPaths.length);
-      routers.add(router);
+      _routers.add(router);
     });
   }
 
@@ -183,9 +183,9 @@ class Controller {
   }
 
   _Router _getRouterById(String id) {
-    print("getting router by id, length = ${routers.length}");
+    print("getting router by id, length = ${_routers.length}");
     _Router router;
-    routers.forEach((_router) {
+    _routers.forEach((_router) {
       print ("${_router.id} vs $id");
       if(_router.id == id){
         router = _router;

@@ -15,13 +15,17 @@ abstract class Worker {
   String id;
 
   /// Name is the name of the pool of isolate this isolate belongs to, i.e. router name
-  String name;
+  String _poolName;
   String _deployedPath;
   String replyTo;
 
+
+  String get poolName => _poolName;
+  set poolName(String value) => _poolName = value;
+
   Worker(List<String> args, this.sendPort) {
     id = args.removeAt(0);
-    name = args.removeAt(0);
+    _poolName = args.removeAt(0);
     _deployedPath;
     if(args.length > 1) {
       _deployedPath = args.removeAt(0);
@@ -40,7 +44,7 @@ abstract class Worker {
 
   Worker.withoutReadyMessage(List<String> args, this.sendPort) {
     id = args.removeAt(0);
-    name = args.removeAt(0);
+    _poolName = args.removeAt(0);
     args = args[0];
 
     receivePort = new ReceivePort();
@@ -103,7 +107,7 @@ abstract class Worker {
   }
 
   reply(var message, {String replyTo}) {
-    var msg = {'to': this.replyTo, 'message': message, 'replyTo': replyTo };
+    var msg = {'to': this.replyTo, 'message': message, 'replyTo': replyTo != null ? replyTo : _poolName};
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 

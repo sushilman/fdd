@@ -98,7 +98,7 @@ class FileMonitor extends Worker {
   }
 
   _restartIsolate() {
-    sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.RESTART, {'to': name}));
+    sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.RESTART, {'to': poolName}));
     print("Restart command issued !");
   }
 }
