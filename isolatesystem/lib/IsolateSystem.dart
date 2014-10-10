@@ -203,6 +203,6 @@ class IsolateSystem {
   }
 
   _out(String text) {
-    //print(text);
+    print(text);
   }
 }

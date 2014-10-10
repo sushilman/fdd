@@ -142,12 +142,20 @@ class Controller {
       switch (action) {
       //When all isolates have been spawned
         case Action.REPLY:
-          _Router targetRouter = _getRouterById(_getIdOfTargetIsolatePool(payload));
-          if(targetRouter != null) {
-            targetRouter.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.NONE, payload));
-          } else {
-            _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.REPLY, payload));
-          }
+        /**
+         * Re-route without sending it to top level queue?
+         * But this causes issues -> if one isolate keeps sending a lots of messages and another one is slow to react?
+         *
+         * That's why we have MQS with rabbit-mq in backend
+         * which only serves message on demand from isolate(pool)
+         */
+//          _Router targetRouter = _getRouterById(_getIdOfTargetIsolatePool(payload));
+//          if(targetRouter != null) {
+//            targetRouter.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.NONE, payload));
+//          } else {
+//            _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.REPLY, payload));
+//          }
+          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.REPLY, payload));
           break;
         case Action.CREATED:
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
