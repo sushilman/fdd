@@ -109,7 +109,6 @@ class Random implements Router {
         break;
       case Action.RESTART_ALL:
         _restartAllWorkers();
-        workers.clear();
         print('Clearing out workers');
         spawnWorkers(extraArgs);
         break;
@@ -139,41 +138,45 @@ class Random implements Router {
   _handleMessageFromWorker(String action, String senderId, var payload, var fullMessage) {
     switch(action) {
       case Action.CREATED:
-//        _Worker worker = _getWorkerById(senderId);
-//        if(worker == null) {
-//          _out("Worker still NULL so sending same message to self, bad senderId/workerId?");
-//          me.send(fullMessage);
-//        } else {
-//          _out("Router: Assigning sendport");
-//          worker.sendPort = payload;
-//          for(var m in _bufferedMessages) {
-//            me.send(m);
-//          }
-//          _bufferedMessages.clear();
-//        }
-//
-//        sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.CREATED, payload));
         _Worker worker = _getWorkerById(senderId);
-        //TODO: fix for remote worker
         if(worker == null) {
-          //print("Worker still NULL so creating new local worker?");
-          _Worker w = new _Worker(senderId, "TODO: setpath", null);
-          workers.add(w);
-          w.sendPort = payload;
-          sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.PULL_MESSAGE, null));
+          _out("Worker still NULL so sending same message to self, bad senderId/workerId?");
+          me.send(fullMessage);
         } else {
+          _out("Router: Assigning sendport");
           worker.sendPort = payload;
-          _bufferedMessages.forEach((m) {
-            me.send(m);
-            _out("Router: clearing buffers and sending message to self $m" );
-          });
-          _bufferedMessages.clear();
-        }
-
-        if(areAllWorkersReady()) {
-          print("### All workers are ready !! ###");
+          while(_bufferedMessages.isNotEmpty) {
+            me.send(_bufferedMessages.removeAt(0));
+          }
           sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.CREATED, null));
         }
+
+//        if(areAllWorkersReady()) {
+//          print("### All workers are ready !! ###");
+//          sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.CREATED, null));
+//        }
+
+//        _Worker worker = _getWorkerById(senderId);
+//        //TODO: fix for remote worker
+//        if(worker == null) {
+//          //print("Worker still NULL so creating new local worker?");
+//          _Worker w = new _Worker(senderId, "TODO: setpath", null);
+//          workers.add(w);
+//          w.sendPort = payload;
+//          sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.PULL_MESSAGE, null));
+//        } else {
+//          worker.sendPort = payload;
+//          _bufferedMessages.forEach((m) {
+//            me.send(m);
+//            _out("Router: clearing buffers and sending message to self $m" );
+//          });
+//          _bufferedMessages.clear();
+//        }
+
+//        if(areAllWorkersReady()) {
+//          print("### All workers are ready !! ###");
+//          sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.CREATED, null));
+//        }
         break;
       case Action.REPLY:
         sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.REPLY, payload));
@@ -224,9 +227,7 @@ class Random implements Router {
   }
 
   _restartWorker(String id) {
-    _getWorkerById(id)
-      ..active = false
-      ..sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.RESTART, null));
+    _getWorkerById(id).sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.RESTART, null));
     workers.remove(id);
   }
 
@@ -237,24 +238,19 @@ class Random implements Router {
    */
   _restartAllWorkers() {
     for(_Worker worker in workers) {
-      worker
-        ..active = false
-        ..sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.RESTART, null));
+      worker.sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.RESTART, null));
     }
+    workers.clear();
   }
 
   _killWorker(String id) {
-    _getWorkerById(id)
-      ..active = false
-      ..sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.KILL, null));
+    _getWorkerById(id).sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.KILL, null));
     workers.remove(id);
   }
 
   _killAllWorkers() {
     for(_Worker worker in workers) {
-      worker
-        ..active = false
-        ..sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.KILL, null));
+      worker.sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.KILL, null));
     }
     workers.clear();
   }
@@ -322,7 +318,6 @@ class _Worker {
   SendPort _sendPort;
   Isolate _isolate;
   String _path;
-  bool _active = true;
 
   _Worker(this._id, this._path, this._isolate);
 
@@ -337,7 +332,4 @@ class _Worker {
 
   set path(String value) => _path = value;
   get path => _path;
-
-  set active(bool value) => _active = value;
-  get active => _active;
 }

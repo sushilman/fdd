@@ -28,7 +28,7 @@ class HelloWorld {
     String pingUri = "${dirname(Platform.script.toString())}/Ping.dart";
     String pongUri = "${dirname(Platform.script.toString())}/Pong.dart";
 
-    List<String> workersPaths = ["localhost", "localhost"];
+    List<String> workersPaths = ["localhost", "localhost", "localhost", "localhost", "localhost", "localhost"];
     //List<String> workersPaths = ["ws://192.168.2.69:42042/activator", "ws://192.168.2.69:42042/activator"];
     //List<String> workersPaths = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
 

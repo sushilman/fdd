@@ -126,8 +126,8 @@ class Controller {
         if(routerId != null) {
           _Router router = _getRouterById(routerId);
           if(router == null || router.sendPort == null) {
-            _bufferedMessagesIfRouterNotReady.add(fullMessage);
-            //_me.send(fullMessage);
+            //_bufferedMessagesIfRouterNotReady.add(fullMessage);
+            _me.send(fullMessage);
             _out("Controller: adding to buffer $fullMessage");
           } else {
             router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload));
