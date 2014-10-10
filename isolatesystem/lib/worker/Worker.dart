@@ -72,9 +72,6 @@ abstract class Worker {
         case Action.KILL:
           kill();
           break;
-        case Action.RESTART:
-          restart();
-          break;
         case Action.NONE:
           onReceive(payload['message']);
           break;
@@ -87,20 +84,12 @@ abstract class Worker {
     }
 
     /**
-     * Enabling DONE here creates issues with Proxy Isolate
+     * sending DONE here creates issues with Proxy Isolate
      * Because, proxy isolate further via websocket spawns another isolate which is also a child of Worker
      * Thus DONE message ends up being sent twice
      */
-    //sendPortOfRouter.send([Action.DONE, "My message here"]);
   }
 
-  /**
-   * onReceive can be made to return Future
-   * May be Future.sync() will become handy
-   * So that only after onReceive is completed, DONE message is sent to router
-   *
-   * will this make it possible to include async calls in onReceive?
-   */
   onReceive(var message);
 
   done([var message]) {
@@ -116,11 +105,6 @@ abstract class Worker {
   void kill() {
     receivePort.close();
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.KILLED, null));
-  }
-
-  void restart() {
-    receivePort.close();
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.RESTARTING, null));
   }
 
   _extractExtraArguments(var args) {

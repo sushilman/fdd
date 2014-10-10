@@ -51,8 +51,6 @@ class IsolateSystem {
   Isolate _controllerIsolate;
   bool _hotDeployment = false;
 
-  List<Map> _bufferedMessages;
-
   String _workerUri;
 
   int counter = 0;
@@ -71,8 +69,6 @@ class IsolateSystem {
     _me = _receivePort.sendPort;
     _receivePort.listen(_onReceive);
     _id = name;
-
-    _bufferedMessages = new List<Map>();
     _startController();
   }
 
@@ -84,14 +80,8 @@ class IsolateSystem {
     if(routerType == Router.RANDOM) {
       routerUri = "../router/Random.dart";
     }
-
     var message = {'name':name, 'uri':uri, 'workerPaths':workersPaths, 'routerUri':routerUri, 'hotDeployment':hotDeployment, 'args':args};
-    if(_sendPortOfController == null) {
-      _out("Waiting for controller to be ready");
-      _bufferedMessages.add(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
-    } else {
-      _me.send(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
-    }
+    _me.send(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
     return new IsolateRef(name, _me);
   }
 
@@ -99,12 +89,6 @@ class IsolateSystem {
     _out("IsolateSystem: $message");
     if(message is SendPort) {
       _sendPortOfController = message;
-      if(!_bufferedMessages.isEmpty) {
-        for(var msg in _bufferedMessages) {
-          _me.send(msg);
-        }
-        _bufferedMessages.clear();
-      }
     } else if (MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -151,7 +135,7 @@ class IsolateSystem {
 
   _handleOtherMessages(action, payload, senderType, fullMessage) {
     if(_sendPortOfController == null) {
-      _bufferedMessages.add(fullMessage);
+      _me.send(fullMessage);
     } else {
       switch (action) {
         case Action.ADD:
