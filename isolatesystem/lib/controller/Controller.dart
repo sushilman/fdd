@@ -143,12 +143,17 @@ class Controller {
       //When all isolates have been spawned
         case Action.REPLY:
         /**
+         * TODO: Discuss
          * Re-route without sending it to top level queue?
          * But this causes issues -> if one isolate keeps sending a lots of messages and another one is slow to react?
          *
          * That's why we have MQS with rabbit-mq in backend
          * which only serves message on demand from isolate(pool)
+         *
+         * But, that's why we have load balancing - router with pool of isolates to take care of such loads
+         * if an isolate is known/expected to be slow, the developer should spawn more number of such isolates.
          */
+
 //          _Router targetRouter = _getRouterById(_getIdOfTargetIsolatePool(payload));
 //          if(targetRouter != null) {
 //            targetRouter.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.NONE, payload));
