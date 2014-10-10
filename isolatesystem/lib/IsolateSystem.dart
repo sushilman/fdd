@@ -59,6 +59,12 @@ class IsolateSystem {
 
   var completer;
 
+
+  bool _handleException(e) {
+    print ("Exception caught by IsolateSystem $e");
+    return true;
+  }
+
   /// @name - Name of this isolate system
   IsolateSystem(String name) {
     _receivePort = new ReceivePort();
@@ -80,23 +86,22 @@ class IsolateSystem {
 
     var message = {'name':name, 'uri':uri, 'workerPaths':workersPaths, 'routerUri':routerUri, 'hotDeployment':hotDeployment, 'args':args};
     if(_sendPortOfController == null) {
-      print("Waiting for controller to be ready");
+      _out("Waiting for controller to be ready");
       _bufferedMessages.add(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
     } else {
       _me.send(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
     }
-
     return new IsolateRef(name, _me);
   }
 
   _onReceive(message) {
-    print("IsolateSystem: $message");
+    _out("IsolateSystem: $message");
     if(message is SendPort) {
       _sendPortOfController = message;
       if(!_bufferedMessages.isEmpty) {
-        _bufferedMessages.forEach((message) {
-          _me.send(message);
-        });
+        for(var msg in _bufferedMessages) {
+          _me.send(msg);
+        }
         _bufferedMessages.clear();
       }
     } else if (MessageUtil.isValidMessage(message)) {
@@ -112,6 +117,8 @@ class IsolateSystem {
       } else {
         _handleExternalMessages(message);
       }
+    } else if (message is Exception) {
+      _handleException(message);
     } else {
       _handleExternalMessages(message);
       print ("IsolateSystem: Unknown message: $message");
@@ -137,7 +144,7 @@ class IsolateSystem {
         _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.RESTART_ALL, payload));
         break;
       default:
-        print("IsolateSystem: Unknown Action: $action");
+        _out("IsolateSystem: Unknown Action: $action");
     }
   }
 
@@ -147,7 +154,7 @@ class IsolateSystem {
     } else {
       switch (action) {
         case Action.ADD:
-          print("IsolateSystem: ADD action with $payload");
+          _out("IsolateSystem: ADD action with $payload");
           _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.SPAWN, payload));
           break;
         case Action.NONE:
@@ -159,7 +166,7 @@ class IsolateSystem {
           }
           break;
         default:
-          print("IsolateSystem: Unknown Sender: $senderType");
+          _out("IsolateSystem: Unknown Sender: $senderType");
       }
     }
   }
@@ -174,6 +181,7 @@ class IsolateSystem {
     Isolate.spawnUri(Uri.parse(controllerUri), ["controller"], _receivePort.sendPort)
     .then((controller) {
       _controllerIsolate = controller;
+      controller.errors.handleError((_){_out("error handled");});
     });
   }
 
@@ -192,12 +200,13 @@ class IsolateSystem {
   }
 
   _prepareResponse(var message) {
-    print("IsolateSystem: Enqueue this response to '${message['to']}': '${message['message']}' with replyTo '${message['replyTo']}'");
+    _out("IsolateSystem: Enqueue this response to '${message['to']}': '${message['message']}' with replyTo '${message['replyTo']}'");
 
     // Assume the message is enqueued.. and dequeued
     // To emulate
     // simply call dequeue function here
     //sleep(const Duration(seconds:1));
+
     _onData(message); /* emulating  async call over websocket */
   }
 
@@ -208,5 +217,7 @@ class IsolateSystem {
     _me.send(message);
   }
 
-
+  _out(String text) {
+    print(text);
+  }
 }

@@ -35,13 +35,14 @@ class HelloWorld {
     //int workersCount = workersPaths.length;
     //int workersCount2 = workersPaths2.length;
 
-    //IsolateSystem system = new IsolateSystem(printerWorkerUri, workersCount, workersPaths, routerUri, hotDeployment:true); //"HelloSystem", helloIsolate, new Random(), 5
 
     IsolateSystem system = new IsolateSystem("mySystem");
 
     //system.addIsolate("Multiplier", multiplierWorkerUri, workersPaths, Router.RANDOM,  args:"test");
 
-//    IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.RANDOM, hotDeployment:false);
+    //IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
+    //helloPrinter.send("Print me", replyTo:helloPrinter);
+
 //    Duration duration = new Duration(seconds:2);
 //    sleep(duration);
     //helloPrinter.send("Print me! 1",replyTo: helloPrinter);

@@ -21,35 +21,43 @@ main(List<String> args, SendPort sendport) {
 
   print("Enqueuer Listening...");
 
-  receivePort.listen((msg) {
-    _onData(msg, sendport);
-  });
+  receivePort.listen(_onReceive);
 }
 
 _handleStompClient(StompClient stompclient) {
-  //stompclient.subscribeString("id1", "/queue/test", _onReceive);
   client = stompclient;
 }
+
 //
-//_onReceive(Map<String, String> headers, String message) {
-//  print("Receive $message, $headers");
+//_onData(Map<String, String> headers, String message) {
+//  print("Received $message, $headers");
 //}
 
 /// returns true if successfully enqueued
 bool _enqueueMessage(String topic, String message, {Map<String, String> headers}) {
   if(client != null) {
-    client.sendString(topic, message, headers:headers);
+    client.sendString(topic, message, headers: headers);
     print("Message sent successfully from enqueuer to rabbitmq via stomp...");
     return true;
   }
   return false;
 }
 
-void _onData(message, sendport) {
+void _onReceive(var message) {
+  print("Enqueue Isolate: $message");
   if(message is SendPort) {
-    print("Send port received !");
-  } else {
-    print("Enqueue $message in message_broker_system");
-    _enqueueMessage(Mqs.TOPIC, message, headers:Mqs.HEADERS);
+    //print("Send port received !");
+    //just in case if any child isolates are spawned
+  } else if (message is Map) {
+    String topic = message['topic'];
+    String action = message['action'];
+    String msg = message['message'];
+
+    switch (action) {
+      case Mqs.ENQUEUE:
+        print("Enqueue $message with headers: ${Mqs.HEADERS} to topic ${topic} in message_broker_system");
+        _enqueueMessage(topic, message['message'], headers:Mqs.HEADERS);
+        break;
+    }
   }
 }

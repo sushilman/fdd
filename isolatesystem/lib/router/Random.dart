@@ -22,15 +22,15 @@ import '../message/SenderType.dart';
  * But, if the machine in which the router exists goes down? -> memory leak in remote isolate?
  * So, may be we need to send heartbeat from time to time, if no heartbeat arrives then isolate
  * can try to contact router and if not reachable then just gracefully exit :)
- * Isolate.ping might come handy?
+ * Isolate.ping might come handy? -> not implemented in dart 1.6.0 yet
  * https://api.dartlang.org/apidocs/channels/be/dartdoc-viewer/dart-isolate.Isolate#id_ping
  *
  * Isolate.OnErrorListener and,
  * Isolate.OnExitListener
- * for supervision of errors?
+ * for supervision of errors? -> not implemented in dart 1.6.0 yet
  *
  * TODO: do not issue pull_request on done msg from the isolate,
- * TODO: if it has been issued a kill or restart command
+ *       if it has been issued a kill or restart command
  *
  * TODO: BUG? if a message arrives in router, but it cannot send it anywhere, what happens to that message?
  */
@@ -49,13 +49,13 @@ class Random implements Router {
   List<String> workersPaths;
   Uri workerSourceUri;
 
+  //TODO: can be removed, sending message to self seems far better approach
   List _bufferedMessages = new List();
 
   Random(List<String> args, this.sendPortOfController) {
     receivePort = new ReceivePort();
     me = receivePort.sendPort;
     workers = new List<_Worker>();
-
 
     id = args[0];
     workerSourceUri = Uri.parse(args[1]);
@@ -70,7 +70,7 @@ class Random implements Router {
   }
 
   _onReceive(var message) {
-    //print("Router: $message");
+    _out("Router: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -85,13 +85,13 @@ class Random implements Router {
         case SenderType.EXTERNAL:
         case SenderType.PROXY:
         case SenderType.WORKER:
-          _handleMessageFromWorker(action, senderId, payload);
+          _handleMessageFromWorker(action, senderId, payload, message);
           break;
         default:
-          print("Router: Unknown Sender Type -> $senderType");
+          _out("Router: Unknown Sender Type -> $senderType");
       }
     } else {
-      print ("Router: Unknown message: $message");
+      _out ("Router: Unknown message: $message");
     }
   }
 
@@ -110,7 +110,7 @@ class Random implements Router {
         _restartAllWorkers();
         break;
       case Action.NONE:
-        var tempMsg = MessageUtil.create(SenderType.ROUTER, id, Action.NONE, payload);
+        var tempMsg = MessageUtil.create(SenderType.CONTROLLER, id, Action.NONE, payload);
         if(workers.length == 0) {
           _bufferedMessages.add(tempMsg);
         } else {
@@ -121,37 +121,31 @@ class Random implements Router {
             worker.sendPort.send(tempMsg);
           }
         }
-        //print("message $payload Sent to worker ${worker.id}");
+        //_out("message $payload Sent to worker ${worker.id}");
         break;
       default:
-        print("Router: Unknown action from Controller -> $action");
+        _out("Router: Unknown action from Controller -> $action");
     }
   }
 
-  _handleMessageFromWorker(String action, String senderId, var payload) {
+  _handleMessageFromWorker(String action, String senderId, var payload, var fullMessage) {
     switch(action) {
       case Action.CREATED:
         _Worker worker = _getWorkerById(senderId);
-        //TODO: fix for remote worker
         if(worker == null) {
-          //print("Worker still NULL so creating new local worker?");
-          _Worker w = new _Worker(senderId, "TODO: setpath", null);
-          workers.add(w);
-          w.sendPort = payload;
-          sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.PULL_MESSAGE, null));
+          _out("Worker still NULL so sending same message to self, bad senderId/workerId?");
+          me.send(fullMessage);
         } else {
+          _out("Router: Assigning sendport");
           worker.sendPort = payload;
-          _bufferedMessages.forEach((m) {
+          for(var m in _bufferedMessages) {
             me.send(m);
-            print ("Router: clearing buffers and sending message to self $m" );
-          });
+          }
           _bufferedMessages.clear();
         }
 
-        if(areAllWorkersReady()) {
-          //print("### All workers are ready !! ###");
-          sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.CREATED, null));
-        }
+        sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.CREATED, payload));
+
         break;
       case Action.REPLY:
         sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, id, Action.REPLY, payload));
@@ -171,7 +165,7 @@ class Random implements Router {
         spawnWorker(newId, path);
         break;
       default:
-        print("Routern: Unknown Action -> $action");
+        _out("Routern: Unknown Action -> $action");
     }
   }
 
@@ -187,13 +181,13 @@ class Random implements Router {
   spawnWorker(String id, String path, {var args}) {
     Uri proxyUri = Uri.parse("../worker/Proxy.dart");
     if(path.startsWith("ws://")) {
-      //print("Spawning remote isolate");
+      //_out("Spawning remote isolate");
       Isolate.spawnUri(proxyUri, [id, this.id, path, workerSourceUri, args], receivePort.sendPort).then((Isolate isolate) {
         _Worker w = new _Worker(id, path, isolate);
         workers.add(w);
       });
     } else {
-      //print("Spawning local isolate");
+      //_out("Spawning local isolate");
       Isolate.spawnUri(workerSourceUri, [id, this.id, path, args], receivePort.sendPort).then((Isolate isolate) {
         _Worker w = new _Worker(id, path, isolate);
         workers.add(w);
@@ -214,11 +208,11 @@ class Random implements Router {
    *
    */
   _restartAllWorkers() {
-    workers.forEach((worker) {
+    for(_Worker worker in workers) {
       worker
         ..active = false
         ..sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.RESTART, null));
-    });
+    }
   }
 
   _killWorker(String id) {
@@ -229,11 +223,11 @@ class Random implements Router {
   }
 
   _killAllWorkers() {
-    workers.forEach((worker) {
+    for(_Worker worker in workers) {
       worker
         ..active = false
         ..sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.KILL, null));
-    });
+    }
     workers.clear();
   }
 
@@ -244,26 +238,23 @@ class Random implements Router {
     if(workers.length > 1) {
       randomInt = random.nextInt(workers.length);
     }
-    //print("Workers length: ${workers.length} , [0] -> ${workers[0].id}");
+    //_out("Workers length: ${workers.length} , [0] -> ${workers[0].id}");
     return workers[randomInt];
   }
 
   bool areAllWorkersReady() {
-    //print("Are all workers ready? ${workers.length} vs $workersCount");
+    //_out("Are all workers ready? ${workers.length} vs ${workersPaths.length}");
 
     if(workers.length != workersPaths.length) {
       return false;
     }
 
-    for(int i = 0; i < workers.length; i++) {
-      _Worker worker = workers[i];
+    for (_Worker worker in workers) {
       try {
         if(worker.sendPort == null) {
-          //print("Returning false");
           return false;
         }
       } catch (e) {
-        //print("Error $e -> returning false");
         return false;
       }
     }
@@ -277,17 +268,20 @@ class Random implements Router {
    */
 
   _Worker _getWorkerById(String id) {
-    _Worker selectedWorker = null;
-    workers.forEach((worker) {
+    for(_Worker worker in workers) {
       if(worker.id == id) {
-        selectedWorker = worker;
+        return worker;
       }
-    });
-    return selectedWorker;
+    }
+    return null;
   }
 
   removeWorker(_Worker w) {
     workers.remove(w);
+  }
+
+  _out(String text) {
+    print(text);
   }
 
 }

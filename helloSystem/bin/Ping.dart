@@ -32,12 +32,12 @@ class Ping extends Worker {
   outText(var message) {
     int rand = new Math.Random().nextInt(3);
     Duration duration = new Duration(seconds: rand);
-    sleep(duration);
+    //sleep(duration);
 
     if(message == "START") {
       reply({'value': "PING", 'count' : "1" });
     } else if (message['value'].startsWith("PONG")) {
-      print("** ${message['value']} ${message['count']} **");
+      print("**@@ ${message['value']} ${message['count']} **");
       int count = int.parse(message['count']) + 1;
       reply({'value': "PING", 'count' :  "$count"});
     }

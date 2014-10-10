@@ -29,7 +29,7 @@ abstract class Worker {
     _deployedPath;
     if(args.length > 1) {
       _deployedPath = args.removeAt(0);
-      print ("PATH - $_deployedPath");
+      _out("PATH - $_deployedPath");
     }
 
     args = _extractExtraArguments(args);
@@ -56,7 +56,7 @@ abstract class Worker {
   }
 
   _onReceive(var message) {
-    //print("Worker $id: $message");
+    _out("Worker $id: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -77,10 +77,10 @@ abstract class Worker {
           onReceive(payload['message']);
           break;
         default:
-          print("Worker: unknown action -> $action");
+          _out("Worker: unknown action -> $action");
       }
     } else {
-      print("Worker: WARNING: incorrect message format, but still forwarding $message");
+      _out("Worker: WARNING: incorrect message format, but still forwarding $message");
       onReceive(message);
     }
 
@@ -133,5 +133,9 @@ abstract class Worker {
       args.add(temp);
     }
     return args;
+  }
+
+  _out(String text){
+    //print(text);
   }
 }

@@ -9,6 +9,7 @@ import "WebSocketServer.dart";
  * MQS should handle at webSocket connections with three subsystems:
  *  1. over STOMP with Message Broker System
  *    - as a client
+ *    - handled by stomp package
  *
  *  2. With Registry
  *    - as a client
@@ -19,22 +20,34 @@ import "WebSocketServer.dart";
  *
  * Each Enqueuing and Dequeuing isolate for each TOPIC? or one for all
  * if One for all, then Dequeuer will have to subscribe to each
+ *
+ * Maintain list of subscribed topics,
+ * spawn new isolate to listen on given topic if one doesnot exist yet
  */
 
 class Mqs {
+
+  static const String DEQUEUE = "action.dequeue";
+  static const String ENQUEUE = "action.enqueue";
 
   static const String LOCALHOST = "127.0.0.1";
   static const int RABBITMQ_DEFAULT_PORT = 61613;
   static const String GUEST_LOGIN = "guest";
   static const String GUEST_PASSWORD = "guest";
 
-  static const String TOPIC = "/queue/test";
-  static Map<String, String> HEADERS = null;//{'reply-to' : '/queue/test'};
+  //TODO: persistent queue - "topic/name"?
+  //static const String TOPIC = "/queue/testA";
+  static const String TOPIC = "/queue";
+  static Map<String, String> HEADERS = null;//{'delivery-mode':'2'};//{'reply-to' : '/queue/test'};
+
+  List<_Dequeuer> dequeuers;
 
   ReceivePort receivePortEnqueue;
   ReceivePort receivePortDequeue;
   SendPort enqueueSendPort;
   SendPort dequeueSendPort;
+
+  List<String> subscribedTopics;
 
   Uri enqueueIsolate = Uri.parse("enqueueIsolate.dart");
   Uri dequeueIsolate = Uri.parse("dequeueIsolate.dart");
@@ -46,6 +59,7 @@ class Mqs {
 
 
   Mqs({host:LOCALHOST, port:RABBITMQ_DEFAULT_PORT, username:GUEST_LOGIN, password:GUEST_PASSWORD}) {
+    subscribedTopics = new List();
     receivePortEnqueue = new ReceivePort();
     receivePortEnqueue.listen(_onReceiveFromEnqueueIsolate);
     print("Starting up enqueuer and dequeuer...");
@@ -76,6 +90,7 @@ class Mqs {
 
       // 2. onReceive from registry
       // -> From registry : queue-topic and isolate_system_location
+      dequeueSendPort.send({'action':Mqs.DEQUEUE});
     }
   }
 
@@ -106,20 +121,29 @@ class Mqs {
       dequeueSendPort = message;
       print("Sendport to deq isolate $message" + dequeueSendPort.hashCode.toString());
     } else {
-      print ("Received response from dequeue isolate: $message");
+      print (" ## Received response from dequeue isolate: $message");
     }
-    print ("Dequeued : $message");
   }
 
-  enqueue(String message) {
-    enqueueSendPort.send(message);
+  enqueue(String topic, String message) {
+    Map msg = {'topic':topic, 'action':Mqs.ENQUEUE, 'message': message};
+    enqueueSendPort.send(msg);
   }
 
   /**
    * Will be asynchronous
    */
-  String dequeue() {
-    dequeueSendPort.send("Dequeue a message");
+  String dequeue(String topic) {
+    dequeueSendPort.send({'action':Mqs.DEQUEUE, 'topic':'${Mqs.TOPIC}/$topic'});
+  }
+
+  _getDequeuerByTopic(String topic) {
+    for(final dequeuer in dequeuers) {
+      if(topic == dequeuer.topic) {
+        return dequeuer;
+      }
+    }
+
   }
 }
 
@@ -129,11 +153,22 @@ class Mqs {
 main() {
   Mqs mqs = new Mqs(host:"127.0.0.1", port:61613);
   int counter = 0;
-  new Timer.periodic(const Duration(seconds:0.1), (t) {
-    mqs.enqueue("Message ${counter++}");
-  });
-  new Timer.periodic(const Duration(seconds:0.1), (t) {
-    mqs.dequeue();
+  String topic = "test1";
+  String topic2 = "test2";
+
+//  new Timer.periodic(const Duration(seconds:0.1), (t) {
+//    String tempTopic = topic;
+//    if(counter % 3 == 0) {
+//      tempTopic = topic2;
+//    }
+//    mqs.enqueue(tempTopic, "Message ${counter++}");
+//  });
+  new Timer.periodic(const Duration(seconds:5), (t) {
+//    String tempTopic2 = topic;
+//    if(counter % 2 == 0) {
+//      tempTopic2 = topic2;
+//    }
+    mqs.dequeue(tempTopic2);
   });
 
 }
@@ -148,4 +183,17 @@ class _IsolateSystem {
   WebSocket get socket => _socket;
   set socket(WebSocket value) => _socket = value;
 
+}
+
+class _Dequeuer {
+  String _topic;
+  String _sendPort;
+
+  _Dequeuer(this._topic);
+
+  String get topic => _topic;
+  set topic(String value) => _topic = value;
+
+  String get sendPort => _sendPort;
+  set sendPort(String value) => _sendPort = value;
 }

@@ -161,23 +161,21 @@ class Activator {
   }
 
   _Isolate getIsolateById(String id) {
-    _Isolate selectedIsolate = null;
-    isolates.forEach((isolate) {
+    for(_Isolate isolate in isolates) {
       if(isolate.id == id) {
-        selectedIsolate = isolate;
+        return isolate;
       }
-    });
-    return selectedIsolate;
+    }
+    return null;
   }
 
   _getWorkerBySocket(WebSocket socket) {
-    _Isolate foundIsolate;
-    isolates.forEach((isolate){
+    for(_Isolate isolate in isolates) {
       if(isolate.socket == socket) {
-        foundIsolate = isolate;
+        return isolate;
       }
-    });
-    return foundIsolate;
+    }
+    return null;
   }
 }
 

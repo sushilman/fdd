@@ -34,6 +34,7 @@ class Controller {
 
   List<_Router> _routers;
 
+  //TODO: can be removed, sending message to self seems far better approach !?
   List<Map> _bufferedMessagesIfRouterNotReady = new List<Map>();
 
   Controller(List<String> args, this._sendPortOfIsolateSystem) {
@@ -45,35 +46,48 @@ class Controller {
     _routers = new List<_Router>();
 
     _receivePort.listen((message) {
-      _onReceive(message);
+      try {
+        _onReceive(message);
+      } catch (e, stackTrace) {
+        print ("Exception : $e, StackTrace: $stackTrace");
+        try {
+          _sendPortOfIsolateSystem.send(e);
+        } catch (e2, s2) {
+          _sendPortOfIsolateSystem.send(new Exception("UnknownException"));
+        }
+      }
     });
+
+
 
   }
 
   _onReceive(message) {
-    print("Controller: $message");
-    if(MessageUtil.isValidMessage(message)) {
-      String senderType = MessageUtil.getSenderType(message);
-      String senderId = MessageUtil.getId(message);
-      String action = MessageUtil.getAction(message);
-      var payload = MessageUtil.getPayload(message);
+    //return new Future(() {
+      _out("Controller: $message");
+      if (MessageUtil.isValidMessage(message)) {
+        String senderType = MessageUtil.getSenderType(message);
+        String senderId = MessageUtil.getId(message);
+        String action = MessageUtil.getAction(message);
+        var payload = MessageUtil.getPayload(message);
 
-      switch(senderType) {
-        case SenderType.ISOLATE_SYSTEM:
-          _handleMessagesFromIsolateSystem(action, payload, message);
-          break;
-        case SenderType.ROUTER:
-          _handleMessagesFromRouters(senderId, action, payload);
-          break;
-        case SenderType.FILE_MONITOR:
-          _handleMessagesFromFileMonitor(senderId, action, payload);
-          break;
-        default:
-          print ("Controller: Unknown Sender Type -> $senderType");
+        switch (senderType) {
+          case SenderType.ISOLATE_SYSTEM:
+            _handleMessagesFromIsolateSystem(action, payload, message);
+            break;
+          case SenderType.ROUTER:
+            _handleMessagesFromRouters(senderId, action, payload);
+            break;
+          case SenderType.FILE_MONITOR:
+            _handleMessagesFromFileMonitor(senderId, action, payload);
+            break;
+          default:
+            _out("Controller: Unknown Sender Type -> $senderType");
+        }
+      } else {
+        _out("Controller: Unknown message: $message");
       }
-    } else {
-      print ("Controller: Unknown message: $message");
-    }
+    //});
   }
 
   _handleMessagesFromIsolateSystem(String action, var payload, var fullMessage) {
@@ -102,21 +116,27 @@ class Controller {
         router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
         break;
       case Action.RESTART_ALL:
-        _routers.forEach((router) {
+        for(_Router router in _routers) {
           router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
-        });
+        }
         break;
       case Action.NONE:
         String routerId = payload['to'];
-        _Router router = _getRouterById(routerId);
-        if(router == null || router.sendPort == null) {
-          _bufferedMessagesIfRouterNotReady.add(fullMessage);
+        if(routerId != null) {
+          _Router router = _getRouterById(routerId);
+          if(router == null || router.sendPort == null) {
+            _bufferedMessagesIfRouterNotReady.add(fullMessage);
+            //_me.send(fullMessage);
+            _out("Controller: adding to buffer $fullMessage");
+          } else {
+            router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload));
+          }
         } else {
-          router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload));
+          _out("Controller: Destination Isolate unknown !");
         }
         break;
       default:
-        print("Controller: Unknown Action from System -> $action");
+        _out("Controller: Unknown Action from System -> $action");
     }
   }
 
@@ -124,41 +144,46 @@ class Controller {
     _Router router = _getRouterById(senderId);
     if(payload is SendPort) {
       router.sendPort = payload;
+
+      if (!_bufferedMessagesIfRouterNotReady.isEmpty) {
+        _out("Start sending message to self");
+        for (var message in _bufferedMessagesIfRouterNotReady) {
+          _me.send(message);
+          _out("Controller: sending $message to self");
+        }
+        _bufferedMessagesIfRouterNotReady.clear();
+      }
+
+      // Sending some pull messages
+      for (int i = 0; i < (_bufferedMessagesIfRouterNotReady.length - router.workersCount); i++) {
+        _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
+      }
+
     } else {
       switch (action) {
       //When all isolates have been spawned
-        case Action.CREATED:
-          if(!_bufferedMessagesIfRouterNotReady.isEmpty) {
-            _bufferedMessagesIfRouterNotReady.forEach((message){
-              _me.send(message);
-            });
-            _bufferedMessagesIfRouterNotReady.clear();
-          }
 
-          for (int i = 0; i < (_bufferedMessagesIfRouterNotReady.length - router.workersCount); i++) {
-            _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
-          }
-          break;
         case Action.REPLY:
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.REPLY, payload));
           break;
+        case Action.CREATED:
         case Action.PULL_MESSAGE:
         //TODO: should the response message be sent along with pullmessage or should it be a separate action?
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, payload));
           break;
         default:
-          print("Controller: Unknown Action from Router: $action");
+          _out("Controller: Unknown Action from Router: $action");
           break;
       }
     }
   }
 
   _handleMessagesFromFileMonitor(String senderId, String action, var payload) {
-    //print("Controller: Message from file monitor $payload");
+    //_out("Controller: Message from file monitor $payload");
     switch(action) {
       case Action.RESTART:
-        //TODO: means to restart all isolates of a router?
-        //issuing a restart command for single isolate does not make sense
+        // should all isolates of a router be restarted?
+        // issuing a restart command for single isolate does not make sense
         // get id of router, send restart command to that router
         String routerId = payload['to'];
         _Router router = _getRouterById(routerId);
@@ -183,15 +208,16 @@ class Controller {
   }
 
   _Router _getRouterById(String id) {
-    print("getting router by id, length = ${_routers.length}");
-    _Router router;
-    _routers.forEach((_router) {
-      print ("${_router.id} vs $id");
-      if(_router.id == id){
-        router = _router;
+    for(_Router router in _routers) {
+      if(router.id == id){
+        return router;
       }
-    });
-    return router;
+    }
+    return null;
+  }
+
+  _out(String text) {
+    print(text);
   }
 }
 
