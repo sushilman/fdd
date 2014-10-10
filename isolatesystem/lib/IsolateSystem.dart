@@ -78,6 +78,7 @@ class IsolateSystem {
 
   /// if path to router is sent in RouterType, it will be used as the router, it should be absolute uri
   IsolateRef addIsolate(String name, String uri, workersPaths, String routerType, {hotDeployment: true, args}) {
+    name = "$_id/$name";
     String routerUri = routerType;
     completer = new Completer();
     if(routerType == Router.RANDOM) {

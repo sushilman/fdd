@@ -10,6 +10,7 @@ import '../message/MessageUtil.dart';
 import '../message/SenderType.dart';
 import '../action/Action.dart';
 import '../IsolateSystem.dart';
+import '../worker/Worker.dart';
 
 /**
  * Controller
@@ -145,13 +146,9 @@ class Controller {
     if(payload is SendPort) {
       router.sendPort = payload;
 
-      if (!_bufferedMessagesIfRouterNotReady.isEmpty) {
-        _out("Start sending message to self");
-        for (var message in _bufferedMessagesIfRouterNotReady) {
-          _me.send(message);
-          _out("Controller: sending $message to self");
-        }
-        _bufferedMessagesIfRouterNotReady.clear();
+      while(_bufferedMessagesIfRouterNotReady.isNotEmpty) {
+        _me.send(_bufferedMessagesIfRouterNotReady.removeAt(0));
+        _out("Controller: sending ... to self");
       }
 
       // Sending some pull messages
@@ -162,11 +159,25 @@ class Controller {
     } else {
       switch (action) {
       //When all isolates have been spawned
-
         case Action.REPLY:
-          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.REPLY, payload));
+          _Router targetRouter = _getRouterById(_getIdOfTargetIsolatePool(payload));
+          if(targetRouter != null) {
+            targetRouter.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.NONE, payload));
+          } else {
+            _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.REPLY, payload));
+          }
           break;
         case Action.CREATED:
+          _out("Size of buffer ${_bufferedMessagesIfRouterNotReady.length}");
+          while(_bufferedMessagesIfRouterNotReady.isNotEmpty) {
+            _me.send(_bufferedMessagesIfRouterNotReady.removeAt(0));
+            _out("Controller: sending ... to self after cREATED");
+          }
+
+          for (int i = 0; i < (_bufferedMessagesIfRouterNotReady.length - router.workersCount); i++) {
+            _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
+          }
+          break;
         case Action.PULL_MESSAGE:
         //TODO: should the response message be sent along with pullmessage or should it be a separate action?
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, payload));
@@ -212,6 +223,13 @@ class Controller {
       if(router.id == id){
         return router;
       }
+    }
+    return null;
+  }
+
+  String _getIdOfTargetIsolatePool(Map payload) {
+    if(payload is Map && payload.containsKey(Worker.TO)) {
+      return payload[Worker.TO];
     }
     return null;
   }

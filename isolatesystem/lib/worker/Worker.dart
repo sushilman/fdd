@@ -19,6 +19,8 @@ abstract class Worker {
   String _deployedPath;
   String replyTo;
 
+  static const String TO = 'to';
+  static const String REPLY_TO = 'replyTo';
 
   String get poolName => _poolName;
   set poolName(String value) => _poolName = value;
@@ -63,7 +65,7 @@ abstract class Worker {
       String action = MessageUtil.getAction(message);
       var payload = MessageUtil.getPayload(message);
       if(payload is Map && payload.containsKey('replyTo')) {
-        replyTo = payload['replyTo'];
+        replyTo = payload[Worker.REPLY_TO];
       }
 
       switch(action) {
