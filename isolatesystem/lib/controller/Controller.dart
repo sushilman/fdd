@@ -19,9 +19,6 @@ import '../worker/Worker.dart';
  * Should keep track of free isolates (with the help of router)
  * and send pull request to IsolateSystem
  *
- * TODO: determine from which router the message was sent -> router name (senderId)
- *
- * TODO: also determine to which router the message should be forwarded -> router name (senderId)
  */
 main(List<String> args, SendPort sendPort) {
   Controller controller = new Controller(args, sendPort);
@@ -34,9 +31,6 @@ class Controller {
   SendPort _me;
 
   List<_Router> _routers;
-
-  //TODO: can be removed, sending message to self seems far better approach !?
-  List<Map> _bufferedMessagesIfRouterNotReady = new List<Map>();
 
   Controller(List<String> args, this._sendPortOfIsolateSystem) {
     _receivePort = new ReceivePort();
@@ -126,9 +120,7 @@ class Controller {
         if(routerId != null) {
           _Router router = _getRouterById(routerId);
           if(router == null || router.sendPort == null) {
-            //_bufferedMessagesIfRouterNotReady.add(fullMessage);
             _me.send(fullMessage);
-            _out("Controller: adding to buffer $fullMessage");
           } else {
             router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload));
           }
@@ -145,17 +137,7 @@ class Controller {
     _Router router = _getRouterById(senderId);
     if(payload is SendPort) {
       router.sendPort = payload;
-
-      while(_bufferedMessagesIfRouterNotReady.isNotEmpty) {
-        _me.send(_bufferedMessagesIfRouterNotReady.removeAt(0));
-        _out("Controller: sending ... to self");
-      }
-
-      // Sending some pull messages
-      for (int i = 0; i < (_bufferedMessagesIfRouterNotReady.length - router.workersCount); i++) {
-        _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
-      }
-
+      _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
     } else {
       switch (action) {
       //When all isolates have been spawned
@@ -168,15 +150,7 @@ class Controller {
           }
           break;
         case Action.CREATED:
-          _out("Size of buffer ${_bufferedMessagesIfRouterNotReady.length}");
-          while(_bufferedMessagesIfRouterNotReady.isNotEmpty) {
-            _me.send(_bufferedMessagesIfRouterNotReady.removeAt(0));
-            _out("Controller: sending ... to self after cREATED");
-          }
-
-          for (int i = 0; i < (_bufferedMessagesIfRouterNotReady.length - router.workersCount); i++) {
-            _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
-          }
+          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           break;
         case Action.PULL_MESSAGE:
         //TODO: should the response message be sent along with pullmessage or should it be a separate action?
