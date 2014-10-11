@@ -5,7 +5,8 @@ import 'dart:convert';
 import 'WebSocketServer.dart';
 
 /**
- * TODO: handle if registry goes down / network with all other systems goes down ? how to re-establish connections?
+ *
+ * if just network with all other systems goes down ? connection is re-established automatically by client
  */
 
 class Registry {

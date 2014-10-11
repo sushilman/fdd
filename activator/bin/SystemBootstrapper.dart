@@ -5,15 +5,13 @@ import 'dart:async';
 
 import 'package:isolatesystem/IsolateSystem.dart';
 import 'package:isolatesystem/IsolateRef.dart';
-import 'package:isolatesystem/message/MessageUtil.dart';
-import 'package:isolatesystem/message/SenderType.dart';
 
 main(List<String> args, SendPort sendPort) {
   new SystemBootstrapper(args, sendPort);
 }
 
 /**
- * Isolate that connects to registry and
+ * Isolate that connects to Registry and
  * bootstraps an isolate system if does not exists
  * else, simply adds an isolate
  * The deployed system connects to MQS and receives messages from there

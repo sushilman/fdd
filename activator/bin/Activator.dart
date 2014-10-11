@@ -21,7 +21,8 @@ class Activator {
   }
 
   void _onReceive(var message){
-    //Do nothing
+    // Do nothing
+    // this keeps the main thread running
   }
 }
 
