@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:isolatesystem/IsolateSystem.dart';
 import 'package:isolatesystem/IsolateRef.dart';
@@ -11,6 +12,12 @@ main(List<String> args, SendPort sendPort) {
   new SystemBootstrapper(args, sendPort);
 }
 
+/**
+ * Isolate that connects to registry and
+ * bootstraps an isolate system if does not exists
+ * else, simply adds an isolate
+ * The deployed system connects to MQS and receives messages from there
+ */
 class SystemBootstrapper {
   ReceivePort receivePort;
   SendPort sendPort;
@@ -21,6 +28,7 @@ class SystemBootstrapper {
 
   static const String ADD_ISOLATE = "action.addIsolate";
   static const String KILL = "action.kill";
+  String registryPath;
 
   SystemBootstrapper(List<String> args, SendPort this.sendPort) {
     receivePort = new ReceivePort();
@@ -29,21 +37,36 @@ class SystemBootstrapper {
     //sendPort.send(_me);
     receivePort.listen(_onReceive);
 
-    String registryPath = args[0];
+    registryPath = args[0];
+    print("Connecting to $registryPath ...");
 
+    _initWebSocket();
+  }
+
+  void _initWebSocket() {
     WebSocket.connect(registryPath).then(_handleWebSocket).catchError(_onError);
   }
 
   void _handleWebSocket(WebSocket socket) {
     ws = socket;
     if(ws != null && ws.readyState == WebSocket.OPEN) {
-      print("WebSocket Connected !");
+      print("Connected to registry!");
     }
-    ws.listen(_onData);
+    ws.listen(_onData, onDone:_onDone);
   }
 
-  void _onError() {
+  void _onError(var message) {
+    print("Could not connect, retrying...");
+    new Timer(new Duration(seconds:3), () {
+      print ("Retrying...");
+      _initWebSocket();
+    });
+  }
 
+  void _onDone() {
+    print("Connection closed by server!");
+    print("Reconnecting...");
+    _initWebSocket();
   }
 
   void _onData(var msg) {
@@ -70,6 +93,9 @@ class SystemBootstrapper {
           system = new IsolateSystem(systemId);
           _systems.add(system);
         }
+
+        //system.addIsolate(name, uri, workersPaths, routerType, hotDeployment:deploymentType, args:extraArgs);
+
         IsolateRef helloPrinter = system.addIsolate(name, uri, workersPaths, routerType, hotDeployment:deploymentType, args:extraArgs);
         helloPrinter.send("\n\n\n Print It\n\n\n", replyTo:helloPrinter);
         break;

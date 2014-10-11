@@ -7,9 +7,9 @@ class WebSocketServer {
   WebSocketServer(int port, String path, void onConnect(WebSocket socket), void onData(WebSocket socket, var message), void onDisconnect(WebSocket socket)) {
     HttpServer.bind(InternetAddress.ANY_IP_V4, port).then((HttpServer server) {
       print("HttpServer listening for websocket connections...");
-      server.serverHeader = "ActivatorServer";
+      server.serverHeader = "RegistryServer";
       server.listen((HttpRequest request) {
-        print('listening on $path \n request on ' + request.uri.toString());
+        print('Listening on $path \n request on ' + request.uri.toString());
         if (request.uri.path == path) {
           if (WebSocketTransformer.isUpgradeRequest(request)) {
             WebSocketTransformer.upgrade(request).then((socket) {

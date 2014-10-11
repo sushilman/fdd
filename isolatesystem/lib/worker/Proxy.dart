@@ -22,7 +22,10 @@ main(List<String> args, SendPort sendPort) {
 /**
  * TODO:
  * Handle when the server connection is lost (or server is shutdown)
+ * Refer to websocket client of SystemBootstrapper in activator package
  *
+ * May be if a connection to one activator is lost for a long time, try some alternatives?
+ * but how and where to get address?
  */
 class Proxy extends Worker {
   SendPort self;
