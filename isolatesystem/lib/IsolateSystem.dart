@@ -205,4 +205,9 @@ class IsolateSystem {
   _out(String text) {
     print(text);
   }
+
+  String get id => _id;
+  set id(String value) => _id = value;
+
+
 }

@@ -1,12 +1,13 @@
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:convert';
-import 'WebSocketServer.dart';
+
+import 'package:isolatesystem/IsolateSystem.dart';
 import 'package:isolatesystem/action/Action.dart';
 import 'package:isolatesystem/message/MessageUtil.dart';
 import 'package:isolatesystem/message/SenderType.dart';
 
-
+import 'WebSocketServer.dart';
 /*
  * Web socket handler
  *
@@ -29,8 +30,13 @@ import 'package:isolatesystem/message/SenderType.dart';
  *  2. Kill/ping an isolate
  *  3. Forward messages to proper isolate
  *
- * //TODO: Make Activator robust. Must continue running, should not shutdown because of some exception !
+ * //Make Activator must be robust. Have to continue running, should not shutdown because of some exception !
  */
+
+/**
+ * Connect to Registry and get data from it
+ */
+
 class Activator {
   ReceivePort receivePort;
   List<_Isolate> isolates;
@@ -38,7 +44,7 @@ class Activator {
   WebSocketServer wss;
 
   static String defaultPath = "/activator";
-  static int defaultPort = 42042;
+  static int defaultPort = 42043;
 
   Activator() {
     isolates = new List<_Isolate>();
@@ -46,6 +52,8 @@ class Activator {
     receivePort.listen(_onReceive, onError:_onErrorDuringListening);
 
     listenOn(defaultPort, defaultPath);
+
+    Isolate.spawnUri(Uri.parse("SystemBootstrapper.dart"), ["ws://localhost:42044/registry"], receivePort.sendPort);
   }
 
   /**
