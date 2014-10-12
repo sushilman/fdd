@@ -20,12 +20,15 @@ import 'IsolateRef.dart';
  *  - May be the queue is empty
  *  - may be the pull message does not reach message queuing system
  *  - solution: request again in certain interval... by controller / router ... periodic pull requests?
- *   -- keep track of number of pull requests and number of messages sent to router from controller?
+ *   -- keep track of number of pull requests and number of messages sent to router (by controller)?
  *   -- OR simply keep track of PULL MESSAGES ?
  *   -- OR poll for free isolate if the router is sitting idle for few seconds
  *   -- and send pull request based on that
  *
  *  2. Actor Supervision - Exception escalation?
+ *    - how to?
+ *      -> onError of Future
+ *      -> and, try catch blocks
  */
 
 /**
@@ -192,7 +195,7 @@ class IsolateSystem {
     // simply call dequeue function here
     //sleep(const Duration(seconds:1));
 
-    _onData(message); /* emulating  async call over websocket */
+    _onData(message); /* emulating async call over websocket */
   }
 
   /**
@@ -208,6 +211,4 @@ class IsolateSystem {
 
   String get id => _id;
   set id(String value) => _id = value;
-
-
 }
