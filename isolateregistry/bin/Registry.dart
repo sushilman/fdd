@@ -7,6 +7,7 @@ import 'WebSocketServer.dart';
 /**
  *
  * if just network with all other systems goes down ? connection is re-established automatically by client
+ * TODO: create a simple form / webinterface
  */
 
 class Registry {
@@ -42,8 +43,6 @@ class Registry {
   _onDisconnect(WebSocket socket) {
     socket.close();
   }
-
-
 }
 
 main() {

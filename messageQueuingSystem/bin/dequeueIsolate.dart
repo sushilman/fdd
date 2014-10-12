@@ -19,7 +19,12 @@ import "Mqs.dart";
  * because of ack problem, ack will ack only one message from one of the queue, and buffer will have old message
  * so rabbitmq, will not send another message unless old one is delivered and ack'ed
  *
- * Each isolate for each queue is good solution
+ * Each isolate for each queue is good solution -> done
+ *
+ * Oct 12:
+ * May be store number of dequeue requests,
+ * and once the data arrives from broker system, just dequeue the  number of messages
+ *
  */
 
 main(List<String> args, SendPort sendPort) {

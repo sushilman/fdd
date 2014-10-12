@@ -52,7 +52,7 @@ class Proxy extends Worker {
   @override
   onReceive(var message) {
     //Serialize and delegate to webSocket
-    //TODO: same id should be used for the isolate spawned by activator
+    // same id is used for the isolate spawned by activator
     // i.e. id of proxy and remote isolate will be the same
     print("Proxy: Sending message -> $message");
 

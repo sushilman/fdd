@@ -53,6 +53,8 @@ class Mqs {
   //static const String GUEST_LOGIN = "guest";
   //static const String GUEST_PASSWORD = "guest";
 
+  //TODO: needs refactoring
+
   //TODO: persistent queue - "topic/name"?
   //static const String TOPIC = "/queue/testA";
   static const String TOPIC = "/queue";

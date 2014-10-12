@@ -19,7 +19,7 @@ import '../message/SenderType.dart';
  *
  * TODO:
  * What happens to remote isolates if a router is killed? -> may be gracefully ending that isolate is possible
- * But, if the machine in which the router exists goes down? -> memory leak in remote isolate?
+ * But, if the machine(?) in which the router exists goes down? -> memory leak in remote isolate?
  * So, may be we need to send heartbeat from time to time, if no heartbeat arrives then isolate
  * can try to contact router and if not reachable then just gracefully exit :)
  * Isolate.ping might come handy? -> not implemented in dart 1.6.0 yet
