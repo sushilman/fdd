@@ -1,4 +1,5 @@
 import 'dart:io';
+//import 'dart:html' as Browser;
 import 'dart:isolate';
 import 'dart:convert';
 import 'dart:async';
@@ -6,7 +7,7 @@ import 'dart:async';
 import 'package:isolatesystem/IsolateSystem.dart';
 import 'package:isolatesystem/IsolateRef.dart';
 
-main(List<String> args, SendPort sendPort) {
+main([List<String> args, SendPort sendPort]) {
   new SystemBootstrapper(args, sendPort);
 }
 
@@ -22,35 +23,68 @@ class SystemBootstrapper {
   SendPort _me;
   List<IsolateSystem> _systems;
 
-  WebSocket ws;
+  var webSocket;
 
   static const String ADD_ISOLATE = "action.addIsolate";
   static const String KILL = "action.kill";
   String registryPath;
 
-  SystemBootstrapper(List<String> args, SendPort this.sendPort) {
+  //Browser.ParagraphElement output = Browser.querySelector('#output');
+
+  SystemBootstrapper([List<String> args, SendPort this.sendPort]) {
     receivePort = new ReceivePort();
     _me = receivePort.sendPort;
     _systems = new List();
     //sendPort.send(_me);
     receivePort.listen(_onReceive);
 
-    registryPath = args[0];
+    registryPath = "ws://localhost:42044/registry";
+
     print("Connecting to $registryPath ...");
 
     _initWebSocket();
   }
 
+  /**
+   * May be using exception handling,
+   * websocket can be initialized for vm as well as for browser
+   * try {vm initialization} catch(e) {browser initialization}
+   *
+   * TODO: Needs tweaking and testing in Browser
+   *
+   * isolatesystem is has dependency on dart:io which causes exception while loading script in browser
+   *
+   */
   void _initWebSocket() {
-    WebSocket.connect(registryPath).then(_handleWebSocket).catchError(_onError);
+    try {
+      WebSocket.connect(registryPath).then(_handleWebSocket).catchError(_onError);
+    } catch (e) {
+//      Browser.WebSocket webSocket = new Browser.WebSocket(registryPath);
+//      webSocket.onOpen.listen((Browser.MessageEvent e) {
+//        outputMessage(output, e.data);
+//        _onData(e.data);
+//      });
+//      webSocket.onError.listen(_onError);
+//      webSocket.onClose.listen((_) => _onDone);
+    }
   }
+/*
+  void outputMessage(Browser.Element e, String message){
+    print(message);
+    e.appendText(message);
+    e.appendHtml('<br/>');
+
+    //Make sure we 'autoscroll' the new messages
+    e.scrollTop = e.scrollHeight;
+  }
+*/
 
   void _handleWebSocket(WebSocket socket) {
-    ws = socket;
-    if(ws != null && ws.readyState == WebSocket.OPEN) {
+    webSocket = socket;
+    if(webSocket != null && webSocket.readyState == WebSocket.OPEN) {
       print("Connected to registry!");
     }
-    ws.listen(_onData, onDone:_onDone);
+    webSocket.listen(_onData, onDone:_onDone);
   }
 
   void _onError(var message) {

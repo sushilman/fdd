@@ -16,7 +16,7 @@ class Activator {
   Activator() {
     receivePort = new ReceivePort();
     Isolate.spawnUri(Uri.parse("IsolateDeployer.dart"), null, receivePort.sendPort);
-    Isolate.spawnUri(Uri.parse("SystemBootstrapper.dart"), ["ws://localhost:42044/registry"], receivePort.sendPort);
+    Isolate.spawnUri(Uri.parse("SystemBootstrapper.dart"), [], receivePort.sendPort);
     receivePort.listen(_onReceive);
   }
 

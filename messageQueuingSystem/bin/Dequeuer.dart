@@ -48,6 +48,7 @@ class Dequeuer {
   bool subscribed = false;
   bool clearBuffer = false;
 
+  String topic;
 
   Dequeuer(List<String> args, SendPort sendPort) {
     print("\n\nDequeuer Isolate Spawned !\n\n");
@@ -59,7 +60,7 @@ class Dequeuer {
     int connectToPort = args[1];
     String username = args[2];
     String password = args[3];
-    String topic = args[4];
+    topic = args[4];
 
     sendPort.send({'senderType':DEQUEUER, 'topic':topic, 'message': me});
 
@@ -101,7 +102,7 @@ class Dequeuer {
   _flushBuffer() {
     bufferMailBox.forEach((key, value) {
       sendPort.send({
-          'senderType':DEQUEUER, 'message':value
+          'senderType':DEQUEUER, 'topic':topic, 'message':value
       });
       client.ack(key);
     });

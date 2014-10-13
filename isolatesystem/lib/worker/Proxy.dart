@@ -76,7 +76,7 @@ class Proxy extends Worker {
   void _onData(String msg) {
     // Deserialize and send to itself first? router
     // print("Response from Activator: $msg");
-    List<String> message = isJsonString(msg) ? JSON.decode(msg) : msg;
+    var message = isJsonString(msg) ? JSON.decode(msg) : msg;
 
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);

@@ -12,7 +12,7 @@ class Test {
 }
 
 void main() {
-  WebSocket.connect("ws://localhost:42043/mqs").then(_handleWebSocket).catchError(_onError);
+  WebSocket.connect("ws://localhost:42043/mqs/isolateSystem").then(_handleWebSocket).catchError(_onError);
 }
 
 _handleWebSocket(WebSocket socket) {
@@ -20,7 +20,7 @@ _handleWebSocket(WebSocket socket) {
   int counter = 0;
   new Timer.periodic (const Duration(seconds:1), (t) {
     String msg = "Enqueue this message ${counter++}";
-    var payload = {'replyTo':"isolateSystem.helloPrinter", 'message':msg};
+    var payload = {'message':msg};
     Map message = {'senderId':"isolateSystem.helloPrinter", 'action':Mqs.ENQUEUE, 'payload':payload};
     socket.add(JSON.encode(message));
   });

@@ -39,6 +39,8 @@ import "Dequeuer.dart";
  * Oct 13, 2014
  * If a connection with rabbitmq is lost, the buffer should be cleared immediately,
  * so that a message is not delivered twice even if was not ack'ed
+ *
+ * Assumes that an Isolate System connects to "ws://<ip>/mqs/<isolateSystemId>"
  */
 
 class Mqs {
@@ -128,6 +130,8 @@ class Mqs {
   }
 
   _handleDequeuerMessages(var message) {
+    _dequeuers.forEach((d) => print ("Available: ${d.topic}"));
+
     _Dequeuer dequeuer = _getDequeuerByTopic(message['topic']);
     if(message['message'] is SendPort) {
       print("Received send port from dequeuer !");
@@ -136,7 +140,8 @@ class Mqs {
       //send the message
       // using specific topic
 
-      print("Send via websocket : $message['message']");
+      print("Send via websocket : ${message['message']}");
+      dequeuer.isolateSystem.socket.add(JSON.encode(message['message']));
     }
   }
 
@@ -149,7 +154,7 @@ class Mqs {
     var message = fullMessage['message'];
     print("MQS: handling External Messages");
     String senderId = message['senderId'];
-    String system = senderId.split('.').first.split('/').last;
+    String isolateSystem = senderId.split('.').first.split('/').last;
     String isolatePool = senderId.split('.').last;
     String action = message['action'];
 
@@ -167,30 +172,44 @@ class Mqs {
 
   }
 
-  _onConnect(WebSocket socket) {
-
+  /**
+   * Separate websocket path for each isolatesystem ?
+   * then we can use onConnect for adding / updating sockets in dequeuers
+   * using systemId
+   * TODO: handle if multiple system with same ID tries to connect
+   *
+   */
+  _onConnect(WebSocket socket, String systemId) {
+    _IsolateSystem system = new _IsolateSystem(systemId, socket);
+    _connectedSystems.add(system);
+    _updateIsolateSystemInDequeuers(system);
   }
 
   /**
    * After client reconnects
    * WebSocket needs to be updated !
    *
-   * on disconnect, remove system itself and also from dequeuers
-   * on reconnect, add system and also to dequeuers
+   * on disconnect, remove isolateSystem itself and also from dequeuers
+   * on reconnect, add isolateSystem and also to dequeuers
    */
   _onData(WebSocket socket, var msg) {
     var message = JSON.decode(msg);
     //keep records of sockets here
     String senderId = message['senderId'];
     String systemId = senderId.split('.').first.split('/').last;
-    if(_getSystemById(systemId) == null) {
-      _IsolateSystem system = new _IsolateSystem(systemId, socket);
-    }
+//    if(_getSystemById(systemId) == null) {
+//      _IsolateSystem isolateSystem = new _IsolateSystem(systemId, socket);
+//    }
+
     _me.send({'senderType':ISOLATE_SYSTEM, 'message':message});
   }
 
   _onDisconnect(WebSocket socket) {
     socket.close();
+    _IsolateSystem isolateSystem = _getIsolateSystemBySocket(socket);
+    if(isolateSystem != null) {
+      _connectedSystems.remove(isolateSystem);
+    }
   }
 
   _startEnqueuerIsolate(List<String> args) {
@@ -214,8 +233,9 @@ class Mqs {
     _Dequeuer dequeuer = _getDequeuerByTopic(topic);
     String systemId = topic.split('.').first.split('/').last;
     if(dequeuer == null) {
-      _Dequeuer _dequeuer = new _Dequeuer(topic, _getSystemById(systemId));
-      _dequeuers.add(_dequeuer);
+      dequeuer = new _Dequeuer(topic, systemId, _getIsolateSystemById(systemId));
+      _dequeuers.add(dequeuer);
+      print("HANDLE DQ: ${dequeuer.isolateSystem.id}");
 
       List temp  = new List();
       temp.addAll(connectionArgs);
@@ -232,7 +252,7 @@ class Mqs {
   }
 
   _Dequeuer _getDequeuerByTopic(String topic) {
-    for(final dequeuer in _dequeuers) {
+    for(final _Dequeuer dequeuer in _dequeuers) {
       if(topic == dequeuer.topic) {
         return dequeuer;
       }
@@ -240,13 +260,50 @@ class Mqs {
     return null;
   }
 
-  _IsolateSystem _getSystemById(String systemId) {
-    for(_IsolateSystem system in _connectedSystems) {
-      if(system.id == systemId) {
-        return system;
+  List<_Dequeuer> _getDequeuersByIsolateSystemId(String systemId) {
+    List<_Dequeuer> dequeuers = new List();
+
+    for(final _Dequeuer dequeuer in _dequeuers) {
+      print("EACH DQ:${dequeuer.topic} => ${dequeuer.isolateSystemId} vs systemid = ${dequeuer.isolateSystem.id}");
+      if(dequeuer.isolateSystemId == systemId) {
+        dequeuers.add(dequeuer);
+      }
+    }
+    return dequeuers;
+  }
+
+
+  _IsolateSystem _getIsolateSystemById(String systemId) {
+    for(_IsolateSystem isolateSystem in _connectedSystems) {
+      if(isolateSystem.id == systemId) {
+        return isolateSystem;
       }
     }
     return null;
+  }
+
+  _IsolateSystem _getIsolateSystemBySocket(WebSocket socket) {
+    for(_IsolateSystem isolateSystem in _connectedSystems) {
+      if(isolateSystem.socket == socket) {
+        return isolateSystem;
+      }
+    }
+    return null;
+  }
+
+  _removeSystemFromDequeuers(_IsolateSystem system) {
+    for(_Dequeuer dequeuer in _dequeuers) {
+      if (dequeuer.isolateSystem.id == system.id) {
+        dequeuer.system = null;
+      }
+    }
+  }
+
+  _updateIsolateSystemInDequeuers(_IsolateSystem system) {
+    for(_Dequeuer dequeuer in _getDequeuersByIsolateSystemId(system.id)) {
+      print("Updating socket for ${dequeuer.topic} of $system");
+      dequeuer.system = system;
+    }
   }
 }
 
@@ -274,9 +331,10 @@ class _IsolateSystem {
 class _Dequeuer {
   String _topic;
   SendPort _sendPort;
-  _IsolateSystem _system;
+  String _isolateSystemId;
+  _IsolateSystem _isolateSystem;
 
-  _Dequeuer(this._topic, this._system);
+  _Dequeuer(this._topic, this._isolateSystemId, this._isolateSystem);
 
   String get topic => _topic;
   set topic(String value) => _topic = value;
@@ -284,6 +342,9 @@ class _Dequeuer {
   SendPort get sendPort => _sendPort;
   set sendPort(SendPort value) => _sendPort = value;
 
-  _IsolateSystem get system => _system;
-  set system(_IsolateSystem value) => _system = value;
+  _IsolateSystem get isolateSystem => _isolateSystem;
+  set system(_IsolateSystem value) => _isolateSystem = value;
+
+  String get isolateSystemId => _isolateSystemId;
+  set isolateSystemId(String value) => _isolateSystemId = value;
 }

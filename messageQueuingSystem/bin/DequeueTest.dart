@@ -7,7 +7,7 @@ import "package:stomp/vm.dart" show connect;
 import "Mqs.dart";
 
 void main() {
-  WebSocket.connect("ws://localhost:42043/mqs").then(_handleWebSocket).catchError(_onError);
+  WebSocket.connect("ws://localhost:42043/mqs/isolateSystem").then(_handleWebSocket).catchError(_onError);
 }
 
 _handleWebSocket(WebSocket socket) {
@@ -19,7 +19,7 @@ _handleWebSocket(WebSocket socket) {
 }
 
 _onData(var message) {
-  JSON.decode(message);
+  message = JSON.decode(message);
   print("Dequeued -> $message");
 }
 
