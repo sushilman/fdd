@@ -6,8 +6,8 @@ import "dart:async";
 import 'dart:convert';
 
 import "WebSocketServer.dart";
-import "enqueueIsolate.dart";
-import "dequeueIsolate.dart";
+import "Enqueuer.dart";
+import "Dequeuer.dart";
 
 /**
  *
@@ -35,6 +35,10 @@ import "dequeueIsolate.dart";
  *
  * Maintain list of subscribed topics,
  * spawn new isolate to listen on given topic if one doesnot exist yet
+ *
+ * Oct 13, 2014
+ * If a connection with rabbitmq is lost, the buffer should be cleared immediately,
+ * so that a message is not delivered twice even if was not ack'ed
  */
 
 class Mqs {
@@ -48,7 +52,7 @@ class Mqs {
   static const String DEFAULT_LOGIN = "fdd";
   static const String DEFAULT_PASSWORD = "pass";
 
-  static const String EXTERNAL = "senderType.external";
+  static const String ISOLATE_SYSTEM = "senderType.isolateSystem";
 
   //static const String GUEST_LOGIN = "guest";
   //static const String GUEST_PASSWORD = "guest";
@@ -71,8 +75,8 @@ class Mqs {
 
   List<String> _subscribedTopics;
 
-  Uri enqueueIsolate = Uri.parse("enqueueIsolate.dart");
-  Uri dequeueIsolate = Uri.parse("dequeueIsolate.dart");
+  Uri enqueueIsolate = Uri.parse("Enqueuer.dart");
+  Uri dequeueIsolate = Uri.parse("Dequeuer.dart");
 
   WebSocketServer wss;
 
@@ -80,6 +84,7 @@ class Mqs {
   String listeningPort = "42043";
 
   List<String> connectionArgs;
+  List<_IsolateSystem> _connectedSystems;
 
   Mqs({host:LOCALHOST, port:RABBITMQ_DEFAULT_PORT, username:DEFAULT_LOGIN, password:DEFAULT_PASSWORD}) {
     _subscribedTopics = new List();
@@ -87,10 +92,7 @@ class Mqs {
     _me = _receivePort.sendPort;
     _receivePort.listen(_onReceive);
     _dequeuers = new List();
-//    receivePortEnqueue.listen(_onReceiveFromEnqueueIsolate);
-//
-//    receivePortDequeue = new ReceivePort();
-//    receivePortDequeue.listen(_onReceiveFromDequeueIsolate);
+    _connectedSystems = new List();
 
     print("Starting up enqueuer...");
     connectionArgs = [host, port, username, password];
@@ -104,13 +106,13 @@ class Mqs {
     if(message is Map) {
       String senderType = message['senderType'];
       switch(senderType) {
-        case ENQUEUER:
+        case Enqueuer.ENQUEUER:
           _handleEnqueuerMessages(message['message']);
           break;
         case Dequeuer.DEQUEUER:
           _handleDequeuerMessages(message);
           break;
-        case EXTERNAL:
+        case ISOLATE_SYSTEM:
           _handleExternalMessages(message);
           break;
         default:
@@ -133,6 +135,7 @@ class Mqs {
     } else {
       //send the message
       // using specific topic
+
       print("Send via websocket : $message['message']");
     }
   }
@@ -168,13 +171,26 @@ class Mqs {
 
   }
 
+  /**
+   * After client reconnects
+   * WebSocket needs to be updated !
+   *
+   * on disconnect, remove system itself and also from dequeuers
+   * on reconnect, add system and also to dequeuers
+   */
   _onData(WebSocket socket, var msg) {
     var message = JSON.decode(msg);
-    _me.send({'senderType':EXTERNAL, 'message':message});
+    //keep records of sockets here
+    String senderId = message['senderId'];
+    String systemId = senderId.split('.').first.split('/').last;
+    if(_getSystemById(systemId) == null) {
+      _IsolateSystem system = new _IsolateSystem(systemId, socket);
+    }
+    _me.send({'senderType':ISOLATE_SYSTEM, 'message':message});
   }
 
   _onDisconnect(WebSocket socket) {
-
+    socket.close();
   }
 
   _startEnqueuerIsolate(List<String> args) {
@@ -187,41 +203,26 @@ class Mqs {
 
   _handleEnqueue(String topic, String payload, String fullMessage) {
     Map msg = {'topic':topic, 'action':Mqs.ENQUEUE, 'message': payload};
-    if(!_subscribedTopics.contains(topic)) {
-      _subscribedTopics.add(topic);
-      // If the topic is new, start a new dequeuer for that topic
-      _Dequeuer _dequeuer = new _Dequeuer(topic);
-      _dequeuers.add(_dequeuer);
-      List temp  = new List();
-      temp.addAll(connectionArgs);
-      temp.add(topic);
-
-      print("TEMP -> $temp");
-      _startDequeuerIsolate(temp);
-    }
     if(_enqueuerSendPort == null) {
-      _me.send(fullMessage);
+      _me.send(fullMessage); //cyclic buffer
     } else {
       _enqueuerSendPort.send(msg);
     }
   }
 
   String _handleDequeue(String topic, var fullMessage) {
-    if(!_subscribedTopics.contains(topic)) {
-      _subscribedTopics.add(topic);
-      // If the topic is new, start a new dequeuer for that topic
-      _Dequeuer _dequeuer = new _Dequeuer(topic);
+    _Dequeuer dequeuer = _getDequeuerByTopic(topic);
+    String systemId = topic.split('.').first.split('/').last;
+    if(dequeuer == null) {
+      _Dequeuer _dequeuer = new _Dequeuer(topic, _getSystemById(systemId));
       _dequeuers.add(_dequeuer);
+
       List temp  = new List();
       temp.addAll(connectionArgs);
       temp.add(topic);
 
-      print("TEMP -> $temp");
       _startDequeuerIsolate(temp);
-    }
-
-    _Dequeuer dequeuer = _getDequeuerByTopic(topic);
-    if(dequeuer != null && dequeuer.sendPort != null) {
+    } else if(dequeuer.sendPort != null) {
       dequeuer.sendPort.send({
           'action':Mqs.DEQUEUE, 'topic':topic
       });
@@ -238,6 +239,15 @@ class Mqs {
     }
     return null;
   }
+
+  _IsolateSystem _getSystemById(String systemId) {
+    for(_IsolateSystem system in _connectedSystems) {
+      if(system.id == systemId) {
+        return system;
+      }
+    }
+    return null;
+  }
 }
 
 /**
@@ -245,29 +255,6 @@ class Mqs {
  */
 main() {
   Mqs mqs = new Mqs(host:"127.0.0.1", port:61613);
-  int counter = 0;
-  String topic = "test1";
-  String topic2 = "test2";
-//
-//  new Timer.periodic(const Duration(seconds:1), (t) {
-////    String tempTopic = topic;
-////    if(counter % 3 == 0) {
-////      tempTopic = topic2;
-////    }
-//    var payload = {'replyTo':"", 'message':"Enqueue this message"};
-//    Map message = {'senderId':"isolateSystem", 'action':"action.enqueue", 'payload':payload};
-//    _me.send({'senderType':Mqs.EXTERNAL, 'message':message});
-//  });
-//
-//  new Timer.periodic(const Duration(seconds:5), (t) {
-////    String tempTopic2 = topic;
-////    if(counter % 2 == 0) {
-////      tempTopic2 = topic2;
-////    }
-//    Map message = {'senderId':"isolateSystem", 'action':"action.dequeue"};
-//    _me.send({'senderType':Mqs.EXTERNAL, 'message':message});
-//  });
-
 }
 
 class _IsolateSystem {
@@ -280,14 +267,16 @@ class _IsolateSystem {
   WebSocket get socket => _socket;
   set socket(WebSocket value) => _socket = value;
 
+  _IsolateSystem(this._id, this._socket);
 }
 
+//multiple dequeuers can refer to same system
 class _Dequeuer {
   String _topic;
   SendPort _sendPort;
   _IsolateSystem _system;
 
-  _Dequeuer(this._topic);
+  _Dequeuer(this._topic, this._system);
 
   String get topic => _topic;
   set topic(String value) => _topic = value;
@@ -297,6 +286,4 @@ class _Dequeuer {
 
   _IsolateSystem get system => _system;
   set system(_IsolateSystem value) => _system = value;
-
-
 }

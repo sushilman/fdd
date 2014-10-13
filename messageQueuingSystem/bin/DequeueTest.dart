@@ -6,22 +6,14 @@ import "package:stomp/stomp.dart";
 import "package:stomp/vm.dart" show connect;
 import "Mqs.dart";
 
-class Test {
-  Test() {
-  }
-}
-
 void main() {
   WebSocket.connect("ws://localhost:42043/mqs").then(_handleWebSocket).catchError(_onError);
 }
 
 _handleWebSocket(WebSocket socket) {
   socket.listen(_onData);
-  int counter = 0;
-  new Timer.periodic (const Duration(seconds:1), (t) {
-    String msg = "Enqueue this message ${counter++}";
-    var payload = {'replyTo':"isolateSystem.helloPrinter", 'message':msg};
-    Map message = {'senderId':"isolateSystem.helloPrinter", 'action':Mqs.ENQUEUE, 'payload':payload};
+  new Timer.periodic (const Duration(seconds:5), (t) {
+    Map message = {'senderId':"isolateSystem.helloPrinter", 'action':Mqs.DEQUEUE};
     socket.add(JSON.encode(message));
   });
 }

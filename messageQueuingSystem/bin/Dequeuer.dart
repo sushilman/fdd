@@ -50,19 +50,20 @@ class Dequeuer {
 
 
   Dequeuer(List<String> args, SendPort sendPort) {
+    print("\n\nDequeuer Isolate Spawned !\n\n");
     receivePort = new ReceivePort();
     me = receivePort.sendPort;
     this.sendPort = sendPort;
 
     String host = args[0];
-    int port = args[1];
+    int connectToPort = args[1];
     String username = args[2];
     String password = args[3];
     String topic = args[4];
 
     sendPort.send({'senderType':DEQUEUER, 'topic':topic, 'message': me});
 
-    connect(host, port:port, login:username, passcode:password).then((StompClient stompClient){
+    connect(host, port:connectToPort, login:username, passcode:password).then((StompClient stompClient){
       _handleStompClient(stompClient, topic);
     });
 
@@ -76,7 +77,6 @@ class Dequeuer {
   _handleStompClient(StompClient stompClient, String topic) {
     client = stompClient;
     _subscribeMessage(Mqs.TOPIC + "/" + topic);
-    //_subscribeMessage(Mqs.TOPIC);
   }
 
   /**
@@ -86,14 +86,12 @@ class Dequeuer {
    */
 
   _onData(Map<String, String> headers, String message) {
-    print("Message in buffer: $message, HEADERS: $headers");
+    print("Message from RabbitMQ: $message, HEADERS: $headers");
     String key = headers["ack"];
     //send message to self to add it to buffer
     me.send({
         'key':key, 'topic':headers['destination'], 'action':DEQUEUED, 'message':message
     });
-
-    //bufferMailBox[headers["ack"]] = message;
   }
 
   /**
@@ -114,7 +112,7 @@ class Dequeuer {
     try {
       client.subscribeString("id_$topic", topic, _onData, ack:CLIENT_INDIVIDUAL);
       print("Subscribed to $topic");
-      me.send({'action':Mqs.DEQUEUE});
+      //me.send({'action':Mqs.DEQUEUE});
       subscribed = true;
       bufferWillBeFilled = false;
     } catch(e) {
@@ -125,18 +123,13 @@ class Dequeuer {
 
   void _onReceive(msg) {
     print("Dequeue Isolate : $msg");
-    if (msg is SendPort) {
-      print("Send port received !");
-      //else if message is "dequeue" (from topic?)
-    } else if (msg is Map) {
+    if (msg is Map) {
       String action = msg['action'];
-      //String topic = Mqs.TOPIC + "/" + msg['topic'];
       switch (action) {
         case Mqs.DEQUEUE:
         // if already subscribed, flush buffer
           if (!bufferWillBeFilled) {
             print("Sending extra dequeue message! $msg");
-            //me.send(msg);
             clearBuffer = true;
             bufferWillBeFilled = true;
           }
@@ -157,6 +150,8 @@ class Dequeuer {
         default:
           print("Unknown message -> $msg");
       }
+    } else {
+      print("Dequeuer: Bad message: $msg");
     }
   }
 }
