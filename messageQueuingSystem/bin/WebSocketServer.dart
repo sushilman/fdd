@@ -2,7 +2,7 @@ import 'dart:io';
 
 class WebSocketServer {
 
-  WebSocketServer(int port, String path, void onConnect(WebSocket socket, String subPath), void onData(WebSocket socket, var message), void onDisconnect(WebSocket socket)) {
+  WebSocketServer(int port, String path, void onConnect(WebSocket socket, String subPath), void onData(WebSocket socket, String subPath, var message), void onDisconnect(WebSocket socket, String subPath)) {
     HttpServer.bind(InternetAddress.ANY_IP_V4, port).then((HttpServer server) {
       print("HttpServer listening for websocket connections...");
       server.serverHeader = "MessageQueuingSystemServer";
@@ -23,14 +23,14 @@ class WebSocketServer {
     });
   }
 
-  handleWebSocket(String subPath, WebSocket socket, void onConnect(WebSocket socket, String path), void onData(WebSocket socket, var message), void onDisconnect(WebSocket socket)) {
+  handleWebSocket(String subPath, WebSocket socket, void onConnect(WebSocket socket, String path), void onData(WebSocket socket, String subPath, var message), void onDisconnect(WebSocket socket, String subPath)) {
     print('Client connected!');
     onConnect(socket, subPath);
     socket.listen((String s) {
-      onData(socket, s);
+      onData(socket, subPath, s);
     }, onDone: () {
       print('Client disconnected');
-      onDisconnect(socket);
+      onDisconnect(socket, subPath);
     });
   }
 

@@ -21,7 +21,7 @@ _handleWebSocket(WebSocket socket) {
   new Timer.periodic (const Duration(seconds:1), (t) {
     String msg = "Enqueue this message ${counter++}";
     var payload = {'message':msg};
-    Map message = {'senderId':"isolateSystem.helloPrinter", 'action':Mqs.ENQUEUE, 'payload':payload};
+    Map message = {'senderId':"helloPrinter", 'action':Mqs.ENQUEUE, 'payload':payload};
     socket.add(JSON.encode(message));
   });
 }

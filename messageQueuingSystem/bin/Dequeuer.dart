@@ -38,6 +38,7 @@ class Dequeuer {
   SendPort sendPort;
   SendPort me;
   int maxMessageBuffer = 1;
+  int dequeueRequestsCount = 0;
 
   Map<String, String> bufferMailBox = new Map();
 
@@ -100,13 +101,17 @@ class Dequeuer {
    */
 
   _flushBuffer() {
-    bufferMailBox.forEach((key, value) {
-      sendPort.send({
-          'senderType':DEQUEUER, 'topic':topic, 'message':value
+    if(bufferMailBox.isNotEmpty) {
+      print("\nFlushing buffer");
+      bufferMailBox.forEach((key, value) {
+        sendPort.send({
+            'senderType':DEQUEUER, 'topic':topic, 'message':value
+        });
+        client.ack(key);
       });
-      client.ack(key);
-    });
-    bufferMailBox.clear();
+      bufferMailBox.clear();
+      dequeueRequestsCount--;
+    }
   }
 
   _subscribeMessage(String topic) {
@@ -128,24 +133,15 @@ class Dequeuer {
       String action = msg['action'];
       switch (action) {
         case Mqs.DEQUEUE:
-        // if already subscribed, flush buffer
-          if (!bufferWillBeFilled) {
-            print("Sending extra dequeue message! $msg");
-            clearBuffer = true;
-            bufferWillBeFilled = true;
-          }
-        
-          if (subscribed && bufferMailBox.isNotEmpty) {
-            _flushBuffer();
-          } else {
-            print("\n\n\nBuffer still empty");
-          }
+          dequeueRequestsCount++;
+          _flushBuffer();
+
           break;
         case DEQUEUED:
+          print("RequestCount $dequeueRequestsCount");
           bufferMailBox[msg['key']] = msg['message'];
-          if(clearBuffer) {
+          if(dequeueRequestsCount > 0) {
             _flushBuffer();
-            clearBuffer = false;
           }
           break;
         default:

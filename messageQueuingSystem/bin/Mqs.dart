@@ -28,11 +28,6 @@ import "Dequeuer.dart";
  *    - as a Server
  *    - each IsolateSystem opens a webSocket connection with MQS
  *
- * Each Enqueuing and Dequeuing isolate for each TOPIC? or one for all
- * if One for all, then Dequeuer will have to subscribe to each
- * and the dequeuer should be able to figure out from where the message
- * was dequeued to find out correct "port" (by figuring out isolate system) & "to:" (by figuring out isolatepool)
- *
  * Maintain list of subscribed topics,
  * spawn new isolate to listen on given topic if one doesnot exist yet
  *
@@ -130,8 +125,6 @@ class Mqs {
   }
 
   _handleDequeuerMessages(var message) {
-    _dequeuers.forEach((d) => print ("Available: ${d.topic}"));
-
     _Dequeuer dequeuer = _getDequeuerByTopic(message['topic']);
     if(message['message'] is SendPort) {
       print("Received send port from dequeuer !");
@@ -153,18 +146,18 @@ class Mqs {
     //handle messages from
     var message = fullMessage['message'];
     print("MQS: handling External Messages");
+    String isolateSystemId = fullMessage['senderIsolateSystemId'];
     String senderId = message['senderId'];
-    String isolateSystem = senderId.split('.').first.split('/').last;
-    String isolatePool = senderId.split('.').last;
+    String topic = isolateSystemId + "." + senderId;
     String action = message['action'];
 
     switch(action) {
       case DEQUEUE:
-        _handleDequeue(senderId, fullMessage);
+        _handleDequeue(topic, fullMessage);
         break;
       case ENQUEUE:
         var payload = message['payload'];
-        _handleEnqueue(senderId, payload, fullMessage);
+        _handleEnqueue(topic, payload, fullMessage);
         break;
       default:
         print("Unknown action -> $action");
@@ -179,8 +172,8 @@ class Mqs {
    * TODO: handle if multiple system with same ID tries to connect
    *
    */
-  _onConnect(WebSocket socket, String systemId) {
-    _IsolateSystem system = new _IsolateSystem(systemId, socket);
+  _onConnect(WebSocket socket, String isolateSystemId) {
+    _IsolateSystem system = new _IsolateSystem(isolateSystemId, socket);
     _connectedSystems.add(system);
     _updateIsolateSystemInDequeuers(system);
   }
@@ -192,19 +185,12 @@ class Mqs {
    * on disconnect, remove isolateSystem itself and also from dequeuers
    * on reconnect, add isolateSystem and also to dequeuers
    */
-  _onData(WebSocket socket, var msg) {
+  _onData(WebSocket socket, String isolateSystemId, var msg) {
     var message = JSON.decode(msg);
-    //keep records of sockets here
-    String senderId = message['senderId'];
-    String systemId = senderId.split('.').first.split('/').last;
-//    if(_getSystemById(systemId) == null) {
-//      _IsolateSystem isolateSystem = new _IsolateSystem(systemId, socket);
-//    }
-
-    _me.send({'senderType':ISOLATE_SYSTEM, 'message':message});
+    _me.send({'senderType':ISOLATE_SYSTEM, 'senderIsolateSystemId':isolateSystemId, 'message':message});
   }
 
-  _onDisconnect(WebSocket socket) {
+  _onDisconnect(WebSocket socket, String isolateSystemId) {
     socket.close();
     _IsolateSystem isolateSystem = _getIsolateSystemBySocket(socket);
     if(isolateSystem != null) {
@@ -216,8 +202,8 @@ class Mqs {
     Isolate.spawnUri(enqueueIsolate, args, _receivePort.sendPort);
   }
 
-  _startDequeuerIsolate(List<String> args) {
-    Isolate.spawnUri(dequeueIsolate, args, _receivePort.sendPort);
+  Future<Isolate> _startDequeuerIsolate(List<String> args) {
+    return Isolate.spawnUri(dequeueIsolate, args, _receivePort.sendPort);
   }
 
   _handleEnqueue(String topic, String payload, String fullMessage) {
@@ -241,11 +227,12 @@ class Mqs {
       temp.addAll(connectionArgs);
       temp.add(topic);
 
-      _startDequeuerIsolate(temp);
-    } else if(dequeuer.sendPort != null) {
-      dequeuer.sendPort.send({
-          'action':Mqs.DEQUEUE, 'topic':topic
+      _startDequeuerIsolate(temp).then((_) {
+        _me.send(fullMessage);
       });
+
+    } else if(dequeuer.sendPort != null) {
+      dequeuer.sendPort.send({'action':Mqs.DEQUEUE, 'topic':topic});
     } else {
       _me.send(fullMessage);
     }
