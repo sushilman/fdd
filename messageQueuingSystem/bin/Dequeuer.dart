@@ -38,7 +38,8 @@ class Dequeuer {
   SendPort sendPort;
   SendPort me;
   int maxMessageBuffer = 1;
-  int dequeueRequestsCount = 0;
+  //int dequeueRequestsCount = 0;
+  List<String> dequeueRequestsFrom;
 
   Map<String, String> bufferMailBox = new Map();
 
@@ -56,6 +57,7 @@ class Dequeuer {
     receivePort = new ReceivePort();
     me = receivePort.sendPort;
     this.sendPort = sendPort;
+    dequeueRequestsFrom = new List();
 
     String host = args[0];
     int connectToPort = args[1];
@@ -105,12 +107,12 @@ class Dequeuer {
       print("\nFlushing buffer");
       bufferMailBox.forEach((key, value) {
         sendPort.send({
-            'senderType':DEQUEUER, 'topic':topic, 'message':value
+            'senderType':DEQUEUER, 'topic':topic, 'message':value, 'socket':dequeueRequestsFrom.removeAt(0)
         });
         client.ack(key);
+        //dequeueRequestsCount--;
       });
       bufferMailBox.clear();
-      dequeueRequestsCount--;
     }
   }
 
@@ -133,14 +135,15 @@ class Dequeuer {
       String action = msg['action'];
       switch (action) {
         case Mqs.DEQUEUE:
-          dequeueRequestsCount++;
+          //dequeueRequestsCount++;
+          dequeueRequestsFrom.add(msg['socket']);
           _flushBuffer();
 
           break;
         case DEQUEUED:
-          print("RequestCount $dequeueRequestsCount");
+          print("RequestCount: ${dequeueRequestsFrom}");
           bufferMailBox[msg['key']] = msg['message'];
-          if(dequeueRequestsCount > 0) {
+          if(dequeueRequestsFrom.length > 0) {
             _flushBuffer();
           }
           break;
