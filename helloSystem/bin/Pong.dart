@@ -38,7 +38,8 @@ class Pong extends Worker {
     if (message['value'].startsWith("PING")) {
       print("## ${message['value']} ${message['count']} ##");
       int count = int.parse(message['count']) + 1;
-      reply({'value': "PONG", 'count' : "$count"});
+      //reply({'value': "PONG", 'count' : "$count"});
+      done();
     }
   }
 }

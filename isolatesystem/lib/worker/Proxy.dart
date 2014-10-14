@@ -57,7 +57,7 @@ class Proxy extends Worker {
     print("Proxy: Sending message -> $message");
 
     //'to':name can be included here, but not it's not significant
-    ws.add(JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.NONE, {'message': message, 'replyTo': replyTo})));
+    ws.add(JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.NONE, {'message': message, 'replyTo': respondTo})));
   }
 
   void _handleWebSocket(WebSocket ws) {

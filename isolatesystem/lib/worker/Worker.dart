@@ -17,7 +17,7 @@ abstract class Worker {
   /// Name is the name of the pool of isolate this isolate belongs to, i.e. router name
   String _poolName;
   String _deployedPath;
-  String replyTo;
+  String respondTo; // could be sender or some other isolate
 
   static const String TO = 'to';
   static const String REPLY_TO = 'replyTo';
@@ -65,7 +65,7 @@ abstract class Worker {
       String action = MessageUtil.getAction(message);
       var payload = MessageUtil.getPayload(message);
       if(payload is Map && payload.containsKey('replyTo')) {
-        replyTo = payload[Worker.REPLY_TO];
+        respondTo = payload[Worker.REPLY_TO];
       }
 
       switch(action) {
@@ -92,13 +92,23 @@ abstract class Worker {
 
   onReceive(var message);
 
-  done([var message]) {
-    var msg = {'to': this.replyTo, 'message': message };
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.DONE, msg));
+  done() {
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.DONE, null));
   }
 
+  /**
+   * to -> send current message to isolatePool
+   * replyTo -> after this message has been process, reply to my pool or forward to mentioned isolate
+   *
+   * === Some thoughts ===
+   * May be add something like, reply specifically to me -> which would be similar to implementation of "ask"
+   * also send uuid of self so that resulting message comes back to this isolate
+   *
+   * And may be the isolatesystem adds something too (whenever there is uuid attached in replyTo/replyExactlyTo) to identify itself?
+   * so that the response comes exactly to same isolate of same system
+   */
   reply(var message, {String replyTo}) {
-    var msg = {'to': this.replyTo, 'message': message, 'replyTo': replyTo != null ? replyTo : _poolName};
+    var msg = {'to': this.respondTo, 'message': message, 'replyTo': replyTo != null ? replyTo : _poolName};
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 

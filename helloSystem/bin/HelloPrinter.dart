@@ -32,12 +32,39 @@ class HelloPrinter extends Worker {
    * which might take varied amount of time to complete
    */
   outText(var message) {
-    int rand = new Math.Random().nextInt(5);
+    int rand = new Math.Random().nextInt(10);
     Duration duration = new Duration(seconds: rand);
-    print("\n\n===> Hello $id: $message... doing something for $rand seconds\n\n");
+    print("\n\n Worker ID: $id:");
+    print("=======================================================");
+    String whiteSpace = "                                                           ";
+    if(whiteSpace.length > message.length) {
+      whiteSpace = whiteSpace.substring(message.length + 1);
+    }
+    String text = """
+                                                               .---.
+                                                              /  .  \\
+                                                             |\\_/|   |
+                                                             |   |  /|
+  .----------------------------------------------------------------' |
+ /  .-.                                                              |
+|  /   \\                                                             |
+| |\\_.  | $message $whiteSpace|
+|\\|  | /|                                                            |
+| `---' |  ***                                                       |
+|       |                                                            |
+|       |                                                           /
+|       |----------------------------------------------------------'
+\\       |
+ \\     /
+  `---'
+
+    """;
+    print(text);
+    print("doing something for $rand seconds...\n\n");
+    sleep(duration);
+    reply(message, replyTo:poolName);
+    //send("DONE !", replyTo:poolName);
     //done("DONE !");
-    reply("DONE !", replyTo:poolName);
-    //sleep(duration);
     //done();
   }
 }

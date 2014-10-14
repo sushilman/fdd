@@ -16,7 +16,6 @@ class HelloWorld {
     //Uri helloIsolate = new Uri.file("PrinterIsolate.dart");
     String routerUri = "../router/Random.dart";
 
-    //String multiplierWorkerUri = "${dirname(Platform.script.toString())}/Multiplier.dart";
     String printerWorkerUri = "${dirname(Platform.script.toString())}/PrinterIsolate.dart";
     //String printerWorkerUri = "http://127.0.0.1:8080/bin/PrinterIsolate.dart";
     //print (printerWorkerUri);
@@ -40,8 +39,8 @@ class HelloWorld {
 
     //system.addIsolate("Multiplier", multiplierWorkerUri, workersPaths, Router.RANDOM,  args:"test");
 
-    IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
-    helloPrinter.send("Print me", replyTo:helloPrinter);
+    IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
+    helloPrinter.send("This is a very confidential message This is a very confidential message This is a very confidential message #", replyTo:helloPrinter);
 
 //    Duration duration = new Duration(seconds:2);
 //    sleep(duration);
@@ -57,10 +56,10 @@ class HelloWorld {
     //IsolateSystem system3 = new IsolateSystem(printerWorkerUri, workersCount2, workersPaths2, routerUri);
 
 
-    IsolateRef ping = system.addIsolate("ping", pingUri, workersPaths, Router.RANDOM, hotDeployment:true);
-    IsolateRef pong = system.addIsolate("pong", pongUri, workersPaths, Router.RANDOM, hotDeployment:true);
+    //IsolateRef ping = system.addIsolate("ping", pingUri, workersPaths, Router.RANDOM, hotDeployment:true);
+    //IsolateRef pong = system.addIsolate("pong", pongUri, workersPaths, Router.RANDOM, hotDeployment:true);
 
-    ping.send("START", replyTo: pong);
+    //ping.send("START", replyTo: pong);
 
   }
 }

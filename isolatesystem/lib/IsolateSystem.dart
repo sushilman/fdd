@@ -80,9 +80,20 @@ class IsolateSystem {
     name = "$_id/$name";
     String routerUri = routerType;
     completer = new Completer();
-    if(routerType == Router.RANDOM) {
-      routerUri = "../router/Random.dart";
+
+    switch(routerType) {
+      case Router.RANDOM:
+        routerUri = "../router/Random.dart";
+        break;
+      case Router.ROUND_ROBIN:
+        routerUri = "../router/RoundRobin.dart";
+        break;
+      case Router.BROADCAST:
+        routerUri = "../router/BroadCast.dart";
+        break;
+      default:
     }
+
     var message = {'name':name, 'uri':uri, 'workerPaths':workersPaths, 'routerUri':routerUri, 'hotDeployment':hotDeployment, 'args':args};
     _me.send(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
     return new IsolateRef(name, _me);
@@ -206,7 +217,7 @@ class IsolateSystem {
   }
 
   _out(String text) {
-    print(text);
+    //print(text);
   }
 
   String get id => _id;

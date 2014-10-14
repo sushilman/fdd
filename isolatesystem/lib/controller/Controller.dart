@@ -167,7 +167,7 @@ class Controller {
           break;
         case Action.PULL_MESSAGE:
         //TODO: should the response message be sent along with pullmessage or should it be a separate action?
-          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, payload));
+          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           break;
         default:
           _out("Controller: Unknown Action from Router: $action");
@@ -222,7 +222,7 @@ class Controller {
   }
 
   _out(String text) {
-    print(text);
+    //print(text);
   }
 }
 

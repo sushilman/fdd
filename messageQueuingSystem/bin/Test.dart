@@ -16,7 +16,7 @@ void main() {
 }
 
 _handleWebSocket(WebSocket socket) {
-  socket.listen(_onData);
+  socket.listen(_onData, onError:_onError, onDone:_onDisconnect);
   int counter = 0;
   new Timer.periodic (const Duration(seconds:1), (t) {
     String msg = "Enqueue this message ${counter++}";
@@ -32,5 +32,9 @@ _onData(var message) {
 }
 
 _onError() {
+  print("Error on Server, reconnect !");
+}
 
+_onDisconnect() {
+  print("Disconnected, try re-establish the connection");
 }

@@ -1,7 +1,28 @@
-library isolatesystem.router.RoundRobin;
+import 'dart:isolate';
+import 'dart:math' as Math;
 
-class RoundRobin {
-  static String NAME = "RoundRobin";
-  RoundRobin() {
+import 'Router.dart';
+
+main(List<String> args, SendPort sendPort) {
+  RoundRobin randomRouter = new RoundRobin(args, sendPort);
+}
+
+class RoundRobin extends Router {
+  int counter = 0;
+
+  RoundRobin(List<String> args, SendPort sendPort) : super(args, sendPort);
+
+  @override
+  Worker selectWorker() {
+    int totalWorkers = workers.length;
+    int index = counter % totalWorkers;
+    counter++;
+
+    if(counter >= totalWorkers) {
+      counter = 0;
+    }
+
+    print("Chosen worker #${index + 1} out of ${workers.length}");
+    return workers[index];
   }
 }

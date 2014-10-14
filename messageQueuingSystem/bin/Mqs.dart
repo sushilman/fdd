@@ -45,7 +45,8 @@ import "Dequeuer.dart";
  * to find out which socket when msg is dequeued, pass along socket's_hash id or assign some id to socket?
  *
  * remove socket on disconnect and add on new connection
- * if this is not taken care of, each requests from anywhere will result in sending of message to latest connected socket
+ * if this is not taken care of, each request from anywhere
+ * will result in sending of messages only to latest connected socket
  */
 
 class Mqs {
