@@ -191,9 +191,7 @@ class Mqs {
   _onConnect(WebSocket socket, String isolateSystemId) {
     _IsolateSystem isolateSystem = _getIsolateSystemById(isolateSystemId);
     if (isolateSystem != null) {
-      print("Adding more sockets...");
       isolateSystem.sockets[socket.hashCode.toString()] = socket;
-      print("Sockets Connected : ${isolateSystem.sockets.keys}");
     } else {
       _IsolateSystem system = new _IsolateSystem(isolateSystemId, socket);
       _connectedSystems.add(system);
@@ -214,15 +212,16 @@ class Mqs {
   }
 
   _onDisconnect(WebSocket socket, String isolateSystemId) {
-    socket.close();
-    _IsolateSystem isolateSystem = _getIsolateSystemBySocket(socket);
+    _IsolateSystem isolateSystem = _getIsolateSystemById(isolateSystemId);
     if(isolateSystem != null) {
-      //_connectedSystems.remove(isolateSystem);
-      if(isolateSystem.sockets.containsKey(socket.hashCode)) {
-        print("Removing socket: ${socket.hashCode}");
-        isolateSystem.sockets.remove(socket.hashCode);
+      if(isolateSystem.sockets.containsKey(socket.hashCode.toString())) {
+        isolateSystem.sockets.remove(socket.hashCode.toString());
+      }
+      if(isolateSystem.sockets.length == 0) {
+        _connectedSystems.remove(isolateSystem);
       }
     }
+    socket.close();
   }
 
   _startEnqueuerIsolate(List<String> args) {

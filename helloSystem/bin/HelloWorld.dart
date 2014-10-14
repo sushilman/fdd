@@ -35,12 +35,12 @@ class HelloWorld {
     //int workersCount2 = workersPaths2.length;
 
 
-    IsolateSystem system = new IsolateSystem("mySystem");
+    IsolateSystem system = new IsolateSystem("isolateSystem", "ws://localhost:42043/mqs");
 
     //system.addIsolate("Multiplier", multiplierWorkerUri, workersPaths, Router.RANDOM,  args:"test");
 
-    IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
-    helloPrinter.send("This is a very confidential message This is a very confidential message This is a very confidential message #", replyTo:helloPrinter);
+    //IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
+    //helloPrinter.send("This is a very confidential message This is a very confidential message This is a very confidential message #", replyTo:helloPrinter);
 
 //    Duration duration = new Duration(seconds:2);
 //    sleep(duration);

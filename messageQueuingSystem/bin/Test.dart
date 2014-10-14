@@ -18,7 +18,7 @@ void main() {
 _handleWebSocket(WebSocket socket) {
   socket.listen(_onData, onError:_onError, onDone:_onDisconnect);
   int counter = 0;
-  new Timer.periodic (const Duration(seconds:1), (t) {
+  new Timer.periodic (const Duration(seconds:0.01), (t) {
     String msg = "Enqueue this message ${counter++}";
     var payload = {'message':msg};
     Map message = {'senderId':"helloPrinter", 'action':Mqs.ENQUEUE, 'payload':payload};

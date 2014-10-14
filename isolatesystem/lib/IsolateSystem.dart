@@ -43,7 +43,15 @@ import 'IsolateRef.dart';
  * Controller sends a pull request
  * after which, a message is fetched using messageQueuingSystem
  * from appropriate queue and sent to the controller
+ *
+ *
+ * Path to message queueing system should be sent by registry while initializing an isolateSystem
+ * Registry simply sends Add isolate request
+ * So, if an isolate system is already running, and if the path for MQS sent is different from existing,
+ * then new connection string shall be ignored
+ *
  */
+
 class IsolateSystem {
   ReceivePort _receivePort;
   SendPort _sendPortOfController;
@@ -58,20 +66,17 @@ class IsolateSystem {
 
   int counter = 0;
 
-  var completer;
-
-
-  bool _handleException(e) {
-    print ("Exception caught by IsolateSystem $e");
-    return true;
-  }
+  String _pathToMQS;
+  WebSocket _mqsSocket;
 
   /// @name - Name of this isolate system
-  IsolateSystem(String name) {
+  IsolateSystem(String this._id, String pathToMQS) {
+    _pathToMQS = "$pathToMQS/$_id";
     _receivePort = new ReceivePort();
     _me = _receivePort.sendPort;
     _receivePort.listen(_onReceive);
-    _id = name;
+    _connectToMqs(_pathToMQS);
+
     _startController();
   }
 
@@ -79,7 +84,6 @@ class IsolateSystem {
   IsolateRef addIsolate(String name, String uri, workersPaths, String routerType, {hotDeployment: true, args}) {
     name = "$_id/$name";
     String routerUri = routerType;
-    completer = new Completer();
 
     switch(routerType) {
       case Router.RANDOM:
@@ -184,6 +188,37 @@ class IsolateSystem {
     });
   }
 
+  _connectToMqs(String path) {
+    WebSocket.connect(path).then(_handleMqsWebSocket).catchError((_){
+      new Timer(new Duration(seconds:3), () {
+        print ("Retrying...");
+        _connectToMqs(path);
+      });
+    });
+  }
+
+  _handleMqsWebSocket(WebSocket socket) {
+    _mqsSocket = socket;
+    _mqsSocket.listen(_onDataFromMqs);
+
+    /**
+     * Sending dequeue messages on connection
+     * JUST for testing MQS connection
+     * Send dequeue messages to MQS that arrive from controller, with proper message format
+     */
+    new Timer.periodic (const Duration(seconds:5), (t) {
+      Map message = {'senderId':"helloPrinter", 'action':"action.dequeue"};
+      socket.add(JSON.encode(message));
+      print("\n\n\nRequest sent: ");
+    });
+  }
+
+  _onDataFromMqs(var data) {
+    var message = JSON.decode(data);
+    print("Message Arrived from MQS: $message");
+    //_me.send(message);
+  }
+
   /**
    * Pulls message from MessageQueuingSystem over websocket connection
    */
@@ -216,10 +251,17 @@ class IsolateSystem {
     _me.send(message);
   }
 
+  void _handleException(e) {
+    print ("Exception caught by IsolateSystem $e");
+  }
+
   _out(String text) {
     //print(text);
   }
 
   String get id => _id;
   set id(String value) => _id = value;
+
+  String get pathToMQS => _pathToMQS;
+  set pathToMQS(String value) => _pathToMQS = value;
 }
