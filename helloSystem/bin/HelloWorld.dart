@@ -27,9 +27,9 @@ class HelloWorld {
     String pingUri = "${dirname(Platform.script.toString())}/Ping.dart";
     String pongUri = "${dirname(Platform.script.toString())}/Pong.dart";
 
-    List<String> workersPaths = ["localhost", "localhost", "localhost", "localhost", "localhost", "localhost"];
+    //List<String> workersPaths = ["localhost", "localhost"];
     //List<String> workersPaths = ["ws://192.168.2.69:42042/activator", "ws://192.168.2.69:42042/activator"];
-    //List<String> workersPaths = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
+    List<String> workersPaths = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
 
     //int workersCount = workersPaths.length;
     //int workersCount2 = workersPaths2.length;
@@ -39,7 +39,7 @@ class HelloWorld {
 
     //system.addIsolate("Multiplier", multiplierWorkerUri, workersPaths, Router.RANDOM,  args:"test");
 
-    //IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
+    IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
     //helloPrinter.send("This is a very confidential message This is a very confidential message This is a very confidential message #", replyTo:helloPrinter);
 
 //    Duration duration = new Duration(seconds:2);

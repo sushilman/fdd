@@ -136,7 +136,8 @@ class Mqs {
   }
 
   _handleDequeuerMessages(var message) {
-    _Dequeuer dequeuer = _getDequeuerByTopic(message['topic']);
+    String topic = message['topic'];
+    _Dequeuer dequeuer = _getDequeuerByTopic(topic);
     if(message['message'] is SendPort) {
       print("Received send port from dequeuer !");
       dequeuer.sendPort = message['message'];
@@ -149,29 +150,41 @@ class Mqs {
 
       print("${dequeuer.isolateSystem.sockets.keys} sockets in -> ${dequeuer.isolateSystem.id}");
 
+      //TODO: proper formatting of messages before sending via websocket
+      // i.e. add source topic
+
       String key = message['socket'];
-      dequeuer.isolateSystem.sockets[key.toString()].add(JSON.encode(message['message']));
+      dequeuer.isolateSystem.sockets[key.toString()].add(JSON.encode({'topic':topic, 'message':message['message']}));
     }
   }
 
   /**
    * Expects message of type:
-   * {'senderId':"isolateSystem", 'action':"action.enqueue", 'payload':"message"}
+   * {'destinationIsolate':"isolateSystem", 'action':"action.enqueue", 'payload':"message"}
+   *
+   * Enqueue -> targetIsolate, targetSystem
+   *
+   * Dequeue -> senderIsolate, senderSystem
+   *
    */
   _handleExternalMessages(var fullMessage) {
     //handle messages from
     var message = fullMessage['message'];
     print("MQS: handling External Messages");
-    String isolateSystemId = fullMessage['senderIsolateSystemId'];
-    String senderId = message['senderId'];
-    String topic = isolateSystemId + "." + senderId;
+
+    String isolateName = message['isolateName'];
+
     String action = message['action'];
 
     switch(action) {
       case DEQUEUE:
+        String isolateSystemId = fullMessage['senderIsolateSystemId'];
+        String topic = isolateSystemId + "." + isolateName;
         _dequeue(topic, fullMessage);
         break;
       case ENQUEUE:
+        String isolateSystemId = message['targetIsolateSystemId'];
+        String topic = isolateSystemId + "." + isolateName;
         var payload = message['payload'];
         _enqueue(topic, payload, fullMessage);
         break;
@@ -278,7 +291,6 @@ class Mqs {
     List<_Dequeuer> dequeuers = new List();
 
     for(final _Dequeuer dequeuer in _dequeuers) {
-      print("EACH DQ:${dequeuer.topic} => ${dequeuer.isolateSystemId} vs systemid = ${dequeuer.isolateSystem.id}");
       if(dequeuer.isolateSystemId == systemId) {
         dequeuers.add(dequeuer);
       }

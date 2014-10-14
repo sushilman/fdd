@@ -52,9 +52,6 @@ class Controller {
         }
       }
     });
-
-
-
   }
 
   _onReceive(message) {
@@ -87,6 +84,7 @@ class Controller {
 
   _handleMessagesFromIsolateSystem(String action, var payload, var fullMessage) {
     switch(action) {
+
       case Action.SPAWN:
         String routerId = payload['name'];
         String workerUri = payload['uri'];
@@ -116,6 +114,7 @@ class Controller {
         }
         break;
       case Action.NONE:
+      //Controller: {senderType: senderType.isolate_system, id: isolateSystem, action: action.none, payload: {to: helloPrinter, message: {"message":"Enqueue this message 40"}}}
         String routerId = payload['to'];
         if(routerId != null) {
           _Router router = _getRouterById(routerId);
@@ -161,6 +160,7 @@ class Controller {
 //            _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.REPLY, payload));
 //          }
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.REPLY, payload));
+          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           break;
         case Action.CREATED:
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));

@@ -13,7 +13,7 @@ void main() {
 _handleWebSocket(WebSocket socket) {
   socket.listen(_onData);
   new Timer.periodic (const Duration(seconds:5), (t) {
-    Map message = {'senderId':"helloPrinter", 'action':Mqs.DEQUEUE};
+    Map message = {'isolateName':"helloPrinter", 'action':Mqs.DEQUEUE};
     socket.add(JSON.encode(message));
     print("\n\n\nRequest sent: ");
   });

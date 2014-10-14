@@ -114,7 +114,7 @@ class IsolateSystem {
       var payload = MessageUtil.getPayload(message);
 
       if (senderType == SenderType.CONTROLLER) {
-        _handleMessagesFromController(senderId, action, payload);
+        _handleMessagesFromController(senderId, action, payload, message);
       } else if (senderType == SenderType.SELF){
         _handleOtherMessages(action, payload, senderType, message);
       } else {
@@ -128,17 +128,16 @@ class IsolateSystem {
     }
   }
 
-  _handleMessagesFromController(String senderId, String action, var payload) {
+  _handleMessagesFromController(String senderId, String action, var payload, var fullMessage) {
     switch (action) {
       case Action.CREATED:
       case Action.PULL_MESSAGE:
-        if(payload != null) {
-          _prepareResponse(payload);
-        }
-        _pullMessage(senderId);
+        if(_mqsSocket != null)
+          _pullMessage(senderId);
+        else
+          _me.send(fullMessage);
         break;
       case Action.REPLY:
-      case Action.DONE:
         if(payload != null) {
           _prepareResponse(payload);
         }
@@ -206,16 +205,22 @@ class IsolateSystem {
      * JUST for testing MQS connection
      * Send dequeue messages to MQS that arrive from controller, with proper message format
      */
-    new Timer.periodic (const Duration(seconds:5), (t) {
-      Map message = {'senderId':"helloPrinter", 'action':"action.dequeue"};
-      socket.add(JSON.encode(message));
-      print("\n\n\nRequest sent: ");
-    });
+//    new Timer.periodic (const Duration(seconds:5), (t) {
+//      Map message = {'isolateName':"helloPrinter", 'action':"action.dequeue"};
+//      socket.add(JSON.encode(message));
+//      print("\n\n\nRequest sent: ");
+//    });
   }
 
   _onDataFromMqs(var data) {
-    var message = JSON.decode(data);
-    print("Message Arrived from MQS: $message");
+    var decodedData = JSON.decode(data);
+    print("Message Arrived from MQS: ${decodedData}");
+    String topic = decodedData['topic'];
+    String isolateName = topic.split('.').last;
+    String isolateId = topic.replaceAll('.','/');
+    Map payload = {'to':isolateId, 'message':decodedData['message']};
+
+    _me.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, payload));
     //_me.send(message);
   }
 
@@ -223,6 +228,12 @@ class IsolateSystem {
    * Pulls message from MessageQueuingSystem over websocket connection
    */
   _pullMessage(String senderId) {
+    senderId = senderId.split('/').last;
+    Map dequeueMessage = {'isolateName':senderId, 'action':"action.dequeue"};
+    //Map message = {'isolateName':"helloPrinter", 'action':Mqs.DEQUEUE};
+    print("Request String: ${JSON.encode(dequeueMessage)}");
+    _mqsSocket.add(JSON.encode(dequeueMessage));
+
     // TODO: pull message from appropriate queue from MessageQueuingSystem
     // something like messageQueuingSystem.send(message)
     // then send to sendPort of controller

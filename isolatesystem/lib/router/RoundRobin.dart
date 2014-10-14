@@ -21,8 +21,6 @@ class RoundRobin extends Router {
     if(counter >= totalWorkers) {
       counter = 0;
     }
-
-    print("Chosen worker #${index + 1} out of ${workers.length}");
     return workers[index];
   }
 }
