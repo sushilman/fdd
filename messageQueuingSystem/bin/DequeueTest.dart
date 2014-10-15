@@ -4,7 +4,10 @@ import 'dart:async' show Timer;
 
 import "package:stomp/stomp.dart";
 import "package:stomp/vm.dart" show connect;
+
 import "Mqs.dart";
+import "action/Action.dart";
+import "message/MessageUtil.dart";
 
 void main() {
   WebSocket.connect("ws://localhost:42043/mqs/isolateSystem").then(_handleWebSocket).catchError(_onError);
@@ -13,7 +16,8 @@ void main() {
 _handleWebSocket(WebSocket socket) {
   socket.listen(_onData);
   new Timer.periodic (const Duration(seconds:5), (t) {
-    Map message = {'isolateName':"helloPrinter", 'action':Mqs.DEQUEUE};
+    String topic = "isolateSystem.helloPrinter";
+    var message = MessageUtil.createDequeueMessage(topic);
     socket.add(JSON.encode(message));
     print("\n\n\nRequest sent: ");
   });

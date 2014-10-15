@@ -8,7 +8,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import "Mqs.dart";
-
+import "action/Action.dart";
 /**
  * TODO: There are some ugly hacks that needs to be taken care of !
  *
@@ -56,7 +56,7 @@ class Dequeuer {
   int connectToPort;
 
   Dequeuer(List<String> args, SendPort sendPort) {
-    print("\n\nDequeuer Isolate Spawned !\n\n");
+    _out("\n\nDequeuer Isolate Spawned !\n\n");
     receivePort = new ReceivePort();
     me = receivePort.sendPort;
     this.sendPort = sendPort;
@@ -72,7 +72,7 @@ class Dequeuer {
 
     _initConnection();
 
-    print("Dequeuer Listening...");
+    _out("Dequeuer Listening...");
 
     receivePort.listen((msg) {
       _onReceive(msg);
@@ -80,7 +80,7 @@ class Dequeuer {
   }
 
   _reconnect() {
-    print("Dequeuer: Reconnecting...");
+    _out("Dequeuer: Reconnecting...");
     new Timer(new Duration(seconds:3), () {
       _initConnection();
     });
@@ -93,6 +93,7 @@ class Dequeuer {
 
   void _onError([StompClient client, String message, String detail, Map<String, String> headers]) {
     bufferMailBox.clear();
+    _out("Error: $message \n $detail");
     _reconnect();
   }
 
@@ -114,7 +115,7 @@ class Dequeuer {
    */
 
   _onData(Map<String, String> headers, String message) {
-    print("Message from RabbitMQ: $message, HEADERS: $headers");
+    _out("Message from RabbitMQ: $message, HEADERS: $headers");
     var decodedMessage = JSON.decode(message);
     String key = headers["ack"];
     //send message to self to add it to buffer
@@ -129,7 +130,7 @@ class Dequeuer {
 
   _flushBuffer() {
     if(bufferMailBox.isNotEmpty) {
-      print("\nFlushing buffer");
+      _out("\nFlushing buffer");
       bufferMailBox.forEach((key, value) {
         sendPort.send({
             'senderType':DEQUEUER, 'topic':topic, 'message':value, 'socket':dequeueRequestsFrom.removeAt(0)
@@ -144,39 +145,43 @@ class Dequeuer {
   _subscribeMessage(String topic) {
     try {
       client.subscribeString("id_$topic", topic, _onData, ack:CLIENT_INDIVIDUAL);
-      print("Subscribed to $topic");
+      _out("Subscribed to $topic");
       //me.send({'action':Mqs.DEQUEUE});
       subscribed = true;
       bufferWillBeFilled = false;
     } catch(e) {
-      print("May be already Subscribed $e");
+      _out("May be already Subscribed $e");
       //Already subscribed
     }
   }
 
   void _onReceive(msg) {
-    print("Dequeue Isolate : $msg");
+    _out("Dequeue Isolate : $msg");
     if (msg is Map) {
       String action = msg['action'];
       switch (action) {
-        case Mqs.DEQUEUE:
+        case Action.DEQUEUE:
           //dequeueRequestsCount++;
           dequeueRequestsFrom.add(msg['socket']);
           _flushBuffer();
 
           break;
         case DEQUEUED:
-          print("RequestCount: ${dequeueRequestsFrom}");
+          _out("RequestCount: ${dequeueRequestsFrom}");
           bufferMailBox[msg['key']] = msg['message'];
           if(dequeueRequestsFrom.length > 0) {
             _flushBuffer();
           }
           break;
         default:
-          print("Unknown message -> $msg");
+          _out("Unknown message -> $msg");
       }
     } else {
-      print("Dequeuer: Bad message: $msg");
+      _out("Dequeuer: Bad message: $msg");
     }
+  }
+
+  _out(String text) {
+    //print(text);
   }
 }

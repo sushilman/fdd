@@ -135,6 +135,6 @@ abstract class Worker {
   }
 
   _out(String text){
-    print(text);
+    //print(text);
   }
 }

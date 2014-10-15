@@ -1,4 +1,3 @@
 name: messageQueuingSystem
 dependencies:
   stomp: any
-  browser: any

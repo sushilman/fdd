@@ -8,6 +8,7 @@ import 'dart:isolate';
 import 'dart:async';
 
 import "Mqs.dart";
+import "action/Action.dart";
 
 main(List<String> args, SendPort sendPort) {
   new Enqueuer(args, sendPort);
@@ -41,11 +42,11 @@ class Enqueuer {
 
   _handleStompClient(StompClient stompClient) {
     client = stompClient;
-    print("Enqueuer: Connected!");
+    _out("Enqueuer: Connected!");
   }
 
   _reconnect() {
-    print("Enqueuer: Reconnecting...");
+    _out("Enqueuer: Reconnecting...");
     new Timer(new Duration(seconds:3), () {
       _initConnection();
     });
@@ -66,25 +67,29 @@ class Enqueuer {
   bool _enqueueMessage(String topic, String message, {Map<String, String> headers}) {
     if(client != null) {
       client.sendString(topic, JSON.encode(message), headers: headers);
-      print("Message sent successfully from enqueuer to rabbitmq via stomp...");
+      _out("Message sent successfully from enqueuer to rabbitmq via stomp...");
       return true;
     }
     return false;
   }
 
   void _onReceive(var message) {
-    print("Enqueue Isolate: $message");
+    _out("Enqueue Isolate: $message");
     if (message is Map) {
       String topic = Mqs.TOPIC + "/" + message['topic'];
       String action = message['action'];
       String msg = message['message'];
 
       switch (action) {
-        case Mqs.ENQUEUE:
-          print("Enqueue $message with headers: ${Mqs.HEADERS} to topic ${topic} in message_broker_system");
+        case Action.ENQUEUE:
+          _out("Enqueue $message with headers: ${Mqs.HEADERS} to topic ${topic} in message_broker_system");
           _enqueueMessage(topic, message['message'], headers:Mqs.HEADERS);
           break;
       }
     }
+  }
+
+  _out(text) {
+    //print(text);
   }
 }

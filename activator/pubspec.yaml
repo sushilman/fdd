@@ -1,4 +1,4 @@
 name: activator
 dependencies:
   isolatesystem:
-    path: ../isolatesystem
+    path: ../isolatesystem/

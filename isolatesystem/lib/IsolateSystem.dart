@@ -12,6 +12,8 @@ import 'router/Router.dart';
 import 'router/Random.dart';
 import 'message/MessageUtil.dart';
 import 'message/SenderType.dart';
+import 'message/MQSMessageUtil.dart';
+
 import 'IsolateRef.dart';
 
 /**
@@ -122,7 +124,7 @@ class IsolateSystem {
       _handleException(message);
     } else {
       _handleExternalMessages(message);
-      print ("IsolateSystem: Unknown message: $message");
+      _out("IsolateSystem: Unknown message: $message");
     }
   }
 
@@ -188,7 +190,7 @@ class IsolateSystem {
   _connectToMqs(String path) {
     WebSocket.connect(path).then(_handleMqsWebSocket).catchError((_){
       new Timer(new Duration(seconds:3), () {
-        print ("Retrying...");
+        _out("Retrying...");
         _connectToMqs(path);
       });
     });
@@ -197,70 +199,53 @@ class IsolateSystem {
   _handleMqsWebSocket(WebSocket socket) {
     _mqsSocket = socket;
     _mqsSocket.listen(_onDataFromMqs);
-
-    /**
-     * Sending dequeue messages on connection
-     * JUST for testing MQS connection
-     * Send dequeue messages to MQS that arrive from controller, with proper message format
-     */
-//    new Timer.periodic (const Duration(seconds:5), (t) {
-//      Map message = {'isolateName':"helloPrinter", 'action':"action.dequeue"};
-//      socket.add(JSON.encode(message));
-//      print("\n\n\nRequest sent: ");
-//    });
   }
 
   _onDataFromMqs(var data) {
     var decodedData = JSON.decode(data);
-    print("Message Arrived from MQS: ${decodedData}");
+    _out("Message Arrived from MQS: ${decodedData}");
     String topic = decodedData['topic'];
     String isolateName = topic.split('.').last;
     String isolateId = topic.replaceAll('.','/');
     Map payload = {'to':isolateId, 'message':decodedData['message']};
 
     _me.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, payload));
-    //_me.send(message);
   }
 
   /**
    * Pulls message from MessageQueuingSystem over websocket connection
    */
   _pullMessage(String senderId) {
-    senderId = senderId.split('/').last;
-    Map dequeueMessage = {'isolateName':senderId, 'action':"action.dequeue"};
-    //Map message = {'isolateName':"helloPrinter", 'action':Mqs.DEQUEUE};
-    print("Request String: ${JSON.encode(dequeueMessage)}");
+    String sourceIsolate = _getQueueFromIsolateId(senderId);
+    Map dequeueMessage = MQSMessageUtil.createDequeueMessage(sourceIsolate);
     _mqsSocket.add(JSON.encode(dequeueMessage));
-
-    // TODO: pull message from appropriate queue from MessageQueuingSystem
-    // something like messageQueuingSystem.send(message)
-    // then send to sendPort of controller
-    // sendPort.send(newMessage);
-    //
-    // send message to self once message arrives from Message Queuing System
-    //var sendMsg = {'to': senderId, 'message': [9, counter++]};
-    //_me.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, sendMsg));
   }
 
   _enqueueResponse(Map message) {
-    // set target to 'this' system if targetIsolateSystemId is not set and if target isolate exists in current system?
-    // or simply make the developers use "isolatesystem/poolname" name scheme
-    print("IsolateSystem: Enqueue String -> $message");
-    String targetSystem = (message.containsKey('targetIsolateSystemId')) ? message['targetIsolateSystemId'] : this._id;
-    String isolateName = (message.containsKey('to')) ? message['to'] : null;
-    String replyTo = (message.containsKey('replyTo')) ? message['replyTo'] : null;
-    String msg = (message['message']);
+    String targetIsolate = (message.containsKey('to')) ? message['to'] : null;
 
-    var enqueueMessage = JSON.encode({'targetIsolateSystemId':targetSystem, 'isolateName':isolateName, 'action':"action.enqueue", 'payload':{'message':msg, 'replyTo':replyTo}});
-    // Assume the message is enqueued.. and dequeued
-    // To emulate
-    // simply call dequeue function here
-    //sleep(const Duration(seconds:1));
+    if(targetIsolate != null) {
+      String replyTo = (message.containsKey('replyTo')) ? message['replyTo'] : null;
+      String msg = (message['message']);
+      var payload = {'message':msg, 'replyTo':replyTo};
 
-    //_onData(message); /* emulating async call over websocket */
-    if(isolateName != null) {
-      _mqsSocket.add(enqueueMessage);
+      String targetQueue = _getQueueFromIsolateId(targetIsolate);
+      var enqueueMessage = MQSMessageUtil.createEnqueueMessage(targetQueue, payload);
+      _mqsSocket.add(JSON.encode(enqueueMessage));
     }
+  }
+
+  /**
+   * TODO:
+   * Send Request to Registry and get queue-topic
+   * (may be store it locally too?)
+   */
+  _getQueueFromIsolateId(String isolateId) {
+    return isolateId.replaceAll('/', '.');
+  }
+
+  _getIsolateIdFromQueue(String queue) {
+    return queue.replaceAll('.', '/');
   }
 
   /**
@@ -271,11 +256,11 @@ class IsolateSystem {
   }
 
   void _handleException(e) {
-    print ("Exception caught by IsolateSystem $e");
+    print("Exception caught by IsolateSystem $e");
   }
 
   _out(String text) {
-    print(text);
+    //print(text);
   }
 
   String get id => _id;

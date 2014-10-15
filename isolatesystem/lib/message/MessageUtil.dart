@@ -1,13 +1,5 @@
 library isolatesystem.message.MessageUtil;
 
-/*
- * Message Structure:
- * [0] -> Message From <Type> - type: isolate system, controller, router, worker
- * [1] -> ID
- * [2] -> Action
- * [3] -> message -> can be String or List
- */
-
 class MessageUtil {
   static create(String senderType, String id, String action, var payload) {
     return {'senderType' : senderType, 'id' : id, 'action': action, 'payload' : payload};
