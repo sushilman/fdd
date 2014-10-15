@@ -153,8 +153,12 @@ class Mqs {
       //TODO: proper formatting of messages before sending via websocket
       // i.e. add source topic
 
-      String key = message['socket'];
-      dequeuer.isolateSystem.sockets[key.toString()].add(JSON.encode({'topic':topic, 'message':message['message']}));
+      String key = message['socket'].toString();
+      if(dequeuer.isolateSystem.sockets.containsKey(key)) {
+        dequeuer.isolateSystem.sockets[key].add(JSON.encode({
+            'topic':topic, 'message':message['message']
+        }));
+      }
     }
   }
 
@@ -171,27 +175,29 @@ class Mqs {
     //handle messages from
     var message = fullMessage['message'];
     print("MQS: handling External Messages");
-
-    String isolateName = message['isolateName'];
-
     String action = message['action'];
 
     switch(action) {
       case DEQUEUE:
         String isolateSystemId = fullMessage['senderIsolateSystemId'];
-        String topic = isolateSystemId + "." + isolateName;
-        _dequeue(topic, fullMessage);
+        String isolateName = message['isolateName'];
+        if(isolateSystemId != null && isolateName != null) {
+          String topic = isolateSystemId + "." + isolateName;
+          _dequeue(topic, fullMessage);
+        }
         break;
       case ENQUEUE:
         String isolateSystemId = message['targetIsolateSystemId'];
-        String topic = isolateSystemId + "." + isolateName;
-        var payload = message['payload'];
-        _enqueue(topic, payload, fullMessage);
+        String isolateName = message['isolateName'];
+        if(isolateSystemId != null && isolateName != null) {
+          String topic = isolateSystemId + "." + isolateName;
+          var payload = message['payload'];
+          _enqueue(topic, payload, fullMessage);
+        }
         break;
       default:
         print("Unknown action -> $action");
     }
-
   }
 
   /**
@@ -221,6 +227,7 @@ class Mqs {
    */
   _onData(WebSocket socket, String isolateSystemId, var msg) {
     var message = JSON.decode(msg);
+    print("MQS: ondata -> $msg \n vs \n $message");
     _me.send({'senderType':ISOLATE_SYSTEM, 'senderIsolateSystemId':isolateSystemId, 'socket':socket.hashCode, 'message':message});
   }
 

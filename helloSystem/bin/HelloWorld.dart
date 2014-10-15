@@ -41,6 +41,7 @@ class HelloWorld {
     //system.addIsolate("Multiplier", multiplierWorkerUri, workersPaths, Router.RANDOM,  args:"test");
 
     IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
+    IsolateRef helloPrinter2 = system.addIsolate("helloPrinter2", helloWorldWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
     //helloPrinter.send("This is a very confidential message This is a very confidential message This is a very confidential message #", replyTo:helloPrinter);
 
 //    Duration duration = new Duration(seconds:2);

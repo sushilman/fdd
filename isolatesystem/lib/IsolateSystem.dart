@@ -15,7 +15,7 @@ import 'message/SenderType.dart';
 import 'IsolateRef.dart';
 
 /**
- * TODO: Take care of theses Possible Issues
+ * TODO: Take care of these Possible Issues
  * 1. Pull requests are not answered by Message Queuing System
  *  - May be the queue is empty
  *  - may be the pull message does not reach message queuing system
@@ -35,14 +35,6 @@ import 'IsolateRef.dart';
  * TODO: Isolate namings are probably okay because there will be registry
  * TODO: which will be resolving queueName for us from systemid+isolateId
  * TODO:
- */
-
-/**
- * Message Structure:
- * [0] -> Message From <Type> - type: isolate system, controller, router, worker
- * [1] -> ID
- * [2] -> Action
- * [3] -> message -> can be String or List
  */
 
 /**
@@ -145,7 +137,7 @@ class IsolateSystem {
         break;
       case Action.REPLY:
         if(payload != null) {
-          _prepareResponse(payload);
+          _enqueueResponse(payload);
         }
         break;
       case Action.RESTART_ALL:
@@ -170,7 +162,7 @@ class IsolateSystem {
           break;
         case Action.DONE:
           if(payload != null) {
-            _prepareResponse(payload);
+            _enqueueResponse(payload);
           }
           break;
         default:
@@ -250,15 +242,25 @@ class IsolateSystem {
     //_me.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, sendMsg));
   }
 
-  _prepareResponse(var message) {
-    _out("IsolateSystem: Enqueue this response to '${message['to']}': '${message['message']}' with replyTo '${message['replyTo']}'");
+  _enqueueResponse(Map message) {
+    // set target to 'this' system if targetIsolateSystemId is not set and if target isolate exists in current system?
+    // or simply make the developers use "isolatesystem/poolname" name scheme
+    print("IsolateSystem: Enqueue String -> $message");
+    String targetSystem = (message.containsKey('targetIsolateSystemId')) ? message['targetIsolateSystemId'] : this._id;
+    String isolateName = (message.containsKey('to')) ? message['to'] : null;
+    String replyTo = (message.containsKey('replyTo')) ? message['replyTo'] : null;
+    String msg = (message['message']);
 
+    var enqueueMessage = JSON.encode({'targetIsolateSystemId':targetSystem, 'isolateName':isolateName, 'action':"action.enqueue", 'payload':{'message':msg, 'replyTo':replyTo}});
     // Assume the message is enqueued.. and dequeued
     // To emulate
     // simply call dequeue function here
     //sleep(const Duration(seconds:1));
 
-    _onData(message); /* emulating async call over websocket */
+    //_onData(message); /* emulating async call over websocket */
+    if(isolateName != null) {
+      _mqsSocket.add(enqueueMessage);
+    }
   }
 
   /**
@@ -273,7 +275,7 @@ class IsolateSystem {
   }
 
   _out(String text) {
-    //print(text);
+    print(text);
   }
 
   String get id => _id;

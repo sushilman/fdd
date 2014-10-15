@@ -11,7 +11,7 @@ import '../message/SenderType.dart';
 abstract class Worker {
   ReceivePort receivePort;
   SendPort sendPort;
-  SendPort me;
+  SendPort _me;
   String id;
 
   /// Name is the name of the pool of isolate this isolate belongs to, i.e. router name
@@ -21,6 +21,7 @@ abstract class Worker {
 
   static const String TO = 'to';
   static const String REPLY_TO = 'replyTo';
+  static const String MESSAGE = 'message';
 
   String get poolName => _poolName;
   set poolName(String value) => _poolName = value;
@@ -37,7 +38,7 @@ abstract class Worker {
     args = _extractExtraArguments(args);
 
     receivePort = new ReceivePort();
-    me = receivePort.sendPort;
+    _me = receivePort.sendPort;
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.CREATED, receivePort.sendPort));
     receivePort.listen((var message) {
       _onReceive(message);
@@ -50,7 +51,7 @@ abstract class Worker {
     args = args[0];
 
     receivePort = new ReceivePort();
-    me = receivePort.sendPort;
+    _me = receivePort.sendPort;
     receivePort.listen(_onReceive, onDone:_onDone, cancelOnError:false);
   }
 
@@ -64,8 +65,8 @@ abstract class Worker {
       String senderId = MessageUtil.getId(message);
       String action = MessageUtil.getAction(message);
       var payload = MessageUtil.getPayload(message);
-      if(payload is Map && payload.containsKey('replyTo')) {
-        respondTo = payload[Worker.REPLY_TO];
+      if(payload is Map && payload[MESSAGE].containsKey('replyTo')) {
+        respondTo = payload[MESSAGE][Worker.REPLY_TO];
       }
 
       switch(action) {
@@ -73,7 +74,7 @@ abstract class Worker {
           kill();
           break;
         case Action.NONE:
-          onReceive(payload['message']);
+          onReceive(payload[MESSAGE][MESSAGE]);
           break;
         default:
           _out("Worker: unknown action -> $action");
@@ -106,9 +107,11 @@ abstract class Worker {
    *
    * And may be the isolatesystem adds something too (whenever there is uuid attached in replyTo/replyExactlyTo) to identify itself?
    * so that the response comes exactly to same isolate of same system
+   *
+   * respondTo is the isolate set as replyTo be original sender
    */
-  reply(var message, {String replyTo}) {
-    var msg = {'to': this.respondTo, 'message': message, 'replyTo': replyTo != null ? replyTo : _poolName};
+  reply(var message, {String to, String replyTo}) {
+    var msg = {'to': (to != null) ? to : this.respondTo, 'message': message, 'replyTo': replyTo};
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 
@@ -132,6 +135,6 @@ abstract class Worker {
   }
 
   _out(String text){
-    //print(text);
+    print(text);
   }
 }

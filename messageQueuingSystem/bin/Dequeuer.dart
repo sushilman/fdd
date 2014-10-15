@@ -5,6 +5,7 @@ import "package:stomp/vm.dart" show connect;
 
 import 'dart:isolate';
 import 'dart:async';
+import 'dart:convert';
 
 import "Mqs.dart";
 
@@ -114,10 +115,11 @@ class Dequeuer {
 
   _onData(Map<String, String> headers, String message) {
     print("Message from RabbitMQ: $message, HEADERS: $headers");
+    var decodedMessage = JSON.decode(message);
     String key = headers["ack"];
     //send message to self to add it to buffer
     me.send({
-        'key':key, 'topic':headers['destination'], 'action':DEQUEUED, 'message':message
+        'key':key, 'topic':headers['destination'], 'action':DEQUEUED, 'message':decodedMessage
     });
   }
 

@@ -20,6 +20,7 @@ _handleWebSocket(WebSocket socket) {
 }
 
 _onData(var message) {
+  print("Before decoding: $message");
   message = JSON.decode(message);
   print("Dequeued -> $message");
 }

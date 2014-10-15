@@ -18,16 +18,27 @@ void main() {
 _handleWebSocket(WebSocket socket) {
   socket.listen(_onData, onError:_onError, onDone:_onDisconnect);
   int counter = 0;
-  new Timer.periodic (const Duration(seconds:0.01), (t) {
-    String msg = "My message #${counter++}";
-    Map message = {'targetIsolateSystemId':'isolateSystem', 'isolateName':"helloPrinter", 'action':Mqs.ENQUEUE, 'payload':msg};
-    socket.add(JSON.encode(message));
+  new Timer.periodic (const Duration(seconds:0.001), (t) {
+    Map message = {'targetIsolateSystemId':'isolateSystem', 'to':"helloPrinter", 'message':"My message #${counter++}", 'replyTo':'helloPrinter2'};
+
+    String targetSystem = (message.containsKey('targetIsolateSystemId')) ? message['targetIsolateSystemId'] : null;
+    String isolateName = (message.containsKey('to')) ? message['to'] : null;
+    String replyTo = (message.containsKey('replyTo')) ? message['replyTo'] : null;
+    String msg = (message['message']);
+
+    var enqueueMessage = JSON.encode({'targetIsolateSystemId':targetSystem, 'isolateName':isolateName, 'action':Mqs.ENQUEUE, 'payload':{'message':msg, 'replyTo':replyTo}});
+
+
+    print(enqueueMessage);
+    //String a = JSON.encode(enqueueMessage).toString();
+    //print(JSON.decode(a));
+
+    socket.add(enqueueMessage);
   });
 }
 
 _onData(var message) {
-  JSON.decode(message);
-  print("Dequeued -> $message");
+
 }
 
 _onError() {

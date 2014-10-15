@@ -62,7 +62,8 @@ class HelloPrinter extends Worker {
     print(text);
     print("doing something for $rand seconds...\n\n");
     sleep(duration);
-    reply(message, replyTo:poolName);
+    //reply(message, replyTo:poolName);
+    reply(message);
     //send("DONE !", replyTo:poolName);
     //done("DONE !");
     //done();
