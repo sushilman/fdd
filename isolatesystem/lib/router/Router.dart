@@ -44,7 +44,11 @@ import '../message/SenderType.dart';
  *
  */
 
-
+/**
+ * TODO: Keep record of the workers, who issued DONE / REPLY  => which is a pull request
+ * -> for, alternative load balancing ideas
+ * -> this will also help to track unfulfilled pull requests
+ */
 abstract class Router {
   static const String RANDOM = "random";
   static const String ROUND_ROBIN = "roundRobin";

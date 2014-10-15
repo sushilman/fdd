@@ -29,6 +29,12 @@ import 'IsolateRef.dart';
  *    - how to?
  *      -> onError of Future
  *      -> and, try catch blocks
+ *
+ * TODO: Refactor Actions in isolateSystem,Controller,Routers, Workers
+ *
+ * TODO: Isolate namings are probably okay because there will be registry
+ * TODO: which will be resolving queueName for us from systemid+isolateId
+ * TODO:
  */
 
 /**

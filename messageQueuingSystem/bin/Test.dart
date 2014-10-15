@@ -19,9 +19,8 @@ _handleWebSocket(WebSocket socket) {
   socket.listen(_onData, onError:_onError, onDone:_onDisconnect);
   int counter = 0;
   new Timer.periodic (const Duration(seconds:0.01), (t) {
-    String msg = "Enqueue this message ${counter++}";
-    var payload = {'message':msg};
-    Map message = {'targetIsolateSystemId':'isolateSystem', 'isolateName':"helloPrinter", 'action':Mqs.ENQUEUE, 'payload':payload};
+    String msg = "My message #${counter++}";
+    Map message = {'targetIsolateSystemId':'isolateSystem', 'isolateName':"helloPrinter", 'action':Mqs.ENQUEUE, 'payload':msg};
     socket.add(JSON.encode(message));
   });
 }

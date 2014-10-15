@@ -25,6 +25,7 @@ import "Mqs.dart";
  * May be store number of dequeue requests,
  * and once the data arrives from broker system, just dequeue the  number of messages
  *
+ * Clear all buffers once disconnected from rabbitmq
  */
 
 main(List<String> args, SendPort sendPort) {
@@ -50,7 +51,8 @@ class Dequeuer {
   bool subscribed = false;
   bool clearBuffer = false;
 
-  String topic;
+  String host, username, password, topic;
+  int connectToPort;
 
   Dequeuer(List<String> args, SendPort sendPort) {
     print("\n\nDequeuer Isolate Spawned !\n\n");
@@ -59,23 +61,44 @@ class Dequeuer {
     this.sendPort = sendPort;
     dequeueRequestsFrom = new List();
 
-    String host = args[0];
-    int connectToPort = args[1];
-    String username = args[2];
-    String password = args[3];
+    host = args[0];
+    connectToPort = args[1];
+    username = args[2];
+    password = args[3];
     topic = args[4];
 
     sendPort.send({'senderType':DEQUEUER, 'topic':topic, 'message': me});
 
-    connect(host, port:connectToPort, login:username, passcode:password).then((StompClient stompClient){
-      _handleStompClient(stompClient, topic);
-    });
+    _initConnection();
 
     print("Dequeuer Listening...");
 
     receivePort.listen((msg) {
       _onReceive(msg);
     });
+  }
+
+  _reconnect() {
+    print("Dequeuer: Reconnecting...");
+    new Timer(new Duration(seconds:3), () {
+      _initConnection();
+    });
+  }
+
+  void _onDisconnect(StompClient client) {
+    bufferMailBox.clear();
+    _reconnect();
+  }
+
+  void _onError([StompClient client, String message, String detail, Map<String, String> headers]) {
+    bufferMailBox.clear();
+    _reconnect();
+  }
+
+  void _initConnection() {
+    connect(host, port:connectToPort, login:username, passcode:password, onError:_onError, onDisconnect:_onDisconnect).then((StompClient stompClient) {
+      _handleStompClient(stompClient, topic);
+    }, onError:_onError);
   }
 
   _handleStompClient(StompClient stompClient, String topic) {

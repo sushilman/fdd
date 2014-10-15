@@ -23,7 +23,6 @@ class Enqueuer {
   String password;
 
   Enqueuer(List<String> args, SendPort sendPort) {
-    print("Enqueuer Spawned!!!");
     ReceivePort receivePort = new ReceivePort();
     sendPort.send({
         'senderType':ENQUEUER, 'message': receivePort.sendPort
@@ -36,18 +35,17 @@ class Enqueuer {
 
     _initConnection();
 
-    print("Enqueuer Listening...");
     receivePort.listen(_onReceive);
   }
 
 
   _handleStompClient(StompClient stompClient) {
     client = stompClient;
-    print("Connected!");
+    print("Enqueuer: Connected!");
   }
 
   _reconnect() {
-    print("Reconnecting...");
+    print("Enqueuer: Reconnecting...");
     new Timer(new Duration(seconds:3), () {
       _initConnection();
     });

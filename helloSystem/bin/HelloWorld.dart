@@ -21,15 +21,16 @@ class HelloWorld {
     //print (printerWorkerUri);
 
     String helloWorldWorkerUri = "${dirname(Platform.script.toString())}/HelloPrinter.dart";
+    //String helloWorldWorkerUri = "http://192.168.2.2:8080/HelloPrinter.dart";
     //print (helloWorldWorkerUri);
 
 
     String pingUri = "${dirname(Platform.script.toString())}/Ping.dart";
     String pongUri = "${dirname(Platform.script.toString())}/Pong.dart";
 
-    //List<String> workersPaths = ["localhost", "localhost"];
+    List<String> workersPaths = ["localhost", "localhost"];
     //List<String> workersPaths = ["ws://192.168.2.69:42042/activator", "ws://192.168.2.69:42042/activator"];
-    List<String> workersPaths = ["ws://localhost:42042/activator", "ws://localhost:42042/activator"];
+    //List<String> workersPaths = ["ws://localhost:42042/activator", "ws://192.168.2.69:42042/activator"];
 
     //int workersCount = workersPaths.length;
     //int workersCount2 = workersPaths2.length;
