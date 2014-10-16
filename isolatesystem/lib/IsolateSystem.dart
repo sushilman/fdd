@@ -34,9 +34,10 @@ import 'IsolateRef.dart';
  *
  * TODO: Refactor Actions in isolateSystem,Controller,Routers, Workers
  *
- * TODO: Isolate namings are probably okay because there will be registry
- * TODO: which will be resolving queueName for us from systemid+isolateId
- * TODO:
+ * Oct 15:
+ * If an isolateSystem is started by a bootstrapper which maintains connection with Registry
+ * Send queries to registry (like get queuetopic from isolatename) via same connection ?
+ *
  */
 
 /**
@@ -138,8 +139,12 @@ class IsolateSystem {
           _me.send(fullMessage);
         break;
       case Action.REPLY:
-        if(payload != null) {
-          _enqueueResponse(payload);
+        if(_mqsSocket != null) {
+          if (payload != null) {
+            _enqueueResponse(payload);
+          }
+        } else {
+          _me.send(fullMessage);
         }
         break;
       case Action.RESTART_ALL:
@@ -163,8 +168,12 @@ class IsolateSystem {
           _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.NONE, payload));
           break;
         case Action.DONE:
-          if(payload != null) {
-            _enqueueResponse(payload);
+          if(_mqsSocket != null) {
+            if (payload != null) {
+              _enqueueResponse(payload);
+            }
+          } else {
+            _me.send(fullMessage);
           }
           break;
         default:
@@ -246,13 +255,6 @@ class IsolateSystem {
 
   _getIsolateIdFromQueue(String queue) {
     return queue.replaceAll('.', '/');
-  }
-
-  /**
-   * On data received from WebSocket (of MessageQueuingSystem)
-   */
-  _onData(var message) {
-    _me.send(message);
   }
 
   void _handleException(e) {

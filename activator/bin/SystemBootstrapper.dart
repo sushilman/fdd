@@ -113,6 +113,7 @@ class SystemBootstrapper {
     switch(action) {
       case ADD_ISOLATE:
         String systemId = message['systemId'];
+        String pathToMQS = message['messageQueuingSystemServer'];
         String name = message['isolateName'];
         String uri = message['uri'];
         String workersPaths = message['workerPaths'];
@@ -122,7 +123,7 @@ class SystemBootstrapper {
 
         IsolateSystem system = _getSystemById(systemId);
         if(system == null) {
-          system = new IsolateSystem(systemId);
+          system = new IsolateSystem(systemId, pathToMQS);
           _systems.add(system);
         }
 
@@ -148,5 +149,6 @@ class SystemBootstrapper {
     }
     return null;
   }
+
 //_getSystemById(systemId).addIsolate(name, uri, workersPaths, routerType, hotDeployment: hotDeployment, args:args);
 }

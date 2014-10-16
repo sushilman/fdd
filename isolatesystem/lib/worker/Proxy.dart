@@ -24,13 +24,9 @@ main(List<String> args, SendPort sendPort) {
  * Handle when the server connection is lost (or server is shutdown)
  * Refer to websocket client of SystemBootstrapper in activator package
  *
- * May be if a connection to one activator is lost for a long time, try some alternatives?
- * but how and where to get address?
  */
 class Proxy extends Worker {
-  SendPort self;
-
-  WebSocket ws;
+  WebSocket webSocket;
   Uri workerSourceUri;
   String workerPath;
   var extraArgs;
@@ -39,14 +35,12 @@ class Proxy extends Worker {
    * if workerPath is not good websocket uri
    */
   Proxy(List<String> args, SendPort sendPort) : super.withoutReadyMessage(args, sendPort) {
-    self = receivePort.sendPort;
-
     workerPath = args[0];
     workerSourceUri = args[1];
     extraArgs = args[2];
 
     print("Proxy: Connecting to webSocket...");
-    WebSocket.connect(workerPath).then(_handleWebSocket).catchError(onError);
+    _initWebSocket();
   }
 
   @override
@@ -57,20 +51,21 @@ class Proxy extends Worker {
     print("Proxy: Sending message -> $message");
 
     //'to':name can be included here, but not it's not significant
-    ws.add(JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.NONE, {'message': message, 'replyTo': respondTo})));
+    webSocket.add(JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.NONE, {'message': message, 'replyTo': respondTo})));
+  }
+
+  void _initWebSocket() {
+    WebSocket.connect(workerPath).then(_handleWebSocket).catchError(_onError);
   }
 
   void _handleWebSocket(WebSocket ws) {
-    this.ws = ws;
     if(ws != null && ws.readyState == WebSocket.OPEN) {
+      this.webSocket = ws;
       print("Proxy: WebSocket Connected !");
-      // send initialization message
-      // SPAWN Isolate on remote location
-      var message = JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.SPAWN, [poolName, workerSourceUri.toString(), workerPath, extraArgs]));
-      //print("Proxy: $message");
-      ws.add(message);
+      var message = JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.SPAWN, [this.poolName, workerSourceUri.toString(), workerPath, extraArgs]));
+      webSocket.add(message);
     }
-    ws.listen(_onData);
+    webSocket.listen(_onData, onDone: _onDone);
   }
 
   void _onData(String msg) {
@@ -90,13 +85,13 @@ class Proxy extends Worker {
           sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.CREATED, receivePort.sendPort));
           break;
         case Action.ERROR:
-        //TODO: end isolate: close sendport, disconnect websocket
+          //TODO: end isolate: close sendPort, disconnect webSocket
           kill();
           break;
         case Action.RESTARTING:
           sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.RESTARTING, null));
           receivePort.close();
-          ws.close().then((value) {
+          webSocket.close().then((value) {
             print("Proxy: WebSocket connection with activator is now closed.");
           });
           break;
@@ -107,14 +102,25 @@ class Proxy extends Worker {
     }
   }
 
-  void onError(var message) {
-    print('Not connected: $message');
+  void _onError(var message) {
+    print("Could not connect, retrying...");
+    new Timer(new Duration(seconds:3), () {
+      print ("Retrying...");
+      _initWebSocket();
+    });
   }
+
+  void _onDone() {
+    print("Connection closed by server!");
+    print("Reconnecting...");
+    _initWebSocket();
+  }
+
 
   @override
   void kill() {
     sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.KILLED,null));
-    ws.close().then((value) {
+    webSocket.close().then((value) {
       print("Proxy: WebSocket Disconnected.");
     });
     receivePort.close();
@@ -122,7 +128,7 @@ class Proxy extends Worker {
 
   @override
   void restart() {
-    ws.add(JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.RESTART, null)));
+    webSocket.add(JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.RESTART, null)));
   }
 
   bool isJsonString(var string) {

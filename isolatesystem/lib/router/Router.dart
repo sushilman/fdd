@@ -257,7 +257,7 @@ abstract class Router {
   }
 
   _out(String text) {
-    //print(text);
+    print(text);
   }
 
 }

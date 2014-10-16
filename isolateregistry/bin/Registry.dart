@@ -7,7 +7,11 @@ import 'WebSocketServer.dart';
 /**
  *
  * if just network with all other systems goes down ? connection is re-established automatically by client
- * TODO: create a simple form / webinterface
+ * TODO:
+ * 1. Create a simple form / web-interface
+ * 2. Maintain a list of connected clients
+ *    * should be able to identify Bootstrappers from normal isolate system?
+ *
  */
 
 class Registry {
@@ -26,6 +30,7 @@ class Registry {
     Map message = new Map();
     message['action'] = "action.addIsolate"; //SystemBootstrapper.ADD_ISOLATE
     message['systemId'] = "dynamicSystem";
+    message['messageQueuingSystemServer'] = "ws://localhost:42043/mqs";
     message['isolateName'] = "helloPrinter";
     message['uri'] = "/Users/sushil/workspace/helloSystem/bin/HelloPrinter.dart";
     message['workerPaths'] = ["localhost", "localhost"];
