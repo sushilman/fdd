@@ -23,7 +23,10 @@ class WebSocketServer {
     });
   }
 
-  handleWebSocket(String subPath, WebSocket socket, void onConnect(WebSocket socket, String path), void onData(WebSocket socket, String subPath, var message), void onDisconnect(WebSocket socket, String subPath)) {
+  handleWebSocket(String subPath, WebSocket socket,
+                  void onConnect(WebSocket socket, String path),
+                  void onData(WebSocket socket, String subPath, var message),
+                  void onDisconnect(WebSocket socket, String subPath)) {
     print('Client connected!');
     onConnect(socket, subPath);
     socket.listen((String s) {
