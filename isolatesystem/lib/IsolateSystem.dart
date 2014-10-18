@@ -225,6 +225,7 @@ class IsolateSystem {
    * Pulls message from MessageQueuingSystem over websocket connection
    */
   _pullMessage(String senderId) {
+    print("PULL MESSAGE by $senderId");
     String sourceIsolate = _getQueueFromIsolateId(senderId);
     Map dequeueMessage = MQSMessageUtil.createDequeueMessage(sourceIsolate);
     _mqsSocket.add(JSON.encode(dequeueMessage));
@@ -262,7 +263,7 @@ class IsolateSystem {
   }
 
   _out(String text) {
-    //print(text);
+    print(text);
   }
 
   String get id => _id;

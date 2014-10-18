@@ -21,7 +21,20 @@ class Ping extends Worker {
     if(message is SendPort) {
       //use this to save sendports of spawned temporary isolates
     } else {
-      outText(message);
+      outTextWithAsk(message);
+    }
+  }
+
+
+  outTextWithAsk(var message) {
+    if(message == "START") {
+      print("** $message");
+      ask({'value': "PING", 'count' : "1" }, to:respondTo);
+    } else if (message['value'].startsWith("PONG")) {
+      print("** ${message['value']} ${message['count']} **");
+      int count = int.parse(message['count']) + 1;
+
+      ask({'value': "PING", 'count' :  "$count"}, to:respondTo);
     }
   }
 
@@ -35,11 +48,14 @@ class Ping extends Worker {
     //sleep(duration);
 
     if(message == "START") {
-      reply({'value': "PING", 'count' : "1" });
+      //ask({'value': "PING", 'count' : "1" }, to:respondTo);
+      print("** $message");
+      reply({'value': "PING", 'count' : "1" }, to:respondTo, replyTo:poolName);
     } else if (message['value'].startsWith("PONG")) {
       print("** ${message['value']} ${message['count']} **");
       int count = int.parse(message['count']) + 1;
-      reply({'value': "PING", 'count' :  "$count"});
+
+      reply({'value': "PING", 'count' :  "$count"}, to:respondTo, replyTo:poolName);
     }
   }
 }

@@ -28,7 +28,8 @@ class HelloWorld {
     String pingUri = "${dirname(Platform.script.toString())}/Ping.dart";
     String pongUri = "${dirname(Platform.script.toString())}/Pong.dart";
 
-    List<String> workersPaths = ["localhost", "localhost"];
+    List<String> pingWorkersPaths = ["localhost", "localhost"];
+    List<String> pongWorkersPaths = ["localhost"];
     //List<String> workersPaths = ["ws://192.168.2.69:42042/activator", "ws://192.168.2.69:42042/activator"];
     //List<String> workersPaths = ["ws://localhost:42042/activator", "ws://192.168.2.69:42042/activator"];
 
@@ -40,28 +41,14 @@ class HelloWorld {
 
     //system.addIsolate("Multiplier", multiplierWorkerUri, workersPaths, Router.RANDOM,  args:"test");
 
-    IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
-    IsolateRef helloPrinter2 = system.addIsolate("helloPrinter2", helloWorldWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
-    //helloPrinter.send("This is a very confidential message This is a very confidential message This is a very confidential message #", replyTo:helloPrinter);
-
-//    Duration duration = new Duration(seconds:2);
-//    sleep(duration);
-    //helloPrinter.send("Print me! 1",replyTo: helloPrinter);
-//    helloPrinter.send("Print me! 2",replyTo: helloPrinter);
-//    helloPrinter.send("Print me! 3",replyTo: helloPrinter);
-//    helloPrinter.send("XYZPrint me! 4");
-//    helloPrinter.send("Print me! 5");
-
-    //IsolateSystem system2 = new IsolateSystem(helloWorldWorkerUri, workersCount2, workersPaths2, routerUri);
-
-    //sleep(const Duration(seconds: 5));
-    //IsolateSystem system3 = new IsolateSystem(printerWorkerUri, workersCount2, workersPaths2, routerUri);
+    //IsolateRef helloPrinter = system.addIsolate("helloPrinter", helloWorldWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
+    //IsolateRef helloPrinter2 = system.addIsolate("helloPrinter2", helloWorldWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
 
 
-    //IsolateRef ping = system.addIsolate("ping", pingUri, workersPaths, Router.RANDOM, hotDeployment:true);
-    //IsolateRef pong = system.addIsolate("pong", pongUri, workersPaths, Router.RANDOM, hotDeployment:true);
+    IsolateRef ping = system.addIsolate("ping", pingUri, pingWorkersPaths, Router.RANDOM, hotDeployment:false);
+    IsolateRef pong = system.addIsolate("pong", pongUri, pongWorkersPaths, Router.RANDOM, hotDeployment:false);
 
-    //ping.send("START", replyTo: pong);
+    ping.sendDirect("START", replyTo: pong);
 
   }
 }

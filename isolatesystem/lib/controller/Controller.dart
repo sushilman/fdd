@@ -222,7 +222,7 @@ class Controller {
   }
 
   _out(String text) {
-    //print(text);
+    print(text);
   }
 }
 

@@ -115,6 +115,11 @@ abstract class Worker {
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 
+  ask(var message, {String to}) {
+    var msg = {'to': (to != null) ? to : this.respondTo, 'message': message, 'replyTo': poolName};
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
+  }
+
   void kill() {
     receivePort.close();
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.KILLED, null));
@@ -135,6 +140,6 @@ abstract class Worker {
   }
 
   _out(String text){
-    //print(text);
+    print(text);
   }
 }

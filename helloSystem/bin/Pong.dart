@@ -22,7 +22,16 @@ class Pong extends Worker {
     if(message is SendPort) {
       //use this to save sendports of spawned temporary isolates
     } else {
-      outText(message);
+      outTextWithAsk(message);
+    }
+  }
+
+
+  outTextWithAsk(var message) {
+    if (message['value'].startsWith("PING")) {
+      print("## ${message['value']} ${message['count']} ##");
+      int count = int.parse(message['count']) + 1;
+      ask({'value': "PONG", 'count' : "$count"}, to:respondTo);
     }
   }
 
@@ -33,13 +42,12 @@ class Pong extends Worker {
   outText(var message) {
     int rand = new Math.Random().nextInt(3);
     Duration duration = new Duration(seconds: rand);
-    //sleep(duration);
+    sleep(duration);
 
     if (message['value'].startsWith("PING")) {
       print("## ${message['value']} ${message['count']} ##");
       int count = int.parse(message['count']) + 1;
-      //reply({'value': "PONG", 'count' : "$count"});
-      done();
+      reply({'value': "PONG", 'count' : "$count"}, to:respondTo, replyTo: poolName);
     }
   }
 }

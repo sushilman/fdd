@@ -332,7 +332,7 @@ class Mqs {
   }
 
   _out(String text) {
-    //print(text);
+    print(text);
   }
 }
 
