@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'WebSocketServer.dart';
 import 'Endpoint.dart';
+import 'MyEndpoint.dart';
 
 /**
  *
@@ -21,8 +22,7 @@ Registry registry;
 
 main() {
   registry = new Registry();
-  Endpoint e = new Endpoint();
-  e.launch();
+  MyEndpoint e = new MyEndpoint();
 }
 
 class Registry {

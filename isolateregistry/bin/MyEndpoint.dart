@@ -1,5 +1,8 @@
+library isolateregistry.MyEndpoint;
+
 import 'dart:io';
 import 'dart:convert' show UTF8, JSON;
+import 'Registry.dart';
 
 class MyEndpoint {
   MyEndpoint() {
@@ -24,7 +27,9 @@ class MyEndpoint {
   handleGetRequest(HttpRequest request) {
     if(request.uri.path == '/registry/systems') {
       request.response.statusCode = HttpStatus.OK;
-      request.response.write("Nice");
+      request.response.headers.contentType = ContentType.JSON;
+      List connectedSystems = registry.getConnectedSystems();
+      request.response.write(JSON.encode(connectedSystems));
       request.response.close();
     }
   }
@@ -37,9 +42,8 @@ class MyEndpoint {
         UTF8.decodeStream(request).then((data) {
           print('$data');
           try {
-            Map receivedData = JSON.decode(data);
-            request.response.write('$receivedData');
-            print('ECHO written $receivedData');
+            Map isolateSystem = JSON.decode(data);
+            registry.deployIsolate(isolateSystem);
           } on Exception {
             request.response.statusCode = HttpStatus.BAD_REQUEST;
             request.response.write("body must be json data");
