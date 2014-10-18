@@ -4,12 +4,7 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'WebSocketServer.dart';
-
-import 'dart:io' show HttpServer, HttpRequest;
-import 'dart:convert' show JSON;
-import "package:rest/http_rest.dart";
-
-part 'Endpoint.dart';
+import 'Endpoint.dart';
 
 /**
  *
@@ -22,11 +17,12 @@ part 'Endpoint.dart';
  *
  */
 
-Registry r;
+Registry registry;
 
 main() {
-  r = new Registry();
-  startRestServer();
+  registry = new Registry();
+  Endpoint e = new Endpoint();
+  e.launch();
 }
 
 class Registry {
@@ -41,7 +37,7 @@ class Registry {
     wss = new WebSocketServer(defaultPort, defaultPath, _onConnect, _onData, _onDisconnect);
 
 //    new Timer(const Duration(seconds:10),() {
-//      _deployIsolate(_connectedBootstrappers.elementAt(3).socket);
+//
 //    });
   }
 
@@ -63,19 +59,19 @@ class Registry {
     _displayAllBootstrappers();
   }
 
-  _deployIsolate(WebSocket socket) {
+  _deployIsolateDep(WebSocket socket) {
     //Temporary  :
     // as soon as bootstrapper connects, make it start an isolate system
     //TODO: refactor
     Map message = new Map();
     message['action'] = "action.addIsolate"; //SystemBootstrapper.ADD_ISOLATE
-    message['messageQueuingSystemServer'] = "ws://localhost:42043/mqs";
-    message['systemId'] = "dynamicSystem";
+    message['messageQueuingSystemServer'] = "ws://192.168.2.2:42043/mqs";
+    message['systemId'] = "isolateSystem";
     message['isolateName'] = "helloPrinter";
-    message['uri'] = "/Users/sushil/workspace/helloSystem/bin/HelloPrinter.dart";
+    message['uri'] = "http://192.168.2.2/helloSystem/HelloPrinter.dart";
     message['workerPaths'] = ["localhost", "localhost"];
     message['routerType'] = "random"; //Router.RANDOM
-    message['hotDeployment'] = true;
+    message['hotDeployment'] = false;
     message['args'] = null;
 
     socket.add(JSON.encode(message));
@@ -105,16 +101,25 @@ class Registry {
     }
     return null;
   }
-}
 
-Map getConnectedSystems() {
-  Map systems = new Map();
-  for(_Bootstrapper bootstrapper in r._connectedBootstrappers) {
-    systems[bootstrapper.socket.hashCode.toString()] = "${bootstrapper.ip}:${bootstrapper.port}";
+  deployIsolate(Map data) {
+    String id = data.remove('bootstrapperId');
+
+    _Bootstrapper bootstrapper = _getBootstrapperById(id);
+
+    print("Before sending: $data");
+
+    if(bootstrapper != null)
+      bootstrapper.socket.add(JSON.encode(data));
+    else
+      print("Bootstrapper is not available");
   }
 
-  return systems;
+  List getConnectedSystems() {
+    return _connectedBootstrappers;
+  }
 }
+
 
 class _Bootstrapper {
   String _id;
@@ -138,4 +143,7 @@ class _Bootstrapper {
   String get port => _port;
   set port(String value) => _port = value;
 
+  toJson() {
+    return {'bootstrapperId':_id,'ip':_ip,'port':_port};
+  }
 }

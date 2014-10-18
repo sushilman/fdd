@@ -1,42 +1,22 @@
-part of isoalteregistry.registry;
+import 'package:redstone/server.dart' as app;
+import 'package:di/di.dart';
+import 'Registry.dart';
 
-void startRestServer() {
+@app.Group('/registry')
+class Endpoint {
+  @app.Route("/systems", methods: const[app.GET])
+  list() {
+    return registry.getConnectedSystems();
+  }
 
+  @app.Route("/deploy", methods: const[app.POST])
+  addIsolate(@app.Body(app.JSON) Map isolateSystem) {
+    registry.deployIsolate(isolateSystem);
+  }
 
-  var routes = {
-      "registry":{
-          "systems": new HttpRestRoute({
-              'GET': fooBar
-          }), "addisolate": new HttpRestRoute({
-              'POST': fooBat,
-              'GET' : HttpRest.NO_CONTENT
-          })
-      }
-  };
-  HttpRest rest;
-
-  rest = new HttpRest(routes);
-
-  HttpServer.bind('127.0.0.1', 8000).then((server) {
-    server.listen((HttpRequest request) {
-      try {
-        rest.resolve(request);
-      }
-      on RouteNotFoundException
-      {
-        request.response.close();
-      }
-    });
-  });
-
+  launch() {
+    app.addModule(new Module()..bind(Endpoint));
+    app.setupConsoleLog();
+    app.start(address:"0.0.0.0", port:8000);
+  }
 }
-
-fooBar() {
-
-  return new HttpRestResponse().build(200, "FooBar !!!\n ${JSON.encode(getConnectedSystems())}");
-}
-
-fooBat() {
-  return new HttpRestResponse().build(201, "called FooBat\n");
-}
-
