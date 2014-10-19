@@ -28,7 +28,7 @@ class PingPongSystem {
     List<String> pingWorkersPaths = ["localhost"];
     List<String> pongWorkersPaths = ["localhost"];
 
-    IsolateSystem system = new IsolateSystem("isolateSystem", "ws://localhost:42043/mqs");
+    IsolateSystem system = new IsolateSystem("isolateSystem2", "ws://localhost:42043/mqs");
     IsolateRef ping = system.addIsolate("ping", pingUri, pingWorkersPaths, Router.RANDOM, hotDeployment:false);
     IsolateRef pong = system.addIsolate("pong", pongUri, pongWorkersPaths, Router.RANDOM, hotDeployment:false);
 

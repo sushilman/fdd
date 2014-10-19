@@ -50,6 +50,8 @@ import "message/MessageUtil.dart";
  * if this is not taken care of, each request from anywhere
  * will result in sending of messages only to latest connected socket
  *
+ *
+ *
  */
 
 class Mqs {
@@ -175,7 +177,6 @@ class Mqs {
     if(message['message'] is SendPort) {
       dequeuer.sendPort = message['message'];
     } else {
-      _out("Send via websocket : ${message['message']} to ${message['socket']}");
       _out("${dequeuer.isolateSystem.sockets.keys} sockets in -> ${dequeuer.isolateSystem.id}");
       String key = message['socket'].toString();
 
@@ -184,10 +185,12 @@ class Mqs {
         message.remove('socket');
 
         dequeuer.isolateSystem.sockets[key].add(
-          //JSON.encode({'topic':topic, 'message':message['message']})
           JSON.encode(message)
         );
-
+      } else {
+        // re-queue the message because requester is no longer available
+        _out("Requeuing ${message['message']} because ${message['socket']} was not available");
+        _enqueue(topic, message['message']);
       }
     }
   }
@@ -329,7 +332,7 @@ class Mqs {
   }
 
   _out(String text) {
-    print(text);
+    //print(text);
   }
 }
 

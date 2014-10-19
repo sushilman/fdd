@@ -21,7 +21,7 @@ class Ping extends Worker {
     if(message is SendPort) {
       //use this to save sendports of spawned temporary isolates
     } else {
-      outText(message);
+      outTextWithAsk(message);
     }
   }
 
