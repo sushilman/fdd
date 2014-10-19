@@ -26,6 +26,7 @@ class HelloWorld {
 
 
     String pingUri = "${dirname(Platform.script.toString())}/Ping.dart";
+    //String pingUri = "https://raw.githubusercontent.com/sushilman/fdd/master/helloSystem/bin/Ping.dart";
     String pongUri = "${dirname(Platform.script.toString())}/Pong.dart";
 
     List<String> pingWorkersPaths = ["localhost", "localhost"];

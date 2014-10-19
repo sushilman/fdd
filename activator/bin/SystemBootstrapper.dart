@@ -129,8 +129,7 @@ class SystemBootstrapper {
 
         //system.addIsolate(name, uri, workersPaths, routerType, hotDeployment:deploymentType, args:extraArgs);
 
-        IsolateRef helloPrinter = system.addIsolate(name, uri, workersPaths, routerType, hotDeployment:deploymentType, args:extraArgs);
-        helloPrinter.send("\n\n\n Print It\n\n\n", replyTo:helloPrinter);
+        IsolateRef myIsolate = system.addIsolate(name, uri, workersPaths, routerType, hotDeployment:deploymentType, args:extraArgs);
         break;
       case KILL:
         // the isolate system must close all the connections / websocket as well as other isolate ports.

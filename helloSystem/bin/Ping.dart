@@ -21,7 +21,7 @@ class Ping extends Worker {
     if(message is SendPort) {
       //use this to save sendports of spawned temporary isolates
     } else {
-      outTextWithAsk(message);
+      outText(message);
     }
   }
 
@@ -29,12 +29,12 @@ class Ping extends Worker {
   outTextWithAsk(var message) {
     if(message == "START") {
       print("** $message");
-      ask({'value': "PING", 'count' : "1" }, to:respondTo);
+      ask({'value': "PING", 'count' : "1" });
     } else if (message['value'].startsWith("PONG")) {
       print("** ${message['value']} ${message['count']} **");
       int count = int.parse(message['count']) + 1;
 
-      ask({'value': "PING", 'count' :  "$count"}, to:respondTo);
+      ask({'value': "PING", 'count' :  "$count"});
     }
   }
 
@@ -43,19 +43,19 @@ class Ping extends Worker {
    * which might take varied amount of time to complete
    */
   outText(var message) {
-    int rand = new Math.Random().nextInt(3);
-    Duration duration = new Duration(seconds: rand);
+    //int rand = new Math.Random().nextInt(3);
+    //Duration duration = new Duration(seconds: rand);
     //sleep(duration);
 
     if(message == "START") {
       //ask({'value': "PING", 'count' : "1" }, to:respondTo);
       print("** $message");
-      reply({'value': "PING", 'count' : "1" }, to:respondTo, replyTo:poolName);
+      send({'value': "PING", 'count' : "1" }, respondTo, replyTo:poolName);
     } else if (message['value'].startsWith("PONG")) {
       print("** ${message['value']} ${message['count']} **");
       int count = int.parse(message['count']) + 1;
 
-      reply({'value': "PING", 'count' :  "$count"}, to:respondTo, replyTo:poolName);
+      reply({'value': "PING", 'count' :  "$count"}, replyTo:poolName);
     }
   }
 }

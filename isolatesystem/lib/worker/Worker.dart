@@ -110,13 +110,18 @@ abstract class Worker {
    *
    * respondTo is the isolate set as replyTo be original sender
    */
-  reply(var message, {String to, String replyTo}) {
+  send(var message, String to, {String replyTo}) {
     var msg = {'to': (to != null) ? to : this.respondTo, 'message': message, 'replyTo': replyTo};
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 
+  reply(var message, {String replyTo}) {
+    var msg = {'to': this.respondTo, 'message': message, 'replyTo': replyTo};
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
+  }
+
   ask(var message, {String to}) {
-    var msg = {'to': (to != null) ? to : this.respondTo, 'message': message, 'replyTo': poolName};
+    var msg = {'to': (to != null) ? to : this.respondTo, 'message': message, 'replyTo': this.poolName};
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 

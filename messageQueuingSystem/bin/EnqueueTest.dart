@@ -16,15 +16,18 @@ void main() {
 _handleWebSocket(WebSocket socket) {
   socket.listen(_onData, onError:_onError, onDone:_onDisconnect);
   int counter = 0;
-  new Timer.periodic (const Duration(seconds:0.001), (t) {
-    String replyTo = "isolateSystem.helloPrinter2";
-    Map payload = {'message': 'My Message #${counter++}', 'replyTo':replyTo};
-    String targetQueue = "isolateSystem.helloPrinter";
-    var enqueueMessage = MessageUtil.createEnqueueMessage(targetQueue, payload);
+  String replyTo = "isolateSystem.helloPrinter2";
+  String targetQueue = "isolateSystem.helloPrinter";
+  new Timer.periodic(const Duration(seconds:0.00001),(t) {
+    Map payload = {
+        'message': 'My Message #${counter++}', 'replyTo':replyTo
+    };
 
+    var enqueueMessage = MessageUtil.createEnqueueMessage(targetQueue, payload);
     print(enqueueMessage);
     socket.add(JSON.encode(enqueueMessage));
   });
+
 }
 
 _onData(var message) {

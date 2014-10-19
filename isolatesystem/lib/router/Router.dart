@@ -72,7 +72,14 @@ abstract class Router {
 
     _id = args[0];
     _workerSourceUri = Uri.parse(args[1]);
-    _workersPaths = args[2];
+    if(args[2] is List) {
+      _workersPaths = args[2];
+    } else {
+      print("Bad argument type");
+      _workersPaths = JSON.decode(args[2]);
+    }
+
+
     if(args.length > 3)
       extraArgs = args[3];
 

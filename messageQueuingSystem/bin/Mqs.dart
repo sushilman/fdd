@@ -57,13 +57,10 @@ class Mqs {
   static const String LOCALHOST = "127.0.0.1";
   static const int RABBITMQ_DEFAULT_PORT = 61613;
 
-  static const String DEFAULT_LOGIN = "fdd";
-  static const String DEFAULT_PASSWORD = "pass";
+  static const String DEFAULT_LOGIN = "guest";//"fdd";
+  static const String DEFAULT_PASSWORD = "guest";//"pass";
 
   static const String ISOLATE_SYSTEM = "senderType.isolateSystem";
-
-  //static const String GUEST_LOGIN = "guest";
-  //static const String GUEST_PASSWORD = "guest";
 
   //TODO: needs refactoring
 
