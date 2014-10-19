@@ -53,12 +53,29 @@ import 'IsolateRef.dart';
  *
  */
 
+/**
+ * payload = "Hello World"
+ * Incoming message format : {'senderType' : sender.External, 'id' : <id_of_sender>, 'action': Action.NONE, 'payload' : "Hello World"}
+ *
+ * Incoming message from MQS: {}
+ * Incoming message from Controller : {}
+ *
+ * Outgoing message format to controller : {}
+ * Outgoing message format for MQS : {}
+ */
+
+/**
+ * Messages from :
+ *  1. MQS
+ *  2. CONTROLLER
+ *
+ */
 class IsolateSystem {
   ReceivePort _receivePort;
   SendPort _sendPortOfController;
   SendPort _me;
   String _id;
-  bool _isSystemReady = false;
+  bool _isSystemKilled = false;
 
   Isolate _controllerIsolate;
   bool _hotDeployment = false;
@@ -70,6 +87,9 @@ class IsolateSystem {
   String _pathToMQS;
   WebSocket _mqsSocket;
 
+  List _bufferMessagesToController;
+  List _bufferMessagesToMqs;
+
   /// @name - Name of this isolate system
   IsolateSystem(String this._id, String pathToMQS) {
     _pathToMQS = "$pathToMQS/$_id";
@@ -77,6 +97,9 @@ class IsolateSystem {
     _me = _receivePort.sendPort;
     _receivePort.listen(_onReceive);
     _connectToMqs(_pathToMQS);
+
+    _bufferMessagesToController = new List();
+    _bufferMessagesToMqs = new List();
 
     _startController();
   }
@@ -104,10 +127,25 @@ class IsolateSystem {
     return new IsolateRef(name, _me);
   }
 
+  /**
+   * After issuing kill command
+   * the system gets cleared itself if there are no active connections anywhere
+   * including receivePorts and webSockets
+   * and no Timers should be running
+   */
+  void kill(IsolateSystem system) {
+    //_sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.KILL, null));
+    _me.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.KILL, null));
+    _receivePort.close();
+    _isSystemKilled = true;
+    system = null;
+  }
+
   _onReceive(message) {
     _out("IsolateSystem: $message");
     if(message is SendPort) {
       _sendPortOfController = message;
+      _flushBufferToController();
     } else if (MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -136,7 +174,8 @@ class IsolateSystem {
         if(_mqsSocket != null)
           _pullMessage(senderId);
         else
-          _me.send(fullMessage);
+          _bufferMessagesToMqs.add(fullMessage);
+          //_me.send(fullMessage);
         break;
       case Action.REPLY:
         if(_mqsSocket != null) {
@@ -144,7 +183,8 @@ class IsolateSystem {
             _enqueueResponse(payload);
           }
         } else {
-          _me.send(fullMessage);
+          _bufferMessagesToMqs.add(fullMessage);
+          //_me.send(fullMessage);
         }
         break;
       case Action.RESTART_ALL:
@@ -157,7 +197,8 @@ class IsolateSystem {
 
   _handleOtherMessages(action, payload, senderType, fullMessage) {
     if(_sendPortOfController == null) {
-      _me.send(fullMessage);
+      //_me.send(fullMessage);
+      _bufferMessagesToController.add(fullMessage);
     } else {
       switch (action) {
         case Action.ADD:
@@ -173,7 +214,8 @@ class IsolateSystem {
               _enqueueResponse(payload);
             }
           } else {
-            _me.send(fullMessage);
+            _bufferMessagesToMqs.add(fullMessage);
+            //_me.send(fullMessage);
           }
           break;
         default:
@@ -197,17 +239,20 @@ class IsolateSystem {
   }
 
   _connectToMqs(String path) {
-    WebSocket.connect(path).then(_handleMqsWebSocket).catchError((_){
-      new Timer(new Duration(seconds:3), () {
-        _out("Retrying...");
-        _connectToMqs(path);
+    if(!_isSystemKilled) {
+      WebSocket.connect(path).then(_handleMqsWebSocket).catchError((_) {
+        new Timer(new Duration(seconds:3), () {
+          _out("Retrying...");
+          _connectToMqs(path);
+        });
       });
-    });
+    }
   }
 
   _handleMqsWebSocket(WebSocket socket) {
     _mqsSocket = socket;
     _mqsSocket.listen(_onDataFromMqs);
+    _flushBufferToMqs();
   }
 
   _onDataFromMqs(var data) {
@@ -242,6 +287,18 @@ class IsolateSystem {
       String targetQueue = _getQueueFromIsolateId(targetIsolate);
       var enqueueMessage = MQSMessageUtil.createEnqueueMessage(targetQueue, payload);
       _mqsSocket.add(JSON.encode(enqueueMessage));
+    }
+  }
+
+  _flushBufferToController() {
+    for(var msg in _bufferMessagesToController) {
+      _me.send(msg);
+    }
+  }
+
+  _flushBufferToMqs() {
+    for(var msg in _bufferMessagesToMqs) {
+      _me.send(msg);
     }
   }
 

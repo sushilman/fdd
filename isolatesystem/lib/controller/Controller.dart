@@ -127,6 +127,13 @@ class Controller {
           _out("Controller: Destination Isolate unknown !");
         }
         break;
+      case Action.KILL:
+        for(_Router router in _routers) {
+          fullMessage = MessageUtil.setSenderType(SenderType.CONTROLLER, fullMessage);
+          router.sendPort.send(fullMessage);
+        }
+        _receivePort.close();
+        break;
       default:
         _out("Controller: Unknown Action from System -> $action");
     }

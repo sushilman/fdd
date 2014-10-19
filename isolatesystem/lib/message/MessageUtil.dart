@@ -13,6 +13,15 @@ class MessageUtil {
     }
   }
 
+  static setSenderType(String senderType, Map message) {
+    try {
+      message['senderType'] =  senderType;
+      return message;
+    } catch (e) {
+      return null;
+    }
+  }
+
   static getId(Map message) {
     try {
       return message['id'];

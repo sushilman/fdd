@@ -122,6 +122,8 @@ abstract class Router {
       //TODO: may be, to relocate individual isolate in same isolate system
         break;
       case Action.KILL:
+        _killAllWorkers();
+        _receivePort.close();
         break;
       case Action.RESTART:
         break;

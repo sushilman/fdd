@@ -121,7 +121,7 @@ abstract class Worker {
   }
 
   ask(var message, {String to}) {
-    var msg = {'to': (to != null) ? to : this.respondTo, 'message': message, 'replyTo': this.poolName};
+    var msg = {'to': (to != null) ? to : this.respondTo, 'message': message, 'replyTo': this.id};
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 
