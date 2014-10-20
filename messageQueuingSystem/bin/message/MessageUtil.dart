@@ -4,6 +4,7 @@ import '../action/Action.dart';
 
 
 class MessageUtil {
+
   static createEnqueueMessage(String targetQueue, var payload) {
     Map enqueueMessage = {'targetQueue':targetQueue, 'action':Action.ENQUEUE, 'payload':payload};
     return enqueueMessage;
@@ -12,6 +13,10 @@ class MessageUtil {
   static createDequeueMessage(String fromQueue) {
     Map dequeueMessage = {'targetQueue':fromQueue, 'action':Action.DEQUEUE};
     return dequeueMessage;
+  }
+
+  static getSenderType(Map message) {
+    return message.containsKey('senderType') ? message['senderType'] : null;
   }
 
   static getTargetQueue(Map message) {
@@ -24,5 +29,13 @@ class MessageUtil {
 
   static getPayload(Map message) {
     return message.containsKey('payload') ? message['payload'] : null;
+  }
+
+  static getTopic(Map message) {
+    return message.containsKey('topic') ? message['tpoic'] : null;
+  }
+
+  static bool isValidMessage(var message) {
+    return (message is Map);
   }
 }

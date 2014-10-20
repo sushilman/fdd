@@ -9,6 +9,7 @@ import 'dart:async';
 
 import "Mqs.dart";
 import "action/Action.dart";
+import "message/MessageUtil.dart";
 
 main(List<String> args, SendPort sendPort) {
   new Enqueuer(args, sendPort);
@@ -76,8 +77,8 @@ class Enqueuer {
   void _onReceive(var message) {
     _out("Enqueue Isolate: $message");
     if (message is Map) {
-      String topic = Mqs.TOPIC + "/" + message['topic'];
-      String action = message['action'];
+      String topic = Mqs.TOPIC + "/" + MessageUtil.getTopic(message);
+      String action = MessageUtil.getAction(message);
       String msg = message['message'];
 
       switch (action) {
@@ -90,6 +91,6 @@ class Enqueuer {
   }
 
   _out(text) {
-    //print(text);
+    print(text);
   }
 }

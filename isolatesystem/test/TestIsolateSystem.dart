@@ -6,10 +6,14 @@ import 'package:unittest/unittest.dart';
 import '../lib/IsolateSystem.dart';
 import '../lib/IsolateRef.dart';
 import '../lib/router/Router.dart';
+
+String EXPECTED_MESSAGE = "Test Message";
+
 main() {
   group('IsolateSystemTest', () {
     IsolateSystem system;
     IsolateRef testWorker;
+    
     setUp((){
 
     });
@@ -30,12 +34,14 @@ main() {
     });
 
     test('IsolateSystem Send Message test', () {
-      testWorker.sendDirect("Test");
+      testWorker.sendDirect(EXPECTED_MESSAGE);
     });
-//
-//    test('IsolateSystem Destruction test', () {
-//      system.kill(system);
-//    });
+
+    test('IsolateSystem Destruction test', () {
+      new Timer(const Duration(seconds:3), () {
+        system.kill();
+      });
+    });
 
     test('Message format test', () {
 

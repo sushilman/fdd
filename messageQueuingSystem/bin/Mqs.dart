@@ -50,12 +50,28 @@ import "message/MessageUtil.dart";
  * if this is not taken care of, each request from anywhere
  * will result in sending of messages only to latest connected socket
  *
+ */
+
+/**
+ * Incoming Message from IsolateSystem:
+ *  * Dequeue Message: {targetQueue: isolateSystem2.ping, action: action.dequeue}
  *
+ * Outgoing Message To Dequeuer:
+ *  * {action: action.dequeue, topic: isolateSystem2.ping, socket: 1033445818}
+ *
+ * Incoming Message from Dequeuer:
+ *  *
+ *
+ * Incoming Message From IsolateSystem:
+ *  * Enqueue Message:
+ *  {targetQueue: isolateSystem.helloPrinter, action: action.enqueue, payload: {message: My Message #4983, replyTo: isolateSystem.helloPrinter2}}
+ *
+ * Outgoing Message to Enqueuer:?
+ *  {targetQueue: isolateSystem.helloPrinter, action: action.enqueue, payload: {message: My Message #4983, replyTo: isolateSystem.helloPrinter2}}
  *
  */
 
 class Mqs {
-
   static const String LOCALHOST = "127.0.0.1";
   static const int RABBITMQ_DEFAULT_PORT = 61613;
 
@@ -67,14 +83,11 @@ class Mqs {
   //TODO: needs refactoring
 
   //TODO: persistent queue - "topic/name"?
-  //static const String TOPIC = "/queue/testA";
   static const String TOPIC = "/queue";
+
   static Map<String, String> HEADERS = null;//{'delivery-mode':'2'};//{'reply-to' : '/queue/test'};
 
   List<_Dequeuer> _dequeuers;
-
-//  ReceivePort receivePortEnqueue;
-//  ReceivePort receivePortDequeue;
 
   ReceivePort _receivePort;
   SendPort _enqueuerSendPort;
@@ -93,6 +106,9 @@ class Mqs {
   List<String> connectionArgs;
   List<_IsolateSystem> _connectedSystems;
 
+  List bufferMessagesToDequeuer;
+  List bufferMessagesToEnqueuer;
+
   Mqs({host:LOCALHOST, port:RABBITMQ_DEFAULT_PORT, username:DEFAULT_LOGIN, password:DEFAULT_PASSWORD}) {
     _subscribedTopics = new List();
     _receivePort = new ReceivePort();
@@ -100,6 +116,9 @@ class Mqs {
     _receivePort.listen(_onReceive);
     _dequeuers = new List();
     _connectedSystems = new List();
+
+    bufferMessagesToDequeuer = new List();
+    bufferMessagesToEnqueuer = new List();
 
     _out("Starting up enqueuer...");
     connectionArgs = [host, port, username, password];
@@ -111,34 +130,44 @@ class Mqs {
   _onReceive(var message) {
     _out("MQS: $message");
     if(message is Map) {
-      String senderType = message['senderType'];
+      String senderType = MessageUtil.getSenderType(message);
+
       switch(senderType) {
-        case Enqueuer.ENQUEUER:
-          _handleEnqueuerMessages(message['message']);
-          break;
-        case Dequeuer.DEQUEUER:
-          _handleDequeuerMessages(message);
-          break;
         case ISOLATE_SYSTEM:
-          _handleMessagesFromIsolateSystem(message);
+          _handleMessageFromIsolateSystem(message);
           break;
+
+        case Enqueuer.ENQUEUER:
+          _handleMessageFromEnqueuer(message['message']);
+          break;
+
+        case Dequeuer.DEQUEUER:
+          _handleMessageFromDequeuer(message);
+          break;
+
         default:
           break;
       }
     }
   }
 
+
   /**
-   * Expects message of type:
+   * Incoming message is of type: (from _onData)
    *
-   * Enqueue messsage => {'targetQueue':targetQueue, 'action':Action.ENQUEUE, 'payload':payload};
+   * For Dequeue (from _onData):
+   * {senderType:senderType.isolateSystem, isolateSystmeId: anySystem, message: {targetQueue: isolateSystem.helloPrinter, action: action.dequeue}}
    *
-   * Dequeue -> senderIsolate, senderSystem
+   * To Dequeuer:
+   *
+   * For Enqueue (from _onData):
+   *
+   * To Enqueuer:
    *
    */
-  _handleMessagesFromIsolateSystem(var fullMessage) {
+  _handleMessageFromIsolateSystem(var fullMessage) {
     var message = fullMessage['message'];
-    _out("MQS: handling External Messages $message");
+    _out("MQS: handling External Messages $fullMessage");
     String action = MessageUtil.getAction(message);
     String topic = MessageUtil.getTargetQueue(message);
     if(topic != null) {
@@ -146,31 +175,28 @@ class Mqs {
         case Action.DEQUEUE:
           String socket = fullMessage['socket'];
           String isolateSystemId = fullMessage['isolateSystemId'];
-          if(!_dequeue(isolateSystemId, topic, socket)) {
-            _me.send(fullMessage);
-          }
+          _dequeueMessage(isolateSystemId, topic, socket);
           break;
         case Action.ENQUEUE:
-          var payload = MessageUtil.getPayload(message);
-          if(!_enqueue(topic, payload)) {
-            _me.send(fullMessage);
-          }
+          var payload = MessageUtil.getPayload(fullMessage);
+          _enqueueMessage(topic, payload);
           break;
         default:
-          _out("Unknown action -> $action");
+          _out("MQS: Unknown Action -> $action");
       }
     } else {
-      _out("targetQueue is null");
+      _out("MQS: Topic | Target Queue is null");
     }
   }
 
-  _handleEnqueuerMessages(var message) {
+
+  _handleMessageFromEnqueuer(var message) {
     if(message is SendPort) {
       _enqueuerSendPort = message;
     }
   }
 
-  _handleDequeuerMessages(var message) {
+  _oldhandleDequeuerMessages(var message) {
     String topic = message['topic'];
     _Dequeuer dequeuer = _getDequeuerByTopic(topic);
 
@@ -214,11 +240,16 @@ class Mqs {
   }
 
   /**
-   * After client reconnects
-   * WebSocket needs to be updated !
+   * Simply adds hash of incoming socket, only if it is a dequeue request, to identify where to reply
    *
-   * on disconnect, remove isolateSystem itself and also from dequeuers
-   * on reconnect, add isolateSystem and also to dequeuers
+   * Receives message in format:
+   * {targetQueue: isolateSystem.helloPrinter, action: action.dequeue}
+   *
+   * Sends message to self in format:
+   * {senderType:senderType.isolateSystem, isolateSystmeId: anySystem, message: {targetQueue: isolateSystem.helloPrinter, action: action.dequeue}}
+   *
+   * Same for enqueue
+   *
    */
   _onData(WebSocket socket, String isolateSystemId, var msg) {
     var message = JSON.decode(msg);
@@ -247,7 +278,7 @@ class Mqs {
     return Isolate.spawnUri(dequeueIsolate, args, _receivePort.sendPort);
   }
 
-  bool _enqueue(String topic, String payload) {
+  bool _enqueueMessage(String topic, String payload) {
     _out("ENQ: $payload to $topic");
     Map msg = {'topic':topic, 'action':Action.ENQUEUE, 'message': payload};
     if(_enqueuerSendPort != null) {
@@ -257,26 +288,27 @@ class Mqs {
     return false;
   }
 
-  bool _dequeue(String systemId, String topic, String socket) {
-    _Dequeuer dequeuer = _getDequeuerByTopic(topic);
+  void _dequeueMessage(String systemId, String topic, String socket) {
+    Map messageForDequeuer = {'action':Action.DEQUEUE, 'topic':topic, 'socket':socket};
 
+    _Dequeuer dequeuer = _getDequeuerByTopic(topic);
     if(dequeuer == null) {
+
       dequeuer = new _Dequeuer(topic, systemId, _getIsolateSystemById(systemId));
       _dequeuers.add(dequeuer);
-      _out("HANDLE DQ: ${dequeuer.isolateSystem.id}");
-
       List temp  = new List();
       temp.addAll(connectionArgs);
       temp.add(topic);
 
       _startDequeuerIsolate(temp);
+      bufferMessagesToDequeuer.add(messageForDequeuer);
     } else if(dequeuer.sendPort != null) {
-      dequeuer.sendPort.send({'action':Action.DEQUEUE, 'topic':topic, 'socket':socket});
-      return true;
+      dequeuer.sendPort.send(messageForDequeuer);
+    } else {
+      bufferMessagesToDequeuer.add(messageForDequeuer);
     }
-
-    return false;
   }
+
 
   _Dequeuer _getDequeuerByTopic(String topic) {
     for(final _Dequeuer dequeuer in _dequeuers) {
@@ -332,7 +364,7 @@ class Mqs {
   }
 
   _out(String text) {
-    //print(text);
+    print(text);
   }
 }
 

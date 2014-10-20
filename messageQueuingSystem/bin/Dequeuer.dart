@@ -40,12 +40,12 @@ class Dequeuer {
   SendPort sendPort;
   SendPort me;
   int maxMessageBuffer = 1;
-  //int dequeueRequestsCount = 0;
   List<String> dequeueRequestsFrom;
 
   Map<String, String> bufferMailBox = new Map();
 
   static const String DEQUEUED = "action.dequeued";
+  
   static const String DEQUEUER = "senderType.dequeuer";
 
   bool bufferWillBeFilled = false;
@@ -136,7 +136,6 @@ class Dequeuer {
             'senderType':DEQUEUER, 'topic':topic, 'message':value, 'socket':dequeueRequestsFrom.removeAt(0)
         });
         client.ack(key);
-        //dequeueRequestsCount--;
       });
       bufferMailBox.clear();
     }
@@ -146,7 +145,6 @@ class Dequeuer {
     try {
       client.subscribeString("id_$topic", topic, _onData, ack:CLIENT_INDIVIDUAL);
       _out("Subscribed to $topic");
-      //me.send({'action':Mqs.DEQUEUE});
       subscribed = true;
       bufferWillBeFilled = false;
     } catch(e) {
@@ -161,7 +159,6 @@ class Dequeuer {
       String action = msg['action'];
       switch (action) {
         case Action.DEQUEUE:
-          //dequeueRequestsCount++;
           dequeueRequestsFrom.add(msg['socket']);
           _flushBuffer();
 
@@ -182,6 +179,6 @@ class Dequeuer {
   }
 
   _out(String text) {
-    //print(text);
+    print(text);
   }
 }

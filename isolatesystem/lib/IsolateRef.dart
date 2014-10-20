@@ -24,7 +24,7 @@ class IsolateRef {
   /// Bypass queue and send message directly
   sendDirect(var msg, {IsolateRef replyTo}) {
     Map message = {'message':msg, 'replyTo': (replyTo != null) ? replyTo._name : null};
-    _isolateSystemSendPort.send(MessageUtil.create(SenderType.SELF, null, Action.NONE, {'to': _name, 'message': message}));
+    _isolateSystemSendPort.send(MessageUtil.create(SenderType.DIRECT, null, Action.NONE, {'to': _name, 'message': message}));
     //_isolateSystemSendPort.send({'to': _name, 'message': message, 'replyTo': (replyTo != null) ? replyTo._name : null });
   }
 }

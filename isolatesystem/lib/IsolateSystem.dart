@@ -58,16 +58,24 @@ import 'IsolateRef.dart';
  * Incoming message format : {'senderType' : sender.External, 'id' : <id_of_sender>, 'action': Action.NONE, 'payload' : "Hello World"}
  *
  * Incoming message from MQS: {}
- * Incoming message from Controller : {}
- *
  * Outgoing message format to controller : {}
- * Outgoing message format for MQS : {}
+ *
+ * Incoming message from Controller :
+ * {senderType: senderType.controller, id: isolateSystem2/ping, action: action.pull, payload: null}
+ * Outgoing message format for MQS :
+ * {targetQueue: isolateSystem2.ping, action: action.dequeue}
+ *
+ * Incoming message from Controller:
+ * {senderType: senderType.controller, id: isolateSystem2/ping, action: action.reply, payload: {to: isolateSystem2/pong, message: {value: PING, count: 1}, replyTo: isolateSystem2/ping}}
+ * Outgoing message format for MQS
+ *
  */
 
 /**
- * Messages from :
+ * Messages can arrive from:
  *  1. MQS
  *  2. CONTROLLER
+ *  3. DIRECT via IsolateRef
  *
  */
 class IsolateSystem {
@@ -123,7 +131,7 @@ class IsolateSystem {
     }
 
     var message = {'name':name, 'uri':uri, 'workerPaths':workersPaths, 'routerUri':routerUri, 'hotDeployment':hotDeployment, 'args':args};
-    _me.send(MessageUtil.create(SenderType.SELF, _id, Action.ADD, message));
+    _me.send(MessageUtil.create(SenderType.DIRECT, _id, Action.SPAWN, message));
     return new IsolateRef(name, _me);
   }
 
@@ -133,12 +141,12 @@ class IsolateSystem {
    * including receivePorts and webSockets
    * and no Timers should be running
    */
-  void kill(IsolateSystem system) {
-    //_sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.KILL, null));
-    _me.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.KILL, null));
+  void kill() {
+    print("KILL message");
+    _me.send(MessageUtil.create(SenderType.DIRECT, _id, Action.KILL, null));
     _receivePort.close();
+    _mqsSocket.close();
     _isSystemKilled = true;
-    system = null;
   }
 
   _onReceive(message) {
@@ -148,75 +156,118 @@ class IsolateSystem {
       _flushBufferToController();
     } else if (MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
-      String senderId = MessageUtil.getId(message);
-      String action = MessageUtil.getAction(message);
-      var payload = MessageUtil.getPayload(message);
-
-      if (senderType == SenderType.CONTROLLER) {
-        _handleMessagesFromController(senderId, action, payload, message);
-      } else if (senderType == SenderType.SELF){
-        _handleOtherMessages(action, payload, senderType, message);
-      } else {
-        _handleExternalMessages(message);
+      switch(senderType) {
+        case SenderType.CONTROLLER:
+          _handleMessageFromController(message);
+          break;
+        case SenderType.MQS:
+          _handleMessageFromMQS(message);
+          break;
+        case SenderType.DIRECT:
+          _handleDirectMessage(message);
+          break;
+        default:
+          _out("IsolateSystem: Unknown Sender");
       }
     } else if (message is Exception) {
       _handleException(message);
     } else {
-      _handleExternalMessages(message);
       _out("IsolateSystem: Unknown message: $message");
     }
   }
 
-  _handleMessagesFromController(String senderId, String action, var payload, var fullMessage) {
+  /**
+   * Handle message arriving from MessageQueuingSystem
+   * i.e. Dequeued Messages
+   */
+  _handleMessageFromMQS(var message) {
+    _sendToController(message);
+  }
+
+  /**
+   * Handle message that controller sends
+   *   * SEND,ASK,REPLY - Enqueue Message
+   *   * PULL_MESSAGE - a Pull Request for new message
+   */
+  _handleMessageFromController(var message) {
+    String senderType = MessageUtil.getSenderType(message);
+    String senderId = MessageUtil.getId(message);
+    String action = MessageUtil.getAction(message);
+    var payload = MessageUtil.getPayload(message);
+
+    switch(action) {
+      case Action.DONE:
+      case Action.PULL_MESSAGE:
+        _sendToMqs(_pullMessage(senderId));
+        break;
+      case Action.SEND:
+      case Action.ASK:
+      case Action.REPLY:
+        _sendToMqs(_prepareEnqueueMessage(message));
+        break;
+      default:
+
+    }
+  }
+
+  /**
+   * Handle messages send directly via bootstrapper
+   *   * SPAWN - add isolate
+   *   * KILL - kill the isolateSystem
+   *   * NONE - a simple message that bypasses MQS
+   */
+  _handleDirectMessage(var message) {
+    String action = MessageUtil.getAction(message);
+    switch(action) {
+      case Action.SPAWN:
+      case Action.KILL:
+      case Action.NONE:
+        _sendToController(message);
+        break;
+      default:
+        print("IsolateSystem: (Direct Message Handler): Unknown Action -> $action");
+    }
+  }
+
+  _oldhandleMessagesFromController(String senderId, String action, var payload, var fullMessage) {
     switch (action) {
       case Action.CREATED:
       case Action.PULL_MESSAGE:
-        if(_mqsSocket != null)
-          _pullMessage(senderId);
-        else
-          _bufferMessagesToMqs.add(fullMessage);
-          //_me.send(fullMessage);
+        _sendToMqs(_pullMessage(senderId));
         break;
       case Action.REPLY:
-        if(_mqsSocket != null) {
           if (payload != null) {
-            _enqueueResponse(payload);
+            _sendToMqs(_prepareEnqueueMessage(payload));
           }
-        } else {
-          _bufferMessagesToMqs.add(fullMessage);
-          //_me.send(fullMessage);
-        }
+
         break;
-      case Action.RESTART_ALL:
-        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.RESTART_ALL, payload));
-        break;
+//      case Action.RESTART_ALL: // arrives from proxy worker // which probably should not reach here
+//        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.RESTART_ALL, payload));
+//        break;
       default:
         _out("IsolateSystem: Unknown Action: $action");
     }
   }
 
-  _handleOtherMessages(action, payload, senderType, fullMessage) {
+  _oldhandleMessagesFromMQS(String action, var fullMessage) {
     if(_sendPortOfController == null) {
       //_me.send(fullMessage);
       _bufferMessagesToController.add(fullMessage);
     } else {
       switch (action) {
-        case Action.ADD:
+        case Action.SPAWN:
           _out("IsolateSystem: ADD action with $payload");
-          _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.SPAWN, payload));
+          //_sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.SPAWN, payload));
+          _sendToController(fullMessage);
           break;
         case Action.NONE:
           _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.NONE, payload));
           break;
         case Action.DONE:
-          if(_mqsSocket != null) {
-            if (payload != null) {
-              _enqueueResponse(payload);
-            }
-          } else {
-            _bufferMessagesToMqs.add(fullMessage);
-            //_me.send(fullMessage);
+          if (payload != null) {
+            _sendToMqs(_prepareEnqueueMessage(payload));
           }
+
           break;
         default:
           _out("IsolateSystem: Unknown Sender: $senderType");
@@ -224,8 +275,22 @@ class IsolateSystem {
     }
   }
 
-  _handleExternalMessages(var message) {
-    _me.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, message));
+
+
+  _oldhandleDirectMessages(String action, var payload) {
+    //_me.send(MessageUtil.create(SenderType.DIRECT, _id, Action.NONE, message));
+    switch(action) {
+      case Action.SPAWN:
+        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.SPAWN, payload));
+        break;
+      case Action.KILL:
+        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.KILL, payload));
+        break;
+      case Action.NONE:
+        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.NONE, payload));
+        break;
+    }
+
   }
 
   _startController() {
@@ -263,20 +328,22 @@ class IsolateSystem {
     String isolateId = topic.replaceAll('.','/');
     Map payload = {'to':isolateId, 'message':decodedData['message']};
 
-    _me.send(MessageUtil.create(SenderType.SELF, _id, Action.NONE, payload));
+    _me.send(MessageUtil.create(SenderType.MQS, _id, Action.NONE, payload));
   }
 
   /**
-   * Pulls message from MessageQueuingSystem over websocket connection
+   * prepares a pulls message from MessageQueuingSystem over websocket connection
    */
   _pullMessage(String senderId) {
-    print("PULL MESSAGE by $senderId");
     String sourceIsolate = _getQueueFromIsolateId(senderId);
     Map dequeueMessage = MQSMessageUtil.createDequeueMessage(sourceIsolate);
-    _mqsSocket.add(JSON.encode(dequeueMessage));
+    _out("PULL MESSAGE $dequeueMessage");
+    return dequeueMessage;
   }
 
-  _enqueueResponse(Map message) {
+  _prepareEnqueueMessage(Map message) {
+    _out("Preparing enqueu message from ... $message");
+    message = message['payload'];
     String targetIsolate = (message.containsKey('to')) ? message['to'] : null;
 
     if(targetIsolate != null) {
@@ -285,20 +352,47 @@ class IsolateSystem {
       var payload = {'message':msg, 'replyTo':replyTo};
 
       String targetQueue = _getQueueFromIsolateId(targetIsolate);
-      var enqueueMessage = MQSMessageUtil.createEnqueueMessage(targetQueue, payload);
-      _mqsSocket.add(JSON.encode(enqueueMessage));
+      return MQSMessageUtil.createEnqueueMessage(targetQueue, payload);
     }
+    return null;
   }
 
   _flushBufferToController() {
     for(var msg in _bufferMessagesToController) {
-      _me.send(msg);
+      _sendToController(msg);
+      //_me.send(msg);
     }
   }
 
   _flushBufferToMqs() {
     for(var msg in _bufferMessagesToMqs) {
-      _me.send(msg);
+      _sendToMqs(msg);
+      //_me.send(msg);
+    }
+  }
+
+  _sendToController(var message) {
+    message = MessageUtil.setSenderType(SenderType.ISOLATE_SYSTEM, message);
+
+    if(_sendPortOfController != null) {
+      _sendPortOfController.send(message);
+    } else {
+      _bufferMessagesToController.add(message);
+    }
+  }
+
+  _forward(var message) {
+
+  }
+
+  _sendToMqs(var message) {
+    if(message == null) {
+      throw StackTrace;
+    }
+    if(_mqsSocket != null) {
+      _mqsSocket.add(JSON.encode(message));
+    } else {
+      _bufferMessagesToMqs.add(message);
     }
   }
 
