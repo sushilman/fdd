@@ -38,7 +38,7 @@ class Dequeuer {
   StompClient client;
   ReceivePort receivePort;
   SendPort sendPort;
-  SendPort me;
+  SendPort _me;
   int maxMessageBuffer = 1;
   List<String> dequeueRequestsFrom;
 
@@ -51,9 +51,9 @@ class Dequeuer {
   int connectToPort;
 
   Dequeuer(List<String> args, SendPort sendPort) {
-    _out("\n\nDequeuer Isolate Spawned !\n\n");
+    _log("\n\nDequeuer Isolate Spawned !\n\n");
     receivePort = new ReceivePort();
-    me = receivePort.sendPort;
+    _me = receivePort.sendPort;
     this.sendPort = sendPort;
     dequeueRequestsFrom = new List();
 
@@ -63,11 +63,11 @@ class Dequeuer {
     password = args[3];
     topic = args[4];
 
-    sendPort.send({'senderType':DEQUEUER, 'topic':topic, 'message': me});
+    sendPort.send({'senderType':DEQUEUER, 'topic':topic, 'payload': _me});
 
     _initConnection();
 
-    _out("Dequeuer Listening...");
+    _log("Dequeuer Listening...");
 
     receivePort.listen((msg) {
       _onReceive(msg);
@@ -75,7 +75,7 @@ class Dequeuer {
   }
 
   _reconnect() {
-    _out("Dequeuer: Reconnecting...");
+    _log("Dequeuer: Reconnecting...");
     new Timer(new Duration(seconds:3), () {
       _initConnection();
     });
@@ -88,7 +88,7 @@ class Dequeuer {
 
   void _onError([StompClient client, String message, String detail, Map<String, String> headers]) {
     bufferMailBox.clear();
-    _out("Error: $message \n $detail");
+    _log("Error: $message \n $detail");
     _reconnect();
   }
 
@@ -110,12 +110,12 @@ class Dequeuer {
    */
 
   _onData(Map<String, String> headers, String message) {
-    _out("Message from RabbitMQ: $message, HEADERS: $headers");
+    _log("Message from RabbitMQ: $message, HEADERS: $headers");
     var decodedMessage = JSON.decode(message);
     String key = headers["ack"];
     //send message to self to add it to buffer
-    me.send({
-        'key':key, 'topic':headers['destination'], 'action':DEQUEUED, 'message':decodedMessage
+    _me.send({
+        'key':key, 'topic':headers['destination'], 'action':DEQUEUED, 'payload':decodedMessage
     });
   }
 
@@ -125,10 +125,10 @@ class Dequeuer {
 
   _flushBuffer() {
     if(bufferMailBox.isNotEmpty) {
-      _out("\nFlushing buffer");
+      _log("\nFlushing buffer");
       bufferMailBox.forEach((key, value) {
         sendPort.send({
-            'senderType':DEQUEUER, 'topic':topic, 'message':value, 'socket':dequeueRequestsFrom.removeAt(0)
+            'senderType':DEQUEUER, 'topic':topic, 'payload':value, 'socket':dequeueRequestsFrom.removeAt(0)
         });
         client.ack(key);
       });
@@ -139,15 +139,15 @@ class Dequeuer {
   _subscribeMessage(String topic) {
     try {
       client.subscribeString("id_$topic", topic, _onData, ack:CLIENT_INDIVIDUAL);
-      _out("Subscribed to $topic");
+      _log("Subscribed to $topic");
     } catch(e) {
-      _out("May be already Subscribed $e");
+      _log("May be already Subscribed $e");
       //Already subscribed
     }
   }
 
   void _onReceive(msg) {
-    _out("Dequeue Isolate : $msg");
+    _log("Dequeue Isolate : $msg");
     if (msg is Map) {
       String action = msg['action'];
       switch (action) {
@@ -157,21 +157,21 @@ class Dequeuer {
 
           break;
         case DEQUEUED:
-          _out("RequestCount: ${dequeueRequestsFrom}");
-          bufferMailBox[msg['key']] = msg['message'];
+          _log("RequestCount: ${dequeueRequestsFrom}");
+          bufferMailBox[msg['key']] = msg['payload'];
           if(dequeueRequestsFrom.length > 0) {
             _flushBuffer();
           }
           break;
         default:
-          _out("Unknown message -> $msg");
+          _log("Unknown message -> $msg");
       }
     } else {
-      _out("Dequeuer: Bad message: $msg");
+      _log("Dequeuer: Bad message: $msg");
     }
   }
 
-  _out(String text) {
-    print(text);
+  _log(String text) {
+    //print(text);
   }
 }

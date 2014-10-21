@@ -44,7 +44,7 @@ class Controller {
       try {
         _onReceive(message);
       } catch (e, stackTrace) {
-        print ("Exception : $e, StackTrace: $stackTrace");
+        _log ("Exception : $e, StackTrace: $stackTrace");
         try {
           _sendPortOfIsolateSystem.send(e);
         } catch (e2, s2) {
@@ -229,7 +229,7 @@ class Controller {
   }
 
   _log(String text) {
-    print(text);
+    //print(text);
   }
 }
 

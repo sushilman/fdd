@@ -62,6 +62,8 @@ import "message/MessageUtil.dart";
  * Incoming Message from Dequeuer:
  *  *
  *
+ * Outgoing Message To Isolatesystem:
+ *
  * Incoming Message From IsolateSystem:
  *  * Enqueue Message:
  *  {targetQueue: isolateSystem.helloPrinter, action: action.enqueue, payload: {message: My Message #4983, replyTo: isolateSystem.helloPrinter2}}
@@ -191,7 +193,9 @@ class Mqs {
     }
   }
 
-
+  /**
+   * Message from Enqueuer is only SendPort
+   */
   _handleMessageFromEnqueuer(var message) {
     if(message is SendPort) {
       _enqueuerSendPort = message;
@@ -199,12 +203,20 @@ class Mqs {
     }
   }
 
+  /**
+   * Message From Dequeuer in Format:
+   * From Dequeuer:
+   * {senderType: senderType.dequeuer, topic: isolateSystem2.pong, payload: {message: {value: PING, count: 3}, replyTo: isolateSystem2/ping}, socket: 541578376}
+   *
+   */
   _handleMessageFromDequeuer(var message) {
+    _log("DDDD: $message");
     String topic = message['topic'];
     _Dequeuer dequeuer = _getDequeuerByTopic(topic);
+    var payload = MessageUtil.getPayload(message);
 
-    if(message['message'] is SendPort) {
-      dequeuer.sendPort = message['message'];
+    if(payload is SendPort) {
+      dequeuer.sendPort = payload;
       _flushBufferToDequeuer();
     } else {
       _log("${dequeuer.isolateSystem.sockets.keys} sockets in -> ${dequeuer.isolateSystem.id}");
@@ -213,14 +225,11 @@ class Mqs {
 
       if(dequeuer.isolateSystem.sockets.containsKey(key)) {
         message.remove('socket');
-
-        dequeuer.isolateSystem.sockets[key].add(
-          JSON.encode(message)
-        );
+        dequeuer.isolateSystem.sockets[key].add(JSON.encode(message));
       } else {
         // re-queue the message because requester is no longer available
-        _log("Requeuing ${message['message']} because ${message['socket']} was not available");
-        Map msg = {'topic':topic, 'action':Action.ENQUEUE, 'payload': message['message']};
+        _log("Requeuing $message because ${message['socket']} was not available");
+        Map msg = {'topic':topic, 'action':Action.ENQUEUE, 'payload': payload};
         _enqueueMessage(msg, message);
       }
     }
@@ -384,7 +393,7 @@ class Mqs {
   }
 
   _log(String text) {
-    print(text);
+    //print(text);
   }
 }
 

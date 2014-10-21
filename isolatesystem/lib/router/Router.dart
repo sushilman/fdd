@@ -75,7 +75,7 @@ abstract class Router {
     if(args[2] is List) {
       _workersPaths = args[2];
     } else {
-      print("Bad argument type");
+      _log("Bad argument type");
       _workersPaths = JSON.decode(args[2]);
     }
 
@@ -91,7 +91,7 @@ abstract class Router {
   Worker selectWorker();
 
   _onReceive(var message) {
-    _out("Router: $message");
+    _log("Router: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
@@ -109,10 +109,10 @@ abstract class Router {
           _handleMessageFromWorker(action, senderId, payload, message);
           break;
         default:
-          _out("Router: Unknown Sender Type -> $senderType, so discarding $message");
+          _log("Router: Unknown Sender Type -> $senderType, so discarding $message");
       }
     } else {
-      _out ("Router: Unknown message: $message");
+      _log ("Router: Unknown message: $message");
     }
   }
 
@@ -146,7 +146,7 @@ abstract class Router {
         }
         break;
       default:
-        _out("Router: Unknown action from Controller -> $action");
+        _log("Router: Unknown action from Controller -> $action");
     }
   }
 
@@ -155,10 +155,10 @@ abstract class Router {
       case Action.CREATED:
         Worker worker = _getWorkerById(senderId);
         if(worker == null) {
-          _out("Worker still NULL so sending same message to self, bad senderId/workerId?");
+          _log("Worker still NULL so sending same message to self, bad senderId/workerId?");
           _me.send(fullMessage);
         } else {
-          _out("Router: Assigning sendport");
+          _log("Router: Assigning sendport");
           worker.sendPort = payload;
           _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.CREATED, null));
         }
@@ -173,7 +173,7 @@ abstract class Router {
         }
         break;
       default:
-        _out("Router: Unknown Action -> $action");
+        _log("Router: Unknown Action -> $action");
     }
   }
 
@@ -265,8 +265,8 @@ abstract class Router {
     workers.remove(w);
   }
 
-  _out(String text) {
-    print(text);
+  _log(String text) {
+    //print(text);
   }
 
 }

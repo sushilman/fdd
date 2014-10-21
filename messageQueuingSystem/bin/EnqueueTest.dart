@@ -10,7 +10,7 @@ import "action/Action.dart";
 import "message/MessageUtil.dart";
 
 void main() {
-  WebSocket.connect("ws://localhost:42043/mqs/anySystem").then(_handleWebSocket).catchError(_onError);
+  WebSocket.connect("ws://localhost:42043/mqs/isolateSystem").then(_handleWebSocket).catchError(_onError);
 }
 
 _handleWebSocket(WebSocket socket) {
@@ -20,7 +20,7 @@ _handleWebSocket(WebSocket socket) {
   String targetQueue = "isolateSystem.helloPrinter5";
   new Timer.periodic(const Duration(microseconds:1),(t) {
     Map payload = {
-        'message': 'My Message #${counter++}', 'replyTo':replyTo
+        'sender': 'isolateSystem/helloPrinter', 'message': 'My Message #${counter++}', 'replyTo':replyTo
     };
 
     var enqueueMessage = MessageUtil.createEnqueueMessage(targetQueue, payload);

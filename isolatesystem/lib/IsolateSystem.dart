@@ -66,8 +66,9 @@ import 'IsolateRef.dart';
  * {targetQueue: isolateSystem2.ping, action: action.dequeue}
  *
  * Incoming message from Controller:
- * {senderType: senderType.controller, id: isolateSystem2/ping, action: action.reply, payload: {to: isolateSystem2/pong, message: {value: PING, count: 1}, replyTo: isolateSystem2/ping}}
+ * {senderType: senderType.controller, id: isolateSystem2/ping, action: action.reply, payload: {sender:isolateSystem2/ping, to: isolateSystem2/pong, message: {value: PING, count: 1}, replyTo: isolateSystem2/ping}}
  * Outgoing message format for MQS
+ * {targetQueue: isolateSystem.helloPrinter, action: action.enqueue, payload:{sender:isolateSystem2/ping, to: isolateSystem2/pong, message: {value: PING, count: 1}, replyTo: isolateSystem2/ping}}
  *
  */
 
@@ -142,7 +143,7 @@ class IsolateSystem {
    * and no Timers should be running
    */
   void kill() {
-    print("KILL message");
+    _log("KILL message");
     _me.send(MessageUtil.create(SenderType.DIRECT, _id, Action.KILL, null));
     _receivePort.close();
     _mqsSocket.close();
@@ -225,7 +226,7 @@ class IsolateSystem {
         _sendToController(message);
         break;
       default:
-        print("IsolateSystem: (Direct Message Handler): Unknown Action -> $action");
+        _log("IsolateSystem: (Direct Message Handler): Unknown Action -> $action");
     }
   }
 
@@ -256,13 +257,25 @@ class IsolateSystem {
     _flushBufferToMqs();
   }
 
+  /**
+   * Incoming Message from MQS:
+   * {senderType: senderType.dequeuer, topic: isolateSystem2.pong, payload: {message: {value: PING, count: 267}, replyTo: isolateSystem2/ping}}
+   *
+   * Outgoing Message to IsolateSystem:
+   * {senderType: senderType.mqs, id: isolateSystem2,
+   *  action: action.none,
+   *  payload: {to: isolateSystem2/pong,
+   *            message: {message: {value: PING, count: 267},
+   *            replyTo: isolateSystem2/ping}}}
+   */
   _onDataFromMqs(var data) {
     var decodedData = JSON.decode(data);
     _log("Message Arrived from MQS: ${decodedData}");
     String topic = decodedData['topic'];
-    String isolateName = topic.split('.').last;
+    //String isolateName = topic.split('.').last;
     String isolateId = topic.replaceAll('.','/');
-    Map payload = {'to':isolateId, 'message':decodedData['message']};
+
+    Map payload = {'to':isolateId, 'message':decodedData['payload']};
 
     _me.send(MessageUtil.create(SenderType.MQS, _id, Action.NONE, payload));
   }
@@ -311,10 +324,10 @@ class IsolateSystem {
     message = MessageUtil.setSenderType(SenderType.ISOLATE_SYSTEM, message);
 
     if(_sendPortOfController != null) {
-      print("sending via sendport: $message");
+      _log("sending via sendport: $message");
       _sendPortOfController.send(message);
     } else {
-      print("Sending to buffer : $message");
+      _log("Sending to buffer : $message");
       _bufferMessagesToController.add(message);
     }
   }
@@ -348,11 +361,11 @@ class IsolateSystem {
   }
 
   void _handleException(e) {
-    print("Exception caught by IsolateSystem $e");
+    _log("Exception caught by IsolateSystem $e");
   }
 
   _log(String text) {
-    print(text);
+    //print(text);
   }
 
   String get id => _id;

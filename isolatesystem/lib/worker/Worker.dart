@@ -17,6 +17,8 @@ abstract class Worker {
   /// Name is the name of the pool of isolate this isolate belongs to, i.e. router name
   String _poolName;
   String _deployedPath;
+
+  String sender;
   String respondTo; // could be sender or some other isolate
 
   static const String TO = 'to';
@@ -32,7 +34,7 @@ abstract class Worker {
     _deployedPath;
     if(args.length > 1) {
       _deployedPath = args.removeAt(0);
-      _out("PATH - $_deployedPath");
+      _log("PATH - $_deployedPath");
     }
 
     args = _extractExtraArguments(args);
@@ -59,14 +61,20 @@ abstract class Worker {
   }
 
   _onReceive(var message) {
-    _out("Worker $id: $message");
+    _log("Worker $id: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
       String action = MessageUtil.getAction(message);
       var payload = MessageUtil.getPayload(message);
-      if(payload is Map && payload[MESSAGE].containsKey('replyTo')) {
+      if(payload is Map && payload[MESSAGE].containsKey('sender')) {
+        sender = payload[MESSAGE]['sender'];
+      }
+      if(payload is Map && payload[MESSAGE].containsKey(Worker.REPLY_TO)) {
         respondTo = payload[MESSAGE][Worker.REPLY_TO];
+      }
+      if(respondTo == null) {
+        respondTo = sender;
       }
 
       switch(action) {
@@ -77,10 +85,10 @@ abstract class Worker {
           onReceive(payload[MESSAGE][MESSAGE]);
           break;
         default:
-          _out("Worker: unknown action -> $action");
+          _log("Worker: unknown action -> $action");
       }
     } else {
-      _out("Worker: WARNING: incorrect message format, but still forwarding $message");
+      _log("Worker: WARNING: incorrect message format, but still forwarding $message");
       onReceive(message);
     }
 
@@ -111,18 +119,29 @@ abstract class Worker {
    * respondTo is the isolate set as replyTo be original sender
    */
   send(var message, String to, {String replyTo}) {
-    var msg = {'to': (to != null) ? to : this.respondTo, 'message': message, 'replyTo': replyTo};
+    var msg = {'sender':this.poolName,
+               'to': (to != null) ? to : this.respondTo,
+               'message': message,
+               'replyTo': replyTo};
+
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 
   reply(var message, {String replyTo}) {
-    var msg = {'to': this.respondTo, 'message': message, 'replyTo': replyTo};
+    var msg = {'sender':this.poolName,
+               'to': this.respondTo,
+               'message': message,
+               'replyTo': replyTo};
+
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 
   ask(var message, {String to}) {
-    //var msg = {'to': (to != null) ? to : this.respondTo, 'message': message, 'replyTo': this.id};
-    var msg = {'to': (to != null) ? to : this.respondTo, 'message': message, 'replyTo': this.poolName};
+    var msg = {'sender':this.poolName,
+               'to': (to != null) ? to : this.respondTo,
+               'message': message,
+               'replyTo': this.poolName};
+
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 
@@ -145,7 +164,7 @@ abstract class Worker {
     return args;
   }
 
-  _out(String text){
-    print(text);
+  _log(String text){
+    //print(text);
   }
 }
