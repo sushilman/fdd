@@ -120,7 +120,7 @@ class Mqs {
     _bufferMessagesToDequeuer = new List();
     _bufferMessagesToEnqueuer = new List();
 
-    _out("Starting up enqueuer...");
+    _log("Starting up enqueuer...");
     connectionArgs = [host, port, username, password];
     _startEnqueuerIsolate(connectionArgs);
 
@@ -128,7 +128,7 @@ class Mqs {
   }
 
   _onReceive(var message) {
-    _out("MQS: $message");
+    _log("MQS: $message");
     if(message is Map) {
       String senderType = MessageUtil.getSenderType(message);
 
@@ -168,7 +168,7 @@ class Mqs {
    */
   _handleMessageFromIsolateSystem(Map fullMessage) {
     var message = fullMessage['message'];
-    _out("MQS: handling External Messages $fullMessage");
+    _log("MQS: handling External Messages $fullMessage");
 
     String action = MessageUtil.getAction(message);
     String topic = MessageUtil.getTargetQueue(message);
@@ -184,10 +184,10 @@ class Mqs {
           _enqueueMessage(msg, fullMessage);
           break;
         default:
-          _out("MQS: Unknown Action -> $action");
+          _log("MQS: Unknown Action -> $action");
       }
     } else {
-      _out("MQS: Topic | Target Queue is null");
+      _log("MQS: Topic | Target Queue is null");
     }
   }
 
@@ -207,7 +207,7 @@ class Mqs {
       dequeuer.sendPort = message['message'];
       _flushBufferToDequeuer();
     } else {
-      _out("${dequeuer.isolateSystem.sockets.keys} sockets in -> ${dequeuer.isolateSystem.id}");
+      _log("${dequeuer.isolateSystem.sockets.keys} sockets in -> ${dequeuer.isolateSystem.id}");
       String key = message['socket'].toString();
 
 
@@ -219,7 +219,7 @@ class Mqs {
         );
       } else {
         // re-queue the message because requester is no longer available
-        _out("Requeuing ${message['message']} because ${message['socket']} was not available");
+        _log("Requeuing ${message['message']} because ${message['socket']} was not available");
         Map msg = {'topic':topic, 'action':Action.ENQUEUE, 'payload': message['message']};
         _enqueueMessage(msg, message);
       }
@@ -258,7 +258,7 @@ class Mqs {
    */
   _onData(WebSocket socket, String isolateSystemId, var msg) {
     var message = JSON.decode(msg);
-    _out("MQS: ondata -> $message");
+    _log("MQS: ondata -> $message");
     _me.send({'senderType':ISOLATE_SYSTEM, 'isolateSystemId':isolateSystemId, 'socket':socket.hashCode.toString(), 'message':message});
   }
 
@@ -276,7 +276,7 @@ class Mqs {
   }
 
   void _enqueueMessage(Map message, Map fullMessage) {
-    _out("MQS: Enqueuing message -> ${message['payload']} to ${message['topic']}");
+    _log("MQS: Enqueuing message -> ${message['payload']} to ${message['topic']}");
 
     if(_enqueuerSendPort != null) {
       _enqueuerSendPort.send(message);
@@ -288,7 +288,7 @@ class Mqs {
   //
   void _dequeueMessage(String systemId, String topic, String socket, Map fullMessage) {
     Map messageForDequeuer = {'action':Action.DEQUEUE, 'topic':topic, 'socket':socket};
-    print("MQS: Dequeuing -> $messageForDequeuer");
+    _log("MQS: Dequeuing -> $messageForDequeuer");
     if(messageForDequeuer['topic'] == null)
       throw StackTrace;
     _Dequeuer dequeuer = _getDequeuerByTopic(topic);
@@ -309,13 +309,15 @@ class Mqs {
   }
 
   void _flushBufferToEnqueuer() {
-    for(int i = 0; i < _bufferMessagesToEnqueuer.length; i++) {
+    int len = _bufferMessagesToEnqueuer.length;
+    for(int i = 0; i < len; i++) {
       _me.send(_bufferMessagesToEnqueuer.removeAt(0));
     }
   }
 
   void _flushBufferToDequeuer() {
-    for(int i = 0; i < _bufferMessagesToDequeuer.length; i++) {
+    int len = _bufferMessagesToDequeuer.length;
+    for(int i = 0; i < len; i++) {
       _me.send(_bufferMessagesToDequeuer.removeAt(0));
     }
   }
@@ -376,13 +378,13 @@ class Mqs {
 
   _updateIsolateSystemInDequeuers(_IsolateSystem system) {
     for(_Dequeuer dequeuer in _getDequeuersByIsolateSystemId(system.id)) {
-      _out("Updating socket for ${dequeuer.topic} of $system");
+      _log("Updating socket for ${dequeuer.topic} of $system");
       dequeuer.system = system;
     }
   }
 
-  _out(String text) {
-    //print(text);
+  _log(String text) {
+    print(text);
   }
 }
 

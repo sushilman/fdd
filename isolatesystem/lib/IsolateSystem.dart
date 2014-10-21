@@ -150,7 +150,7 @@ class IsolateSystem {
   }
 
   _onReceive(message) {
-    _out("IsolateSystem: $message");
+    _log("IsolateSystem: $message");
     if(message is SendPort) {
       _sendPortOfController = message;
       _flushBufferToController();
@@ -167,12 +167,12 @@ class IsolateSystem {
           _handleDirectMessage(message);
           break;
         default:
-          _out("IsolateSystem: Unknown Sender");
+          _log("IsolateSystem: Unknown Sender");
       }
     } else if (message is Exception) {
       _handleException(message);
     } else {
-      _out("IsolateSystem: Unknown message: $message");
+      _log("IsolateSystem: Unknown message: $message");
     }
   }
 
@@ -235,7 +235,7 @@ class IsolateSystem {
     Isolate.spawnUri(Uri.parse(controllerUri), ["controller"], _receivePort.sendPort)
     .then((controller) {
       _controllerIsolate = controller;
-      controller.errors.handleError((_){_out("error handled");});
+      controller.errors.handleError((_){_log("error handled");});
     });
   }
 
@@ -243,7 +243,7 @@ class IsolateSystem {
     if(!_isSystemKilled) {
       WebSocket.connect(path).then(_handleMqsWebSocket).catchError((_) {
         new Timer(new Duration(seconds:3), () {
-          _out("Retrying...");
+          _log("Retrying...");
           _connectToMqs(path);
         });
       });
@@ -258,7 +258,7 @@ class IsolateSystem {
 
   _onDataFromMqs(var data) {
     var decodedData = JSON.decode(data);
-    _out("Message Arrived from MQS: ${decodedData}");
+    _log("Message Arrived from MQS: ${decodedData}");
     String topic = decodedData['topic'];
     String isolateName = topic.split('.').last;
     String isolateId = topic.replaceAll('.','/');
@@ -273,12 +273,12 @@ class IsolateSystem {
   _pullMessage(String senderId) {
     String sourceIsolate = _getQueueFromIsolateId(senderId);
     Map dequeueMessage = MQSMessageUtil.createDequeueMessage(sourceIsolate);
-    _out("PULL MESSAGE $dequeueMessage");
+    _log("PULL MESSAGE $dequeueMessage");
     return dequeueMessage;
   }
 
   _prepareEnqueueMessage(Map message) {
-    _out("Preparing enqueu message from ... $message");
+    _log("Preparing enqueu message from ... $message");
     message = message['payload'];
     String targetIsolate = (message.containsKey('to')) ? message['to'] : null;
 
@@ -294,13 +294,15 @@ class IsolateSystem {
   }
 
   _flushBufferToController() {
-    for(int i = 0; i < _bufferMessagesToController.length; i++) {
+    int len = _bufferMessagesToController.length;
+    for(int i = 0; i < len; i++) {
       _sendToController(_bufferMessagesToController.removeAt(0));
     }
   }
 
   _flushBufferToMqs() {
-    for(int i = 0; i < _bufferMessagesToMqs.length; i++) {
+    int len = _bufferMessagesToController.length;
+    for(int i = 0; i < len; i++) {
       _sendToMqs(_bufferMessagesToMqs.removeAt(0));
     }
   }
@@ -309,8 +311,10 @@ class IsolateSystem {
     message = MessageUtil.setSenderType(SenderType.ISOLATE_SYSTEM, message);
 
     if(_sendPortOfController != null) {
+      print("sending via sendport: $message");
       _sendPortOfController.send(message);
     } else {
+      print("Sending to buffer : $message");
       _bufferMessagesToController.add(message);
     }
   }
@@ -347,7 +351,7 @@ class IsolateSystem {
     print("Exception caught by IsolateSystem $e");
   }
 
-  _out(String text) {
+  _log(String text) {
     print(text);
   }
 

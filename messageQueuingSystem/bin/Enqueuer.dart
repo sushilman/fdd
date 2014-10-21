@@ -43,11 +43,11 @@ class Enqueuer {
 
   _handleStompClient(StompClient stompClient) {
     client = stompClient;
-    _out("Enqueuer: Connected!");
+    _log("Enqueuer: Connected!");
   }
 
   _reconnect() {
-    _out("Enqueuer: Reconnecting...");
+    _log("Enqueuer: Reconnecting...");
     new Timer(new Duration(seconds:3), () {
       _initConnection();
     });
@@ -68,14 +68,14 @@ class Enqueuer {
   bool _enqueueMessage(String topic, String message, {Map<String, String> headers}) {
     if(client != null) {
       client.sendString(topic, JSON.encode(message), headers: headers);
-      _out("Message sent successfully from enqueuer to rabbitmq via stomp...");
+      _log("Message sent successfully from enqueuer to rabbitmq via stomp...");
       return true;
     }
     return false;
   }
 
   void _onReceive(var message) {
-    _out("Enqueue Isolate: $message");
+    _log("Enqueue Isolate: $message");
     if (message is Map) {
       String topic = Mqs.TOPIC + "/" + MessageUtil.getTopic(message);
       String action = MessageUtil.getAction(message);
@@ -83,14 +83,14 @@ class Enqueuer {
 
       switch (action) {
         case Action.ENQUEUE:
-          _out("Enqueue $message with headers: ${Mqs.HEADERS} to topic ${topic} in message_broker_system");
+          _log("Enqueue $message with headers: ${Mqs.HEADERS} to topic ${topic} in message_broker_system");
           _enqueueMessage(topic, message['payload'], headers:Mqs.HEADERS);
           break;
       }
     }
   }
 
-  _out(text) {
+  _log(text) {
     print(text);
   }
 }

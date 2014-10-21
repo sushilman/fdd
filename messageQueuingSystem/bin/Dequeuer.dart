@@ -45,12 +45,7 @@ class Dequeuer {
   Map<String, String> bufferMailBox = new Map();
 
   static const String DEQUEUED = "action.dequeued";
-  
   static const String DEQUEUER = "senderType.dequeuer";
-
-  bool bufferWillBeFilled = false;
-  bool subscribed = false;
-  bool clearBuffer = false;
 
   String host, username, password, topic;
   int connectToPort;
@@ -145,8 +140,6 @@ class Dequeuer {
     try {
       client.subscribeString("id_$topic", topic, _onData, ack:CLIENT_INDIVIDUAL);
       _out("Subscribed to $topic");
-      subscribed = true;
-      bufferWillBeFilled = false;
     } catch(e) {
       _out("May be already Subscribed $e");
       //Already subscribed

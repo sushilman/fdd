@@ -56,7 +56,7 @@ class Controller {
 
   _onReceive(message) {
     //return new Future(() {
-      _out("Controller: $message");
+      _log("Controller: $message");
       if (MessageUtil.isValidMessage(message)) {
         String senderType = MessageUtil.getSenderType(message);
         String senderId = MessageUtil.getId(message);
@@ -74,10 +74,10 @@ class Controller {
             _handleMessagesFromFileMonitor(senderId, action, payload);
             break;
           default:
-            _out("Controller: Unknown Sender Type -> $senderType");
+            _log("Controller: Unknown Sender Type -> $senderType");
         }
       } else {
-        _out("Controller: Unknown message: $message");
+        _log("Controller: Unknown message: $message");
       }
     //});
   }
@@ -124,7 +124,7 @@ class Controller {
             router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload));
           }
         } else {
-          _out("Controller: Destination Isolate unknown !");
+          _log("Controller: Destination Isolate unknown !");
         }
         break;
       case Action.KILL:
@@ -135,7 +135,7 @@ class Controller {
         _receivePort.close();
         break;
       default:
-        _out("Controller: Unknown Action from System -> $action");
+        _log("Controller: Unknown Action from System -> $action");
     }
   }
 
@@ -177,7 +177,7 @@ class Controller {
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           break;
         default:
-          _out("Controller: Unknown Action from Router: $action");
+          _log("Controller: Unknown Action from Router: $action");
           break;
       }
     }
@@ -228,7 +228,7 @@ class Controller {
     return null;
   }
 
-  _out(String text) {
+  _log(String text) {
     print(text);
   }
 }
