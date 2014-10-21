@@ -229,70 +229,6 @@ class IsolateSystem {
     }
   }
 
-  _oldhandleMessagesFromController(String senderId, String action, var payload, var fullMessage) {
-    switch (action) {
-      case Action.CREATED:
-      case Action.PULL_MESSAGE:
-        _sendToMqs(_pullMessage(senderId));
-        break;
-      case Action.REPLY:
-          if (payload != null) {
-            _sendToMqs(_prepareEnqueueMessage(payload));
-          }
-
-        break;
-//      case Action.RESTART_ALL: // arrives from proxy worker // which probably should not reach here
-//        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.RESTART_ALL, payload));
-//        break;
-      default:
-        _out("IsolateSystem: Unknown Action: $action");
-    }
-  }
-
-  _oldhandleMessagesFromMQS(String action, var fullMessage) {
-    if(_sendPortOfController == null) {
-      //_me.send(fullMessage);
-      _bufferMessagesToController.add(fullMessage);
-    } else {
-      switch (action) {
-        case Action.SPAWN:
-          _out("IsolateSystem: ADD action with $payload");
-          //_sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.SPAWN, payload));
-          _sendToController(fullMessage);
-          break;
-        case Action.NONE:
-          _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.NONE, payload));
-          break;
-        case Action.DONE:
-          if (payload != null) {
-            _sendToMqs(_prepareEnqueueMessage(payload));
-          }
-
-          break;
-        default:
-          _out("IsolateSystem: Unknown Sender: $senderType");
-      }
-    }
-  }
-
-
-
-  _oldhandleDirectMessages(String action, var payload) {
-    //_me.send(MessageUtil.create(SenderType.DIRECT, _id, Action.NONE, message));
-    switch(action) {
-      case Action.SPAWN:
-        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.SPAWN, payload));
-        break;
-      case Action.KILL:
-        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.KILL, payload));
-        break;
-      case Action.NONE:
-        _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, _id, Action.NONE, payload));
-        break;
-    }
-
-  }
-
   _startController() {
     String curDir = dirname(Platform.script.toString());
     String controllerUri = curDir + "/packages/isolatesystem/controller/Controller.dart";
@@ -358,16 +294,14 @@ class IsolateSystem {
   }
 
   _flushBufferToController() {
-    for(var msg in _bufferMessagesToController) {
-      _sendToController(msg);
-      //_me.send(msg);
+    for(int i = 0; i < _bufferMessagesToController.length; i++) {
+      _sendToController(_bufferMessagesToController.removeAt(0));
     }
   }
 
   _flushBufferToMqs() {
-    for(var msg in _bufferMessagesToMqs) {
-      _sendToMqs(msg);
-      //_me.send(msg);
+    for(int i = 0; i < _bufferMessagesToMqs.length; i++) {
+      _sendToMqs(_bufferMessagesToMqs.removeAt(0));
     }
   }
 

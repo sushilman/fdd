@@ -16,9 +16,9 @@ void main() {
 _handleWebSocket(WebSocket socket) {
   socket.listen(_onData, onError:_onError, onDone:_onDisconnect);
   int counter = 0;
-  String replyTo = "isolateSystem.helloPrinter2";
-  String targetQueue = "isolateSystem.helloPrinter";
-  new Timer.periodic(const Duration(seconds:0.00001),(t) {
+  String replyTo = "isolateSystem.helloPrinter";
+  String targetQueue = "isolateSystem.helloPrinter5";
+  new Timer.periodic(const Duration(microseconds:1),(t) {
     Map payload = {
         'message': 'My Message #${counter++}', 'replyTo':replyTo
     };

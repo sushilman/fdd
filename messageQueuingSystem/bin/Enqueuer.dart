@@ -27,7 +27,7 @@ class Enqueuer {
   Enqueuer(List<String> args, SendPort sendPort) {
     ReceivePort receivePort = new ReceivePort();
     sendPort.send({
-        'senderType':ENQUEUER, 'message': receivePort.sendPort
+        'senderType':ENQUEUER, 'payload': receivePort.sendPort
     });
 
     host = args[0];
@@ -79,12 +79,12 @@ class Enqueuer {
     if (message is Map) {
       String topic = Mqs.TOPIC + "/" + MessageUtil.getTopic(message);
       String action = MessageUtil.getAction(message);
-      String msg = message['message'];
+      String msg = message['payload'];
 
       switch (action) {
         case Action.ENQUEUE:
           _out("Enqueue $message with headers: ${Mqs.HEADERS} to topic ${topic} in message_broker_system");
-          _enqueueMessage(topic, message['message'], headers:Mqs.HEADERS);
+          _enqueueMessage(topic, message['payload'], headers:Mqs.HEADERS);
           break;
       }
     }

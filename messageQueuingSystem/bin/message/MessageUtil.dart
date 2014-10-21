@@ -32,7 +32,7 @@ class MessageUtil {
   }
 
   static getTopic(Map message) {
-    return message.containsKey('topic') ? message['tpoic'] : null;
+    return message.containsKey('topic') ? message['topic'] : null;
   }
 
   static bool isValidMessage(var message) {
