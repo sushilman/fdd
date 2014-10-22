@@ -140,7 +140,7 @@ abstract class Worker {
     var msg = {'sender':this.poolName,
                'to': (to != null) ? to : this.respondTo,
                'message': message,
-               'replyTo': this.poolName};
+               'replyTo': this.id};
 
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }

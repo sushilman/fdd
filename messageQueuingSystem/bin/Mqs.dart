@@ -37,7 +37,7 @@ import "message/MessageUtil.dart";
  * If a connection with rabbitmq is lost, the buffer should be cleared immediately,
  * so that a message is not delivered twice even if was not ack'ed
  *
- * Assumes that an Isolate System connects to "ws://<ip>/mqs/<isolateSystemId>"
+ * Assumes that an Isolate System connects to "ws://<ip>/mqs/<isolateSystemName>"
  *
  *  == some thoughts ==> RESOLVED !
  * What if there are many instances of same isolate system running in different servers
@@ -160,10 +160,10 @@ class Mqs {
    * {senderType:senderType.isolateSystem, isolateSystmeId: anySystem, socket:12345, message: {targetQueue: isolateSystem.helloPrinter, action: action.dequeue}}
    *
    * To Dequeuer:
-   * {'action':action.dequeue, 'topic':isolateSystem.helloPrinter, 'socket':12345}
+   * {'action':action.dequeue, 'topic':isolateSystem.helloPrinter, 'isolateSystemId':12345}
    *
    * Incoming message for Enqueue (from _onData):
-   * {senderType: senderType.isolateSystem, isolateSystemId: anySystem, socket: 314505237, message: {targetQueue: isolateSystem.helloPrinter, payload: {message: My Message #1497, replyTo: isolateSystem.helloPrinter2}, action: action.enqueue}}
+   * {senderType: senderType.isolateSystem, isolateSystemName: anySystem, socket: 314505237, message: {targetQueue: isolateSystem.helloPrinter, payload: {message: My Message #1497, replyTo: isolateSystem.helloPrinter2}, action: action.enqueue}}
    *
    * To Enqueuer:
    * {'topic':topic, 'action':Action.ENQUEUE, 'payload': {message: My Message #1497, replyTo: isolateSystem.helloPrinter2}};
@@ -177,9 +177,9 @@ class Mqs {
     if(topic != null) {
       switch(action) {
         case Action.DEQUEUE:
-          String socket = fullMessage['socket'];
           String isolateSystemId = fullMessage['isolateSystemId'];
-          _dequeueMessage(isolateSystemId, topic, socket, fullMessage);
+          String isolateSystemName = fullMessage['isolateSystemName'];
+          _dequeueMessage(isolateSystemName, topic, isolateSystemId, fullMessage);
           break;
         case Action.ENQUEUE:
           Map msg = {'topic':topic, 'action':Action.ENQUEUE, 'payload': MessageUtil.getPayload(message)};
@@ -219,16 +219,16 @@ class Mqs {
       dequeuer.sendPort = payload;
       _flushBufferToDequeuer();
     } else {
-      _log("${dequeuer.isolateSystem.sockets.keys} sockets in -> ${dequeuer.isolateSystem.id}");
-      String key = message['socket'].toString();
+      _log("${dequeuer.isolateSystem.sockets.keys} sockets in -> ${dequeuer.isolateSystem.name}");
+      String key = message['isolateSystemId'];
 
 
       if(dequeuer.isolateSystem.sockets.containsKey(key)) {
-        message.remove('socket');
+        message.remove('isolateSystemId');
         dequeuer.isolateSystem.sockets[key].add(JSON.encode(message));
       } else {
         // re-queue the message because requester is no longer available
-        _log("Requeuing $message because ${message['socket']} was not available");
+        _log("Requeuing $message because ${message['isolateSystemId']} was not available");
         Map msg = {'topic':topic, 'action':Action.ENQUEUE, 'payload': payload};
         _enqueueMessage(msg, message);
       }
@@ -236,18 +236,14 @@ class Mqs {
   }
 
   /**
-   * Separate websocket path for each isolatesystem ?
-   * then we can use onConnect for adding / updating sockets in dequeuers
-   * using systemId
-   * TODO: handle if multiple system with same ID tries to connect
-   *
+   * Each system connects with uniqueId.
    */
-  _onConnect(WebSocket socket, String isolateSystemId) {
-    _IsolateSystem isolateSystem = _getIsolateSystemById(isolateSystemId);
+  _onConnect(WebSocket socket, String isolateSystemName, String isolateSystemId) {
+    _IsolateSystem isolateSystem = _getIsolateSystemByName(isolateSystemName);
     if (isolateSystem != null) {
-      isolateSystem.sockets[socket.hashCode.toString()] = socket;
+      isolateSystem.sockets[isolateSystemId] = socket;
     } else {
-      _IsolateSystem system = new _IsolateSystem(isolateSystemId, socket);
+      _IsolateSystem system = new _IsolateSystem(isolateSystemName, isolateSystemId, socket);
       _connectedSystems.add(system);
       _updateIsolateSystemInDequeuers(system);
     }
@@ -265,17 +261,23 @@ class Mqs {
    * Same for enqueue
    *
    */
-  _onData(WebSocket socket, String isolateSystemId, var msg) {
+  _onData(WebSocket socket, String isolateSystemName, String isolateSystemId, var msg) {
+    //TODO: instead of socket hash code, use isolate system's uniqueId
+    // better than socket hashcode which might change because of issue in network,
+    // whereas uniqueId is consistent unless the system is taken down
+    // but uniqueId must be known to Mqs!
+    // as soon as isolatesystem connects, it should immediately send its uniqueId
+    // or it should send its unique Id everytime
     var message = JSON.decode(msg);
     _log("MQS: ondata -> $message");
-    _me.send({'senderType':ISOLATE_SYSTEM, 'isolateSystemId':isolateSystemId, 'socket':socket.hashCode.toString(), 'message':message});
+    _me.send({'senderType':ISOLATE_SYSTEM, 'isolateSystemName':isolateSystemName, 'isolateSystemId':isolateSystemId, 'message':message});
   }
 
-  _onDisconnect(WebSocket socket, String isolateSystemId) {
-    _IsolateSystem isolateSystem = _getIsolateSystemById(isolateSystemId);
+  _onDisconnect(WebSocket socket, String isolateSystemName, String isolateSystemId) {
+    _IsolateSystem isolateSystem = _getIsolateSystemByName(isolateSystemName);
     if(isolateSystem != null) {
-      if(isolateSystem.sockets.containsKey(socket.hashCode.toString())) {
-        isolateSystem.sockets.remove(socket.hashCode.toString());
+      if(isolateSystem.sockets.containsKey(isolateSystemId)) {
+        isolateSystem.sockets.remove(isolateSystemId);
       }
       if(isolateSystem.sockets.length == 0) {
         _connectedSystems.remove(isolateSystem);
@@ -295,14 +297,14 @@ class Mqs {
   }
 
   //
-  void _dequeueMessage(String systemId, String topic, String socket, Map fullMessage) {
-    Map messageForDequeuer = {'action':Action.DEQUEUE, 'topic':topic, 'socket':socket};
+  void _dequeueMessage(String isolateSystemName, String topic, String isolateSystemId, Map fullMessage) {
+    Map messageForDequeuer = {'action':Action.DEQUEUE, 'topic':topic, 'isolateSystemId':isolateSystemId};
     _log("MQS: Dequeuing -> $messageForDequeuer");
     if(messageForDequeuer['topic'] == null)
       throw StackTrace;
     _Dequeuer dequeuer = _getDequeuerByTopic(topic);
     if(dequeuer == null) {
-      dequeuer = new _Dequeuer(topic, systemId, _getIsolateSystemById(systemId));
+      dequeuer = new _Dequeuer(topic, isolateSystemName, _getIsolateSystemByName(isolateSystemName));
       _dequeuers.add(dequeuer);
       List temp  = new List();
       temp.addAll(connectionArgs);
@@ -348,29 +350,20 @@ class Mqs {
     return null;
   }
 
-  List<_Dequeuer> _getDequeuersByIsolateSystemId(String systemId) {
+  List<_Dequeuer> _getDequeuersByIsolateSystemName(String systemName) {
     List<_Dequeuer> dequeuers = new List();
 
     for(final _Dequeuer dequeuer in _dequeuers) {
-      if(dequeuer.isolateSystemId == systemId) {
+      if(dequeuer.isolateSystemName == systemName) {
         dequeuers.add(dequeuer);
       }
     }
     return dequeuers;
   }
 
-  _IsolateSystem _getIsolateSystemById(String systemId) {
+  _IsolateSystem _getIsolateSystemByName(String systemName) {
     for(_IsolateSystem isolateSystem in _connectedSystems) {
-      if(isolateSystem.id == systemId) {
-        return isolateSystem;
-      }
-    }
-    return null;
-  }
-
-  _IsolateSystem _getIsolateSystemBySocket(WebSocket socket) {
-    for(_IsolateSystem isolateSystem in _connectedSystems) {
-      if(isolateSystem.sockets.containsKey(socket.hashCode)) {
+      if(isolateSystem.name == systemName) {
         return isolateSystem;
       }
     }
@@ -379,14 +372,14 @@ class Mqs {
 
   _removeSystemFromDequeuers(_IsolateSystem system) {
     for(_Dequeuer dequeuer in _dequeuers) {
-      if (dequeuer.isolateSystem.id == system.id) {
+      if (dequeuer.isolateSystem.name == system.name) {
         dequeuer.system = null;
       }
     }
   }
 
   _updateIsolateSystemInDequeuers(_IsolateSystem system) {
-    for(_Dequeuer dequeuer in _getDequeuersByIsolateSystemId(system.id)) {
+    for(_Dequeuer dequeuer in _getDequeuersByIsolateSystemName(system.name)) {
       _log("Updating socket for ${dequeuer.topic} of $system");
       dequeuer.system = system;
     }
@@ -405,20 +398,21 @@ main() {
 }
 
 class _IsolateSystem {
-  String _id;
+  String _name;
+  // A map of uniqueId of system and Socket object
   Map<String, WebSocket> _sockets;
 
-  String get id => _id;
-  set id(String value) => _id = value;
+  String get name => _name;
+  set name(String value) => _name = value;
 
   Map<String, WebSocket> get sockets => _sockets;
   set sockets(Map<String, WebSocket> value) => _sockets = value;
 
-  _IsolateSystem(this._id, WebSocket socket) {
-    if(_sockets == null){
+  _IsolateSystem(this._name, String isolateSystemId, WebSocket socket) {
+    if(_sockets == null) {
       _sockets = new Map();
     }
-    this._sockets[socket.hashCode.toString()] = socket;
+    this._sockets[isolateSystemId] = socket;
   }
 }
 
@@ -426,10 +420,10 @@ class _IsolateSystem {
 class _Dequeuer {
   String _topic;
   SendPort _sendPort;
-  String _isolateSystemId;
+  String _isolateSystemName;
   _IsolateSystem _isolateSystem;
 
-  _Dequeuer(this._topic, this._isolateSystemId, this._isolateSystem);
+  _Dequeuer(this._topic, this._isolateSystemName, this._isolateSystem);
 
   String get topic => _topic;
   set topic(String value) => _topic = value;
@@ -440,6 +434,6 @@ class _Dequeuer {
   _IsolateSystem get isolateSystem => _isolateSystem;
   set system(_IsolateSystem value) => _isolateSystem = value;
 
-  String get isolateSystemId => _isolateSystemId;
-  set isolateSystemId(String value) => _isolateSystemId = value;
+  String get isolateSystemName => _isolateSystemName;
+  set isolateSystemName(String value) => _isolateSystemName = value;
 }

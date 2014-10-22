@@ -128,7 +128,7 @@ class Dequeuer {
       _log("\nFlushing buffer");
       bufferMailBox.forEach((key, value) {
         sendPort.send({
-            'senderType':DEQUEUER, 'topic':topic, 'payload':value, 'socket':dequeueRequestsFrom.removeAt(0)
+            'senderType':DEQUEUER, 'topic':topic, 'payload':value, 'isolateSystemId':dequeueRequestsFrom.removeAt(0)
         });
         client.ack(key);
       });
@@ -152,7 +152,7 @@ class Dequeuer {
       String action = msg['action'];
       switch (action) {
         case Action.DEQUEUE:
-          dequeueRequestsFrom.add(msg['socket']);
+          dequeueRequestsFrom.add(msg['isolateSystemId']);
           _flushBuffer();
 
           break;

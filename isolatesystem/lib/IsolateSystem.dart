@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' show dirname;
+import 'package:uuid/uuid.dart';
 
 import 'action/Action.dart';
 import 'router/Router.dart';
@@ -83,7 +84,8 @@ class IsolateSystem {
   ReceivePort _receivePort;
   SendPort _sendPortOfController;
   SendPort _me;
-  String _id;
+  String _uniqueId; // should be unique for each instance
+  String _name;
   bool _isSystemKilled = false;
 
   Isolate _controllerIsolate;
@@ -100,8 +102,10 @@ class IsolateSystem {
   List _bufferMessagesToMqs;
 
   /// @name - Name of this isolate system
-  IsolateSystem(String this._id, String pathToMQS) {
-    _pathToMQS = "$pathToMQS/$_id";
+  IsolateSystem(String this._name, String pathToMQS) {
+    this._uniqueId = (new Uuid()).v1();
+
+    _pathToMQS = "$pathToMQS/$_name/$_uniqueId";
     _receivePort = new ReceivePort();
     _me = _receivePort.sendPort;
     _receivePort.listen(_onReceive);
@@ -115,7 +119,7 @@ class IsolateSystem {
 
   /// if path to router is sent in RouterType, it will be used as the router, it should be absolute uri
   IsolateRef addIsolate(String name, String uri, workersPaths, String routerType, {hotDeployment: true, args}) {
-    name = "$_id/$name";
+    name = "$_name/$name";
     String routerUri = routerType;
 
     switch(routerType) {
@@ -132,7 +136,7 @@ class IsolateSystem {
     }
 
     var message = {'name':name, 'uri':uri, 'workerPaths':workersPaths, 'routerUri':routerUri, 'hotDeployment':hotDeployment, 'args':args};
-    _me.send(MessageUtil.create(SenderType.DIRECT, _id, Action.SPAWN, message));
+    _me.send(MessageUtil.create(SenderType.DIRECT, _name, Action.SPAWN, message));
     return new IsolateRef(name, _me);
   }
 
@@ -144,7 +148,7 @@ class IsolateSystem {
    */
   void kill() {
     _log("KILL message");
-    _me.send(MessageUtil.create(SenderType.DIRECT, _id, Action.KILL, null));
+    _me.send(MessageUtil.create(SenderType.DIRECT, _name, Action.KILL, null));
     _receivePort.close();
     _mqsSocket.close();
     _isSystemKilled = true;
@@ -199,7 +203,7 @@ class IsolateSystem {
     switch(action) {
       case Action.DONE:
       case Action.PULL_MESSAGE:
-        _sendToMqs(_pullMessage(senderId));
+        _sendToMqs(_prepareDequeueMessage(senderId));
         break;
       case Action.SEND:
       case Action.ASK:
@@ -277,28 +281,34 @@ class IsolateSystem {
 
     Map payload = {'to':isolateId, 'message':decodedData['payload']};
 
-    _me.send(MessageUtil.create(SenderType.MQS, _id, Action.NONE, payload));
+    _me.send(MessageUtil.create(SenderType.MQS, _name, Action.NONE, payload));
   }
 
   /**
-   * prepares a pulls message from MessageQueuingSystem over websocket connection
+   * prepares a dequeue message to send to MessageQueuingSystem over websocket connection
    */
-  _pullMessage(String senderId) {
+  _prepareDequeueMessage(String senderId) {
     String sourceIsolate = _getQueueFromIsolateId(senderId);
     Map dequeueMessage = MQSMessageUtil.createDequeueMessage(sourceIsolate);
     _log("PULL MESSAGE $dequeueMessage");
     return dequeueMessage;
   }
 
+  /*
+   * In case the of ASK
+   * add vm_id / isolateSystem's unique id
+   */
   _prepareEnqueueMessage(Map message) {
-    _log("Preparing enqueu message from ... $message");
+    _log("Preparing enqueue message: $message");
     message = message['payload'];
     String targetIsolate = (message.containsKey('to')) ? message['to'] : null;
 
     if(targetIsolate != null) {
+      String sender = (message['sender']);
       String replyTo = (message.containsKey('replyTo')) ? message['replyTo'] : null;
       String msg = (message['message']);
-      var payload = {'message':msg, 'replyTo':replyTo};
+
+      var payload = {'sender':sender, 'message':msg, 'replyTo':replyTo};
 
       String targetQueue = _getQueueFromIsolateId(targetIsolate);
       return MQSMessageUtil.createEnqueueMessage(targetQueue, payload);
@@ -368,8 +378,11 @@ class IsolateSystem {
     //print(text);
   }
 
-  String get id => _id;
-  set id(String value) => _id = value;
+  String get name => _name;
+  set name(String value) => _name = value;
+
+  String get uniqueId => _uniqueId;
+  set uniqueId(String value) => _uniqueId = value;
 
   String get pathToMQS => _pathToMQS;
   set pathToMQS(String value) => _pathToMQS = value;

@@ -2,7 +2,7 @@ import 'dart:io';
 
 class WebSocketServer {
 
-  WebSocketServer(int port, String path, void onConnect(WebSocket socket, String subPath), void onData(WebSocket socket, String subPath, var message), void onDisconnect(WebSocket socket, String subPath)) {
+  WebSocketServer(int port, String path, void onConnect(WebSocket socket, String isolateSystemName, String isolateSystemUniqueId), void onData(WebSocket socket, String systemName, String systemUniqueId, var message), void onDisconnect(WebSocket socket, String systemName, String systemUniqueId)) {
     HttpServer.bind(InternetAddress.ANY_IP_V4, port).then((HttpServer server) {
       print("HttpServer listening for websocket connections...");
       server.serverHeader = "MessageQueuingSystemServer";
@@ -24,16 +24,21 @@ class WebSocketServer {
   }
 
   handleWebSocket(String subPath, WebSocket socket,
-                  void onConnect(WebSocket socket, String path),
-                  void onData(WebSocket socket, String subPath, var message),
-                  void onDisconnect(WebSocket socket, String subPath)) {
+                  void onConnect(WebSocket socket, String isolateSystemName, String isolateSystemUniqueId),
+                  void onData(WebSocket socket, String isolateSystemName, String isolateSystemUniqueId, var message),
+                  void onDisconnect(WebSocket socket, String isolateSystemName, String isolateSystemUniqueId)) {
     print('Client connected!');
-    onConnect(socket, subPath);
+
+    List<String> pathParts = subPath.split('/');
+    String isolateSystemName = pathParts[0];
+    String isolateSystemUniqueId = pathParts[1];
+
+    onConnect(socket, isolateSystemName, isolateSystemUniqueId);
     socket.listen((String s) {
-      onData(socket, subPath, s);
+      onData(socket, isolateSystemName, isolateSystemUniqueId, s);
     }, onDone: () {
       print('Client disconnected');
-      onDisconnect(socket, subPath);
+      onDisconnect(socket, isolateSystemName, isolateSystemUniqueId);
     });
   }
 
