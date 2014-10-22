@@ -114,7 +114,7 @@ class Controller {
         }
         break;
       case Action.NONE:
-      //Controller: {senderType: senderType.isolate_system, id: isolateSystem, action: action.none, payload: {to: helloPrinter, message: {"message":"Enqueue this message 40"}}}
+      //Controller: {senderType: senderType.isolate_system, id: isolateSystem, action: action.none, payload: {to: isolateSystem/helloPrinter, message: {"message":"Enqueue this message 40"}}}
         String routerId = payload['to'];
         if(routerId != null) {
           _Router router = _getRouterById(routerId);
@@ -140,13 +140,14 @@ class Controller {
   }
 
   _handleMessagesFromRouters(String senderId, String action, var payload) {
-    _Router router = _getRouterById(senderId);
     if(payload is SendPort) {
+      _Router router = _getRouterById(senderId);
       router.sendPort = payload;
       _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
     } else {
       switch (action) {
       //When all isolates have been spawned
+        case Action.SEND:
         case Action.REPLY:
         /**
          * TODO: Discuss
@@ -166,14 +167,18 @@ class Controller {
 //          } else {
 //            _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.REPLY, payload));
 //          }
-          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.REPLY, payload));
+
+          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.SEND, payload));
+          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
+          break;
+        case Action.ASK:
+          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.ASK, payload));
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           break;
         case Action.CREATED:
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           break;
         case Action.PULL_MESSAGE:
-        //TODO: should the response message be sent along with pullmessage or should it be a separate action?
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           break;
         default:
@@ -214,7 +219,7 @@ class Controller {
 
   _Router _getRouterById(String id) {
     for(_Router router in _routers) {
-      if(router.id == id){
+      if(router.id == id || router.id == id.substring(0, id.lastIndexOf('/'))) {
         return router;
       }
     }

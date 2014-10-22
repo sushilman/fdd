@@ -95,8 +95,6 @@ class Mqs {
   SendPort _enqueuerSendPort;
   SendPort _me;
 
-  List<String> _subscribedTopics;
-
   Uri enqueueIsolate = Uri.parse("Enqueuer.dart");
   Uri dequeueIsolate = Uri.parse("Dequeuer.dart");
 
@@ -111,8 +109,20 @@ class Mqs {
   List _bufferMessagesToDequeuer;
   List _bufferMessagesToEnqueuer;
 
+  _displayDequeuers() {
+    print("Dequeuers:");
+    print("Size: ${_dequeuers.length}");
+    for(_Dequeuer _dequeuer in _dequeuers) {
+      print ("D_IS NAME : ${_dequeuer.isolateSystemName}");
+      print ("TOPIC: ${_dequeuer.topic}");
+      print ("D->IS_NAME: ${_dequeuer.isolateSystem.name}");
+      print ("Size of Sockets: ${_dequeuer.isolateSystem.sockets.length}");
+      print ("Sockets: ${_dequeuer.isolateSystem.sockets}");
+      print ("\n");
+    }
+  }
+
   Mqs({host:LOCALHOST, port:RABBITMQ_DEFAULT_PORT, username:DEFAULT_LOGIN, password:DEFAULT_PASSWORD}) {
-    _subscribedTopics = new List();
     _receivePort = new ReceivePort();
     _me = _receivePort.sendPort;
     _receivePort.listen(_onReceive);
@@ -284,6 +294,7 @@ class Mqs {
       }
     }
     socket.close();
+    _displayDequeuers();
   }
 
   void _enqueueMessage(Map message, Map fullMessage) {
@@ -359,6 +370,15 @@ class Mqs {
       }
     }
     return dequeuers;
+  }
+
+  _Dequeuer _getDequeuerByIsolateSystemId(String id) {
+    for(final _Dequeuer dequeuer in _dequeuers) {
+      if(dequeuer.isolateSystem._sockets.containsKey(id)) {
+        return dequeuer;
+      }
+    }
+    return null;
   }
 
   _IsolateSystem _getIsolateSystemByName(String systemName) {

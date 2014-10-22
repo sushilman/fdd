@@ -50,6 +50,10 @@ class Dequeuer {
   String host, username, password, topic;
   int connectToPort;
 
+  String subscriptionId;
+
+  int idleCounter = 0;
+
   Dequeuer(List<String> args, SendPort sendPort) {
     _log("\n\nDequeuer Isolate Spawned !\n\n");
     receivePort = new ReceivePort();
@@ -62,6 +66,7 @@ class Dequeuer {
     username = args[2];
     password = args[3];
     topic = args[4];
+    subscriptionId = "id_$topic";
 
     sendPort.send({'senderType':DEQUEUER, 'topic':topic, 'payload': _me});
 
@@ -72,6 +77,7 @@ class Dequeuer {
     receivePort.listen((msg) {
       _onReceive(msg);
     });
+   // _closeIfIdle();
   }
 
   _reconnect() {
@@ -138,7 +144,7 @@ class Dequeuer {
 
   _subscribeMessage(String topic) {
     try {
-      client.subscribeString("id_$topic", topic, _onData, ack:CLIENT_INDIVIDUAL);
+      client.subscribeString(subscriptionId, topic, _onData, ack:CLIENT_INDIVIDUAL);
       _log("Subscribed to $topic");
     } catch(e) {
       _log("May be already Subscribed $e");
@@ -148,6 +154,7 @@ class Dequeuer {
 
   void _onReceive(msg) {
     _log("Dequeue Isolate : $msg");
+    idleCounter = 0;
     if (msg is Map) {
       String action = msg['action'];
       switch (action) {
@@ -169,6 +176,38 @@ class Dequeuer {
     } else {
       _log("Dequeuer: Bad message: $msg");
     }
+  }
+
+  /**
+   * Unsubscribes
+   * Closes all connections and
+   * Kill this isolate if it is idle for a long time
+   *
+   * It will be respawned, if needed again
+   * TODO: implement in MQS
+   */
+  _closeIfIdle() {
+
+    bool keepCounting = true;
+
+    new Timer.periodic(const Duration(seconds:1), (Timer t) {
+      print(idleCounter);
+      if(keepCounting) {
+        idleCounter++;
+        if (idleCounter >= 20) {
+          t.cancel();
+          _shutDown();
+          keepCounting = false;
+        }
+      }
+    });
+
+  }
+
+  _shutDown() {
+    print("Shutting Down");
+    client.unsubscribe(subscriptionId);
+    receivePort.close();
   }
 
   _log(String text) {

@@ -201,13 +201,13 @@ class IsolateSystem {
     var payload = MessageUtil.getPayload(message);
 
     switch(action) {
-      case Action.DONE:
       case Action.PULL_MESSAGE:
         _sendToMqs(_prepareDequeueMessage(senderId));
         break;
+
       case Action.SEND:
-      case Action.ASK:
       case Action.REPLY:
+      case Action.ASK:
         _sendToMqs(_prepareEnqueueMessage(message));
         break;
       default:

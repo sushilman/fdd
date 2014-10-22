@@ -22,6 +22,7 @@ abstract class Worker {
   String respondTo; // could be sender or some other isolate
 
   static const String TO = 'to';
+  static const String SENDER = 'sender';
   static const String REPLY_TO = 'replyTo';
   static const String MESSAGE = 'message';
 
@@ -67,8 +68,8 @@ abstract class Worker {
       String senderId = MessageUtil.getId(message);
       String action = MessageUtil.getAction(message);
       var payload = MessageUtil.getPayload(message);
-      if(payload is Map && payload[MESSAGE].containsKey('sender')) {
-        sender = payload[MESSAGE]['sender'];
+      if(payload is Map && payload[MESSAGE].containsKey(SENDER)) {
+        sender = payload[MESSAGE][SENDER];
       }
       if(payload is Map && payload[MESSAGE].containsKey(Worker.REPLY_TO)) {
         respondTo = payload[MESSAGE][Worker.REPLY_TO];
@@ -120,11 +121,11 @@ abstract class Worker {
    */
   send(var message, String to, {String replyTo}) {
     var msg = {'sender':this.poolName,
-               'to': (to != null) ? to : this.respondTo,
+               'to': to,
                'message': message,
                'replyTo': replyTo};
 
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.SEND, msg));
   }
 
   reply(var message, {String replyTo}) {
@@ -136,13 +137,13 @@ abstract class Worker {
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 
-  ask(var message, {String to}) {
-    var msg = {'sender':this.poolName,
-               'to': (to != null) ? to : this.respondTo,
+  ask(var message, String to) {
+    var msg = {'sender':this.id,
+               'to': to,
                'message': message,
                'replyTo': this.id};
 
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.ASK, msg));
   }
 
   void kill() {

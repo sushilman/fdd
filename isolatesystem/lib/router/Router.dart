@@ -45,9 +45,11 @@ import '../message/SenderType.dart';
  */
 
 /**
- * TODO: Keep record of the workers, who issued DONE / REPLY  => which is a pull request
+ * May be keep a record of the workers, who issued DONE / REPLY  => which is a pull request
  * -> for, alternative load balancing ideas
  * -> this will also help to track unfulfilled pull requests
+ *
+ * TODO: send a message to specific worker if id is provided
  */
 abstract class Router {
   static const String RANDOM = "random";
@@ -137,11 +139,31 @@ abstract class Router {
         if(workers.length == 0) {
           _me.send(fullMessage);
         } else {
-          Worker worker = selectWorker();
-          if(worker.sendPort == null) {
-            _me.send(fullMessage);
+          Worker worker;
+          List<String> pathPieces = payload['to'].split('/');
+          print(pathPieces);
+          if (pathPieces.length >= 3) {
+            // checking if it is a reply of ask
+            worker = _getWorkerById(payload['to']);
+
+            if (worker == null) {
+              //TODO: What to do if designated worker is not found? (if it is restarted, killed etc,
+              // randomly choose another worker and send it there?)
+              // or discard that message and make a pull request?
+              //worker = selectWorker();
+              print("Worker with ${payload['to']} not found !");
+              _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.PULL_MESSAGE, null));
+            }
           } else {
-            worker.sendPort.send(fullMessage);
+            worker = selectWorker();
+          }
+
+          if (worker != null) {
+            if (worker.sendPort == null) {
+              _me.send(fullMessage);
+            } else {
+              worker.sendPort.send(fullMessage);
+            }
           }
         }
         break;
@@ -151,6 +173,7 @@ abstract class Router {
   }
 
   _handleMessageFromWorker(String action, String senderId, var payload, var fullMessage) {
+    print("$action Sender: $senderId");
     switch(action) {
       case Action.CREATED:
         Worker worker = _getWorkerById(senderId);
@@ -163,14 +186,20 @@ abstract class Router {
           _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.CREATED, null));
         }
         break;
-      case Action.REPLY:
-        _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.REPLY, payload));
-        break;
+
       case Action.DONE:
       case Action.NONE:
-        if(_getWorkerById(senderId) != null) {
+        //if(_getWorkerById(senderId) != null) {
           _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.PULL_MESSAGE, null));
-        }
+        //}
+        break;
+      case Action.SEND:
+      case Action.REPLY:
+        _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.SEND, payload));
+        break;
+      // In case of ASK, we need to dequeue from separate_individual queue, thus full-id of the worker is required in this case
+      case Action.ASK:
+        _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, senderId, Action.ASK, payload));
         break;
       default:
         _log("Router: Unknown Action -> $action");

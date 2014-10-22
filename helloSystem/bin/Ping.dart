@@ -29,12 +29,12 @@ class Ping extends Worker {
   outTextWithAsk(var message) {
     if(message == "START") {
       print("** $message");
-      ask({'value': "PING", 'count' : "1" });
+      ask({'value': "PING", 'count' : "1" }, respondTo);
     } else if (message['value'].startsWith("PONG")) {
-      print("** ${message['value']} ${message['count']} **");
+      print("**## ${message['value']} ${message['count']} **");
       int count = int.parse(message['count']) + 1;
 
-      ask({'value': "PING", 'count' :  "$count"});
+      ask({'value': "PING", 'count' :  "$count"}, respondTo);
     }
   }
 
