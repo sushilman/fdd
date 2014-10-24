@@ -77,7 +77,7 @@ class Dequeuer {
     receivePort.listen((msg) {
       _onReceive(msg);
     });
-   // _closeIfIdle();
+    //_closeIfIdle();
   }
 
   _reconnect() {
@@ -194,7 +194,7 @@ class Dequeuer {
       print(idleCounter);
       if(keepCounting) {
         idleCounter++;
-        if (idleCounter >= 20) {
+        if (idleCounter >= 10) {
           t.cancel();
           _shutDown();
           keepCounting = false;

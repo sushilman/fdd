@@ -28,6 +28,7 @@ class Pong extends Worker {
 
 
   outTextWithAsk(var message) {
+    print("$id -> ");
     if (message['value'].startsWith("PING")) {
       print("## ${message['value']} ${message['count']} ##");
       int count = int.parse(message['count']) + 1;

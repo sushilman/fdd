@@ -27,6 +27,7 @@ class Ping extends Worker {
 
 
   outTextWithAsk(var message) {
+    print("$id -> ");
     if(message == "START") {
       print("** $message");
       ask({'value': "PING", 'count' : "1" }, respondTo);

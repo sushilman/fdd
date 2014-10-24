@@ -104,6 +104,7 @@ class IsolateSystem {
   /// @name - Name of this isolate system
   IsolateSystem(String this._name, String pathToMQS) {
     this._uniqueId = (new Uuid()).v1();
+    print("Created system: $_uniqueId");
 
     _pathToMQS = "$pathToMQS/$_name/$_uniqueId";
     _receivePort = new ReceivePort();
@@ -207,8 +208,10 @@ class IsolateSystem {
 
       case Action.SEND:
       case Action.REPLY:
-      case Action.ASK:
         _sendToMqs(_prepareEnqueueMessage(message));
+        break;
+      case Action.ASK:
+        _sendToMqs(_prepareEnqueueMessageForAsk(message));
         break;
       default:
 
@@ -298,6 +301,24 @@ class IsolateSystem {
    * In case the of ASK
    * add vm_id / isolateSystem's unique id
    */
+  _prepareEnqueueMessageForAsk(Map message) {
+    _log("Preparing enqueue message: $message");
+    message = message['payload'];
+    String targetIsolate = (message.containsKey('to')) ? message['to'] : null;
+
+    if(targetIsolate != null) {
+      String sender = (message['sender']);
+      String replyTo = (message.containsKey('replyTo')) ? message['replyTo'] : null;
+      var msg = (message['message']);
+
+      var payload = {'sender':sender, 'message':msg, 'replyTo':replyTo, 'replyToIsolateSystemId':this._uniqueId};
+
+      String targetQueue = _getQueueFromIsolateId(targetIsolate);
+      return MQSMessageUtil.createEnqueueMessage(targetQueue, payload);
+    }
+    return null;
+  }
+
   _prepareEnqueueMessage(Map message) {
     _log("Preparing enqueue message: $message");
     message = message['payload'];
@@ -306,7 +327,7 @@ class IsolateSystem {
     if(targetIsolate != null) {
       String sender = (message['sender']);
       String replyTo = (message.containsKey('replyTo')) ? message['replyTo'] : null;
-      String msg = (message['message']);
+      var msg = (message['message']);
 
       var payload = {'sender':sender, 'message':msg, 'replyTo':replyTo};
 
@@ -363,6 +384,11 @@ class IsolateSystem {
    * (may be store it locally too?)
    */
   _getQueueFromIsolateId(String isolateId) {
+
+    if(isolateId.split('/').length > 2) {
+      isolateId = isolateId.substring(0, isolateId.lastIndexOf('/'));
+    }
+
     return isolateId.replaceAll('/', '.');
   }
 

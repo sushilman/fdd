@@ -167,7 +167,7 @@ class Mqs {
   /**
    *
    * Incoming message for Dequeue (from _onData):
-   * {senderType:senderType.isolateSystem, isolateSystmeId: anySystem, socket:12345, message: {targetQueue: isolateSystem.helloPrinter, action: action.dequeue}}
+   * {senderType:senderType.isolateSystem, isolateSystmeName: anySystem, isolateSystemId:12345, message: {targetQueue: isolateSystem.helloPrinter, action: action.dequeue}}
    *
    * To Dequeuer:
    * {'action':action.dequeue, 'topic':isolateSystem.helloPrinter, 'isolateSystemId':12345}
@@ -216,7 +216,7 @@ class Mqs {
   /**
    * Message From Dequeuer in Format:
    * From Dequeuer:
-   * {senderType: senderType.dequeuer, topic: isolateSystem2.pong, payload: {message: {value: PING, count: 3}, replyTo: isolateSystem2/ping}, socket: 541578376}
+   * {senderType: senderType.dequeuer, topic: isolateSystem2.pong, payload: {message: {value: PING, count: 3}, replyTo: isolateSystem2/ping}, isolateSystemId: 541578376}
    *
    */
   _handleMessageFromDequeuer(var message) {
@@ -230,8 +230,31 @@ class Mqs {
       _flushBufferToDequeuer();
     } else {
       _log("${dequeuer.isolateSystem.sockets.keys} sockets in -> ${dequeuer.isolateSystem.name}");
+
+
+
       String key = message['isolateSystemId'];
 
+      // if message['payload']['isolateSystemId'] == isolateSystem.id
+      // then get socket object from isolateSystem
+      // else get isolateSystem by message['payload']['isolateSystemId']
+      // then find socket object for that system and send message
+      // also send another dequeue for original dequeuer /  isolateSystem
+      // and decrease dequeue for isolatesystem => this probably needs to be done in Dequeuer
+
+      String replyToIsolateSystemId = payload['replyToIsolateSystemId'];
+
+      print("DQ requestor system: $key, dequeued system: ${replyToIsolateSystemId} of $payload");
+      if(key == replyToIsolateSystemId) {
+        // things are fine
+      } else  {
+        print("Resending dequeue message for original dequeuer");
+        //send dequeue for key
+        Map fullMessage = {'senderType':ISOLATE_SYSTEM, 'isolateSystemName':dequeuer.isolateSystem.name, 'isolateSystemId':key, 'message':message};
+        _me.send(fullMessage);
+
+        key = replyToIsolateSystemId;
+      }
 
       if(dequeuer.isolateSystem.sockets.containsKey(key)) {
         message.remove('isolateSystemId');
@@ -286,9 +309,11 @@ class Mqs {
   _onDisconnect(WebSocket socket, String isolateSystemName, String isolateSystemId) {
     _IsolateSystem isolateSystem = _getIsolateSystemByName(isolateSystemName);
     if(isolateSystem != null) {
+
       if(isolateSystem.sockets.containsKey(isolateSystemId)) {
         isolateSystem.sockets.remove(isolateSystemId);
       }
+
       if(isolateSystem.sockets.length == 0) {
         _connectedSystems.remove(isolateSystem);
       }

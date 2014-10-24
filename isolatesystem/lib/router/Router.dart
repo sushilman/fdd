@@ -173,7 +173,6 @@ abstract class Router {
   }
 
   _handleMessageFromWorker(String action, String senderId, var payload, var fullMessage) {
-    print("$action Sender: $senderId");
     switch(action) {
       case Action.CREATED:
         Worker worker = _getWorkerById(senderId);
@@ -199,7 +198,7 @@ abstract class Router {
         break;
       // In case of ASK, we need to dequeue from separate_individual queue, thus full-id of the worker is required in this case
       case Action.ASK:
-        _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, senderId, Action.ASK, payload));
+        _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.ASK, payload));
         break;
       default:
         _log("Router: Unknown Action -> $action");
