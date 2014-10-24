@@ -93,9 +93,9 @@ class IsolateDeployer {
           break;
         case Action.REPLY:
         case Action.DONE:
-          worker.socket.add(JSON.encode(message));
-          break;
+        case Action.SEND:
         case Action.NONE:
+        case Action.ASK:
           worker.socket.add(JSON.encode(message));
           break;
         default:
@@ -147,6 +147,7 @@ class IsolateDeployer {
         List<String> args = [senderId, poolName, path, extraArgs];
         _spawnWorker(uri, args, socket);
         break;
+      case Action.KILL:
       case Action.RESTART:
       case Action.NONE:
         _forward(senderId, message);
@@ -170,7 +171,8 @@ class IsolateDeployer {
   }
 
   _forward(String id, var message) {
-    getIsolateById(id).sendPort.send(message);
+    print("IsolateDeployer -> Worker: $message");
+    getIsolateById(id).sendPort.send(MessageUtil.getPayload(message));
   }
 
   _Isolate getIsolateById(String id) {

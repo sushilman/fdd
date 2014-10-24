@@ -141,7 +141,6 @@ abstract class Router {
         } else {
           Worker worker;
           List<String> pathPieces = payload['to'].split('/');
-          print(pathPieces);
           if (pathPieces.length >= 3) {
             // checking if it is a reply of ask
             worker = _getWorkerById(payload['to']);
@@ -151,7 +150,7 @@ abstract class Router {
               // randomly choose another worker and send it there?)
               // or discard that message and make a pull request?
               //worker = selectWorker();
-              print("Worker with ${payload['to']} not found !");
+              _log("Worker with ${payload['to']} not found !");
               _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.PULL_MESSAGE, null));
             }
           } else {
@@ -162,7 +161,8 @@ abstract class Router {
             if (worker.sendPort == null) {
               _me.send(fullMessage);
             } else {
-              worker.sendPort.send(fullMessage);
+              _log("Router -> Worker: ${payload['message']}");
+              worker.sendPort.send(payload['message']);
             }
           }
         }
@@ -173,7 +173,7 @@ abstract class Router {
   }
 
   _handleMessageFromWorker(String action, String senderId, var payload, var fullMessage) {
-    print("$action Sender: $senderId");
+    _log("$action Sender: $senderId");
     switch(action) {
       case Action.CREATED:
         Worker worker = _getWorkerById(senderId);

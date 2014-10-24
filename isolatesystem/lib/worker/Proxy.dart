@@ -59,6 +59,7 @@ class Proxy extends Worker {
   }
 
   void _handleWebSocket(WebSocket ws) {
+    print("Handled!");
     if(ws != null && ws.readyState == WebSocket.OPEN) {
       this.webSocket = ws;
       print("Proxy: WebSocket Connected !");
@@ -126,7 +127,6 @@ class Proxy extends Worker {
     receivePort.close();
   }
 
-  @override
   void restart() {
     webSocket.add(JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.RESTART, null)));
   }

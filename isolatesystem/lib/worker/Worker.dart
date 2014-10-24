@@ -64,33 +64,32 @@ abstract class Worker {
   _onReceive(var message) {
     _log("Worker $id: $message");
     if(MessageUtil.isValidMessage(message)) {
-      String senderType = MessageUtil.getSenderType(message);
-      String senderId = MessageUtil.getId(message);
+
       String action = MessageUtil.getAction(message);
-      var payload = MessageUtil.getPayload(message);
-      if(payload is Map && payload[MESSAGE].containsKey(SENDER)) {
-        sender = payload[MESSAGE][SENDER];
+
+      var payload = message;
+
+      if(payload is Map && payload.containsKey(SENDER)) {
+        sender = payload[SENDER];
       }
-      if(payload is Map && payload[MESSAGE].containsKey(Worker.REPLY_TO)) {
-        respondTo = payload[MESSAGE][Worker.REPLY_TO];
+      if(payload is Map && payload.containsKey(Worker.REPLY_TO)) {
+        respondTo = payload[Worker.REPLY_TO];
       }
       if(respondTo == null) {
         respondTo = sender;
       }
 
-      switch(action) {
-        case Action.KILL:
-          kill();
-          break;
-        case Action.NONE:
-          onReceive(payload[MESSAGE][MESSAGE]);
-          break;
-        default:
-          _log("Worker: unknown action -> $action");
+      if(action == null) {
+        onReceive(payload['message']);
+      } else {
+        switch (action) {
+          case Action.KILL:
+            kill();
+            break;
+          default:
+          //_log("Worker: unknown action -> $action");
+        }
       }
-    } else {
-      _log("Worker: WARNING: incorrect message format, but still forwarding $message");
-      onReceive(message);
     }
 
     /**
@@ -166,6 +165,6 @@ abstract class Worker {
   }
 
   _log(String text){
-    //print(text);
+    print(text);
   }
 }

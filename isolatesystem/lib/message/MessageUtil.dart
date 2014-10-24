@@ -46,6 +46,14 @@ class MessageUtil {
     }
   }
 
+  static getMessage(Map message) {
+    try {
+      return message['message'];
+    } catch (e) {
+      return null;
+    }
+  }
+
   static isValidMessage(var message) {
     return (message is Map);
   }
