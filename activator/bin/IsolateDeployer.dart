@@ -66,7 +66,7 @@ class IsolateDeployer {
    * will send id along with its send port
    */
   _onReceive(var message) {
-    print("Activator: message received from isolate -> $message");
+    _log("Activator: message received from isolate -> $message");
 
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
@@ -99,11 +99,11 @@ class IsolateDeployer {
           worker.socket.add(JSON.encode(message));
           break;
         default:
-          print("Activator: Unknown action -> $action");
+          _log("Activator: Unknown action -> $action");
           worker.socket.add(JSON.encode(message));
       }
     } else {
-      print("Activator: No active connections");
+      _log("Activator: No active connections");
     }
   }
 
@@ -130,7 +130,7 @@ class IsolateDeployer {
   // message from Proxy via websocket
   _onData(WebSocket socket, var msg) {
     var message = JSON.decode(msg);
-    print("Activator: Received via websocket $message");
+    //print("Activator: Received via websocket $message");
     String senderType = MessageUtil.getSenderType(message);
     String senderId = MessageUtil.getId(message);
     String action = MessageUtil.getAction(message);
@@ -153,7 +153,7 @@ class IsolateDeployer {
         _forward(senderId, message);
         break;
       default:
-        print("Activator: Unknown action -> $action");
+        _log("Activator: Unknown action -> $action");
     }
   }
 
@@ -171,7 +171,6 @@ class IsolateDeployer {
   }
 
   _forward(String id, var message) {
-    print("IsolateDeployer -> Worker: $message");
     getIsolateById(id).sendPort.send(MessageUtil.getPayload(message));
   }
 
@@ -191,6 +190,10 @@ class IsolateDeployer {
       }
     }
     return null;
+  }
+
+  void _log(String text) {
+    print(text);
   }
 }
 

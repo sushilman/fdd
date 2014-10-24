@@ -14,8 +14,8 @@ abstract class Worker {
   SendPort _me;
   String id;
 
-  /// Name is the name of the pool of isolate this isolate belongs to, i.e. router name
-  String _poolName;
+  /// "me", in reality is the name of the pool of isolate this isolate belongs to, i.e. router name
+  String me;
   String _deployedPath;
 
   String sender;
@@ -26,12 +26,9 @@ abstract class Worker {
   static const String REPLY_TO = 'replyTo';
   static const String MESSAGE = 'message';
 
-  String get poolName => _poolName;
-  set poolName(String value) => _poolName = value;
-
   Worker(List<String> args, this.sendPort) {
     id = args.removeAt(0);
-    _poolName = args.removeAt(0);
+    me = args.removeAt(0);
     _deployedPath;
     if(args.length > 1) {
       _deployedPath = args.removeAt(0);
@@ -50,7 +47,7 @@ abstract class Worker {
 
   Worker.withoutReadyMessage(List<String> args, this.sendPort) {
     id = args.removeAt(0);
-    _poolName = args.removeAt(0);
+    me = args.removeAt(0);
     args = args[0];
 
     receivePort = new ReceivePort();
@@ -119,7 +116,7 @@ abstract class Worker {
    * respondTo is the isolate set as replyTo be original sender
    */
   send(var message, String to, {String replyTo}) {
-    var msg = {'sender':this.poolName,
+    var msg = {'sender':this.me,
                'to': to,
                'message': message,
                'replyTo': replyTo};
@@ -128,7 +125,7 @@ abstract class Worker {
   }
 
   reply(var message, {String replyTo}) {
-    var msg = {'sender':this.poolName,
+    var msg = {'sender':this.me,
                'to': this.respondTo,
                'message': message,
                'replyTo': replyTo};
@@ -165,6 +162,6 @@ abstract class Worker {
   }
 
   _log(String text){
-    print(text);
+    //print(text);
   }
 }

@@ -15,7 +15,6 @@ import 'Worker.dart';
  * Receives message from router and sends it via webSocket to respective activator
  */
 main(List<String> args, SendPort sendPort) {
-  print("Proxy Isolate: $args");
   Proxy proxy = new Proxy(args, sendPort);
 }
 
@@ -48,7 +47,7 @@ class Proxy extends Worker {
     //Serialize and delegate to webSocket
     // same id is used for the isolate spawned by activator
     // i.e. id of proxy and remote isolate will be the same
-    print("Proxy: Sending message -> $message");
+    _log("Proxy: Sending message -> $message");
 
     //'to':name can be included here, but not it's not significant
     webSocket.add(JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.NONE, {'message': message, 'replyTo': respondTo})));
@@ -59,11 +58,10 @@ class Proxy extends Worker {
   }
 
   void _handleWebSocket(WebSocket ws) {
-    print("Handled!");
     if(ws != null && ws.readyState == WebSocket.OPEN) {
       this.webSocket = ws;
-      print("Proxy: WebSocket Connected !");
-      var message = JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.SPAWN, [this.poolName, workerSourceUri.toString(), workerPath, extraArgs]));
+      _log("Proxy: WebSocket Connected !");
+      var message = JSON.encode(MessageUtil.create(SenderType.PROXY, id, Action.SPAWN, [this.me, workerSourceUri.toString(), workerPath, extraArgs]));
       webSocket.add(message);
     }
     webSocket.listen(_onData, onDone: _onDone);
@@ -82,7 +80,7 @@ class Proxy extends Worker {
 
       switch(action) {
         case Action.CREATED:
-          print("READY message sent");
+          _log("READY message sent");
           sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.CREATED, receivePort.sendPort));
           break;
         case Action.ERROR:
@@ -93,7 +91,7 @@ class Proxy extends Worker {
           sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.RESTARTING, null));
           receivePort.close();
           webSocket.close().then((value) {
-            print("Proxy: WebSocket connection with activator is now closed.");
+            _log("Proxy: WebSocket connection with activator is now closed.");
           });
           break;
         default:
@@ -104,16 +102,16 @@ class Proxy extends Worker {
   }
 
   void _onError(var message) {
-    print("Could not connect, retrying...");
+    _log("Could not connect, retrying...");
     new Timer(new Duration(seconds:3), () {
-      print ("Retrying...");
+      _log ("Retrying...");
       _initWebSocket();
     });
   }
 
   void _onDone() {
-    print("Connection closed by server!");
-    print("Reconnecting...");
+    _log("Connection closed by server!");
+    _log("Reconnecting...");
     _initWebSocket();
   }
 
@@ -122,7 +120,7 @@ class Proxy extends Worker {
   void kill() {
     sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.KILLED,null));
     webSocket.close().then((value) {
-      print("Proxy: WebSocket Disconnected.");
+      _log("Proxy: WebSocket Disconnected.");
     });
     receivePort.close();
   }
@@ -138,5 +136,9 @@ class Proxy extends Worker {
     } catch (exception) {
       return false;
     }
+  }
+
+  void _log(String text) {
+    //print(text);
   }
 }

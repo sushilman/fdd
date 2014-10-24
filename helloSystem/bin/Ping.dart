@@ -50,12 +50,12 @@ class Ping extends Worker {
     if(message == "START") {
       //ask({'value': "PING", 'count' : "1" }, to:respondTo);
       print("** $message");
-      send({'value': "PING", 'count' : "1" }, respondTo, replyTo:poolName);
+      send({'value': "PING", 'count' : "1" }, respondTo, replyTo:me);
     } else if (message['value'].startsWith("PONG")) {
       print("** ${message['value']} ${message['count']} **");
       int count = int.parse(message['count']) + 1;
 
-      reply({'value': "PING", 'count' :  "$count"}, replyTo:poolName);
+      reply({'value': "PING", 'count' :  "$count"}, replyTo:me);
     }
   }
 }

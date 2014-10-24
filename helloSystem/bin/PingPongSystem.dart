@@ -28,8 +28,8 @@ class PingPongSystem {
     List<String> pongWorkersPaths = ["localhost"];
 
     IsolateSystem system = new IsolateSystem("isolateSystem2", "ws://localhost:42043/mqs");
-    IsolateRef ping = system.addIsolate("ping", pingUri, pingWorkersPaths, Router.RANDOM, hotDeployment:false);
-    IsolateRef pong = system.addIsolate("pong", pongUri, pongWorkersPaths, Router.RANDOM, hotDeployment:false);
+    IsolateRef ping = system.addIsolate("ping", pingUri, pingWorkersPaths, Router.ROUND_ROBIN, hotDeployment:false);
+    IsolateRef pong = system.addIsolate("pong", pongUri, pongWorkersPaths, Router.ROUND_ROBIN, hotDeployment:true);
 
     // Bypasses the message queuing system for this particular first message
     ping.sendDirect("START", replyTo: pong);
