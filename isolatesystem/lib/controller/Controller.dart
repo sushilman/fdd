@@ -1,15 +1,13 @@
 library isolatesystem.controller.Controller;
 
-import 'dart:io';
+
 import 'dart:isolate';
-import 'dart:async';
 
 import 'package:path/path.dart' show dirname;
 
 import '../message/MessageUtil.dart';
 import '../message/SenderType.dart';
 import '../action/Action.dart';
-import '../IsolateSystem.dart';
 import '../worker/Worker.dart';
 
 /**
@@ -33,6 +31,7 @@ class Controller {
   List<_Router> _routers;
 
   Controller(List<String> args, this._sendPortOfIsolateSystem) {
+    print("Controller spawned!");
     _receivePort = new ReceivePort();
     _me = _receivePort.sendPort;
     _sendPortOfIsolateSystem.send(_receivePort.sendPort);
@@ -212,7 +211,7 @@ class Controller {
   }
 
   _spawnFileMonitor(String routerId, String workerUri) {
-    String curDir = dirname(Platform.script.toString());
+    String curDir = "."; //dirname(Platform.script.toString());
     Uri fileMonitorUri = Uri.parse(curDir + "/../src/FileMonitor.dart");
     Isolate.spawnUri(fileMonitorUri, ["fileMonitor_$routerId", routerId, workerUri], _receivePort.sendPort);
   }

@@ -13,10 +13,11 @@ class PrinterSystem {
 
   PrinterSystem() {
     receivePort = new ReceivePort();
-    String printerWorkerUri = "${dirname(Platform.script.toString())}/PrinterIsolate.dart";
-    String PrinterSystemWorkerUri = "${dirname(Platform.script.toString())}/HelloPrinter.dart";
 
-    List<String> workersPaths = ["localhost"];
+    String PrinterSystemWorkerUri = "http://192.168.2.4/helloSystem/HelloPrinter.dart";
+    //String PrinterSystemWorkerUri = "${dirname(Platform.script.toString())}/HelloPrinter.dart";
+
+    List<String> workersPaths = ["localhost", "ws://192.168.2.69:42042/activator"];
 
     IsolateSystem system = new IsolateSystem("isolateSystem", "ws://localhost:42043/mqs");
     IsolateRef helloPrinter = system.addIsolate("helloPrinter5", PrinterSystemWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);

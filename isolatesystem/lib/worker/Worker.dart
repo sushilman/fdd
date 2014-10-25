@@ -1,8 +1,6 @@
 library isolatesystem.worker.Worker;
 
-import 'dart:io';
 import 'dart:isolate';
-import 'dart:async';
 
 import '../action/Action.dart';
 import '../message/MessageUtil.dart';

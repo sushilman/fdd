@@ -3,14 +3,12 @@ library isolatesystem.IsolateSystem;
 import 'dart:async';
 import 'dart:isolate';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:html' show WebSocket, MessageEvent;
 
-import 'package:path/path.dart' show dirname;
 import 'package:uuid/uuid.dart';
 
 import 'action/Action.dart';
 import 'router/Router.dart';
-import 'router/Random.dart';
 import 'message/MessageUtil.dart';
 import 'message/SenderType.dart';
 import 'message/MQSMessageUtil.dart';
@@ -235,7 +233,7 @@ class IsolateSystem {
   }
 
   _startController() {
-    String curDir = dirname(Platform.script.toString());
+    String curDir = ".";//dirname(Platform.script.toString());
     String controllerUri = curDir + "/packages/isolatesystem/controller/Controller.dart";
     Isolate.spawnUri(Uri.parse(controllerUri), ["controller"], _receivePort.sendPort)
     .then((controller) {
@@ -246,19 +244,21 @@ class IsolateSystem {
 
   _connectToMqs(String path) {
     if(!_isSystemKilled) {
-      WebSocket.connect(path).then(_handleMqsWebSocket).catchError((_) {
-        new Timer(new Duration(seconds:3), () {
-          _log("Retrying...");
-          _connectToMqs(path);
-        });
+      WebSocket _mqsSocket = new WebSocket(path);
+      _mqsSocket.onOpen.listen((MessageEvent e) {
+        _flushBufferToMqs();
       });
+
+      _mqsSocket.onMessage.listen(_onDataFromMqs);
+      _mqsSocket.onError.listen(_onErrorMqs(path));
     }
   }
 
-  _handleMqsWebSocket(WebSocket socket) {
-    _mqsSocket = socket;
-    _mqsSocket.listen(_onDataFromMqs);
-    _flushBufferToMqs();
+  _onErrorMqs(String path) {
+    new Timer(new Duration(seconds:3), () {
+      _log("Retrying...");
+      _connectToMqs(path);
+    });
   }
 
   /**
@@ -272,16 +272,19 @@ class IsolateSystem {
    *            message: {message: {value: PING, count: 267},
    *            replyTo: isolateSystem2/ping}}}
    */
-  _onDataFromMqs(var data) {
-    var decodedData = JSON.decode(data);
-    _log("Message Arrived from MQS: ${decodedData}");
-    String topic = decodedData['topic'];
-    //String isolateName = topic.split('.').last;
-    String isolateId = topic.replaceAll('.','/');
+  _onDataFromMqs(var msg) {
+    if(msg is MessageEvent) {
+      var data = msg.data;
+      var decodedData = JSON.decode(data);
+      _log("Message Arrived from MQS: ${decodedData}");
+      String topic = decodedData['topic'];
+      //String isolateName = topic.split('.').last;
+      String isolateId = topic.replaceAll('.','/');
 
-    Map payload = {'to':isolateId, 'message':decodedData['payload']};
+      Map payload = {'to':isolateId, 'message':decodedData['payload']};
 
-    _me.send(MessageUtil.create(SenderType.MQS, _name, Action.NONE, payload));
+      _me.send(MessageUtil.create(SenderType.MQS, _name, Action.NONE, payload));
+    }
   }
 
   /**
@@ -351,7 +354,7 @@ class IsolateSystem {
       throw StackTrace;
     }
     if(_mqsSocket != null) {
-      _mqsSocket.add(JSON.encode(message));
+      _mqsSocket.send(JSON.encode(message));
     } else {
       _bufferMessagesToMqs.add(message);
     }
@@ -375,7 +378,7 @@ class IsolateSystem {
   }
 
   _log(String text) {
-    //print(text);
+    print(text);
   }
 
   String get name => _name;
