@@ -2,15 +2,20 @@ library isolatesystem.controller.Controller;
 
 import 'dart:io';
 import 'dart:isolate';
-import 'dart:async';
+
 
 import 'package:path/path.dart' show dirname;
 
 import '../message/MessageUtil.dart';
 import '../message/SenderType.dart';
 import '../action/Action.dart';
-import '../IsolateSystem.dart';
-import '../worker/Worker.dart';
+import '../worker/Worker.dart' as Constants;
+
+import '../router/Router.dart';
+import '../router/Random.dart';
+import '../router/RoundRobin.dart';
+
+import '../src/FileMonitor.dart';
 
 /**
  * Controller
@@ -20,8 +25,9 @@ import '../worker/Worker.dart';
  * and send pull request to IsolateSystem
  *
  */
-main(List<String> args, SendPort sendPort) {
-  Controller controller = new Controller(args, sendPort);
+
+controller(Map args) {
+  Controller controller = new Controller(args);
 }
 
 class Controller {
@@ -32,11 +38,12 @@ class Controller {
 
   List<_Router> _routers;
 
-  Controller(List<String> args, this._sendPortOfIsolateSystem) {
+  Controller(Map args) {
+    _id = args['id'];
+    _sendPortOfIsolateSystem = args['sendPort'];
     _receivePort = new ReceivePort();
     _me = _receivePort.sendPort;
     _sendPortOfIsolateSystem.send(_receivePort.sendPort);
-    _id = args[0];
 
     _routers = new List<_Router>();
 
@@ -89,11 +96,11 @@ class Controller {
         String routerId = payload['name'];
         String workerUri = payload['uri'];
         List<String> workersPaths = payload['workerPaths'];
-        Uri routerUri = Uri.parse(payload['routerUri']);
+        String routerType = payload['routerType'];
         bool hotDeployment = payload['hotDeployment'];
         var extraArgs = payload['args'];
 
-        _spawnRouter(routerId, routerUri, workerUri, workersPaths, extraArgs);
+        _spawnRouter(routerId, routerType, workerUri, workersPaths, extraArgs);
 
         if(hotDeployment) {
           _spawnFileMonitor(routerId, workerUri);
@@ -140,6 +147,7 @@ class Controller {
   }
 
   _handleMessagesFromRouters(String senderId, String action, var payload) {
+    _log("Sender Router: $senderId");
     if(payload is SendPort) {
       _Router router = _getRouterById(senderId);
       router.sendPort = payload;
@@ -204,17 +212,38 @@ class Controller {
     }
   }
 
-  _spawnRouter(String routerId, Uri routerUri, String workerUri, List<String> workersPaths, var extraArgs) {
-    Isolate.spawnUri(routerUri, [routerId, workerUri, workersPaths, extraArgs], _receivePort.sendPort).then((isolate) {
-      _Router router = new _Router(routerId, routerUri, workersPaths.length);
+  _spawnRouter(String routerId, String routerType, String workerUri, List<String> workersPaths, var extraArgs) {
+
+    var router;
+    switch(routerType) {
+      case Router.RANDOM:
+        router = random;
+        break;
+      case Router.ROUND_ROBIN:
+        router = roundRobin;
+        break;
+      case Router.BROADCAST:
+        //router = broadcast;
+        break;
+      case Router.CUSTOM:
+        //TODO: spawn by uri?
+      default:
+    }
+
+    Isolate.spawn(router, {'id':routerId, 'workerUri':workerUri, 'workerPaths':workersPaths, 'extraArgs':extraArgs, 'sendPort': _me}).then((isolate){
+      _Router router = new _Router(routerId, routerType, workersPaths.length);
       _routers.add(router);
     });
   }
 
-  _spawnFileMonitor(String routerId, String workerUri) {
+  _oldSpawnFileMonitor(String routerId, String workerUri) {
     String curDir = dirname(Platform.script.toString());
     Uri fileMonitorUri = Uri.parse(curDir + "/../src/FileMonitor.dart");
     Isolate.spawnUri(fileMonitorUri, ["fileMonitor_$routerId", routerId, workerUri], _receivePort.sendPort);
+  }
+
+  _spawnFileMonitor(String routerId, String workerUri) {
+    Isolate.spawn(fileMonitor, {'id':'fileMonitor_$routerId', 'routerId':routerId, 'workerUri':workerUri, 'sendPort': _me});
   }
 
   _Router _getRouterById(String id) {
@@ -227,8 +256,8 @@ class Controller {
   }
 
   String _getIdOfTargetIsolatePool(Map payload) {
-    if(payload is Map && payload.containsKey(Worker.TO)) {
-      return payload[Worker.TO];
+    if(payload is Map && payload.containsKey(Constants.Worker.TO)) {
+      return payload[Constants.Worker.TO];
     }
     return null;
   }
@@ -243,7 +272,6 @@ class _Router {
   SendPort _sendPort;
   int _workersCount;
   String _type;
-  Uri _uri;
   Isolate _isolate;
   Isolate _fileMonitorIsolate;
 
@@ -259,12 +287,9 @@ class _Router {
   String get type => _type;
   set type(String value) => _type = value;
 
-  Uri get uri => _uri;
-  set uri(Uri value) => _uri = value;
-
   Isolate get isolate => _isolate;
   set isolate(Isolate value) => _isolate = value;
 
 
-  _Router(this._id, this._uri, this._workersCount);
+  _Router(this._id, this._type, this._workersCount);
 }

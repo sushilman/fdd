@@ -3,12 +3,12 @@ import 'dart:math' as Math;
 
 import 'Router.dart';
 
-main(List<String> args, SendPort sendPort) {
-  Random randomRouter = new Random(args, sendPort);
+random(Map args) {
+  Random randomRouter = new Random(args);
 }
 
 class Random extends Router {
-  Random(List<String> args, SendPort sendPort) : super(args, sendPort);
+  Random(Map args) : super(args);
 
   @override
   Worker selectWorker() {

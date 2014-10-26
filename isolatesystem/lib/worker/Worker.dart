@@ -1,8 +1,6 @@
 library isolatesystem.worker.Worker;
 
-import 'dart:io';
 import 'dart:isolate';
-import 'dart:async';
 
 import '../action/Action.dart';
 import '../message/MessageUtil.dart';
@@ -45,11 +43,10 @@ abstract class Worker {
     });
   }
 
-  Worker.withoutReadyMessage(List<String> args, this.sendPort) {
-    id = args.removeAt(0);
-    me = args.removeAt(0);
-    args = args[0];
-
+  Worker.internal(Map args) {
+    id = args['id'];
+    me = args['routerId'];
+    this.sendPort = args['sendPort'];
     receivePort = new ReceivePort();
     _me = receivePort.sendPort;
     receivePort.listen(_onReceive, onDone:_onDone, cancelOnError:false);

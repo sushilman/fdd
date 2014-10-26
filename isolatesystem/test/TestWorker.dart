@@ -1,12 +1,11 @@
 import 'dart:isolate';
 
-import 'package:isolatesystem/IsolateSystem.dart';
 import 'package:isolatesystem/worker/Worker.dart';
 
 import 'package:unittest/unittest.dart';
 import 'TestIsolateSystem.dart';
 
-main(List<String> args, SendPort sendPort) {
+main1(List<String> args, SendPort sendPort) {
   new TestWorker(args, sendPort);
 }
 

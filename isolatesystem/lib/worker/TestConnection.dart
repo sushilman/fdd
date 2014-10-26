@@ -64,6 +64,6 @@ class TestConnection {
   }
 }
 
-void main() {
+void main1() {
   new TestConnection();
 }

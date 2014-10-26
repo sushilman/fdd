@@ -9,7 +9,7 @@ import '../lib/router/Router.dart';
 
 String EXPECTED_MESSAGE = "Test Message";
 
-main() {
+main1() {
   group('IsolateSystemTest', () {
     IsolateSystem system;
     IsolateRef testWorker;

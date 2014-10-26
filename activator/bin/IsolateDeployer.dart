@@ -193,7 +193,7 @@ class IsolateDeployer {
   }
 
   void _log(String text) {
-    print(text);
+    //print(text);
   }
 }
 

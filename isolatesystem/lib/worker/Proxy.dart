@@ -14,8 +14,8 @@ import 'Worker.dart';
 /**
  * Receives message from router and sends it via webSocket to respective activator
  */
-main(List<String> args, SendPort sendPort) {
-  Proxy proxy = new Proxy(args, sendPort);
+proxyWorker(Map args) {
+  new Proxy(args);
 }
 
 /**
@@ -33,10 +33,10 @@ class Proxy extends Worker {
    * Need some error prevention here
    * if workerPath is not good websocket uri
    */
-  Proxy(List<String> args, SendPort sendPort) : super.withoutReadyMessage(args, sendPort) {
-    workerPath = args[0];
-    workerSourceUri = args[1];
-    extraArgs = args[2];
+  Proxy(Map args) : super.internal(args) {
+    workerPath = args['workerPath'];
+    workerSourceUri = args['workerSourceUri'];
+    extraArgs = args['extraArgs'];
 
     print("Proxy: Connecting to webSocket...");
     _initWebSocket();
@@ -80,7 +80,7 @@ class Proxy extends Worker {
 
       switch(action) {
         case Action.CREATED:
-          _log("READY message sent");
+          _log("CREATED message sent, my id = $id");
           sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.CREATED, receivePort.sendPort));
           break;
         case Action.ERROR:

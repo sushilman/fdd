@@ -9,16 +9,14 @@
 library isolatesystem.router.Random;
 
 import 'dart:isolate';
-import 'dart:async';
-import 'dart:math' as Math;
 import 'dart:convert';
 
 import 'package:uuid/uuid.dart';
 
-import 'Router.dart';
 import '../action/Action.dart';
 import '../message/MessageUtil.dart';
 import '../message/SenderType.dart';
+import '../worker/Proxy.dart';
 
 /**
  * http://doc.akka.io/docs/akka/snapshot/scala/routing.html
@@ -51,10 +49,12 @@ import '../message/SenderType.dart';
  *
  * TODO: send a message to specific worker if id is provided
  */
+
 abstract class Router {
   static const String RANDOM = "random";
   static const String ROUND_ROBIN = "roundRobin";
   static const String BROADCAST = "broadcast";
+  static const String CUSTOM = "custom";
 
   String _id;
   ReceivePort _receivePort;
@@ -67,23 +67,23 @@ abstract class Router {
 
   var extraArgs;
 
-  Router(List<String> args, this._sendPortOfController) {
+  Router(Map args) {
+    //routerId, workerUri, workersPaths, extraArgs
+    this._sendPortOfController = args['sendPort'];
     _receivePort = new ReceivePort();
     _me = _receivePort.sendPort;
     workers = new List<Worker>();
 
-    _id = args[0];
-    _workerSourceUri = Uri.parse(args[1]);
-    if(args[2] is List) {
-      _workersPaths = args[2];
+    _id = args['id'];
+    _workerSourceUri = Uri.parse(args['workerUri']);
+    if(args['workerPaths'] is List) {
+      _workersPaths = args['workerPaths'];
     } else {
       _log("Bad argument type");
-      _workersPaths = JSON.decode(args[2]);
+      _workersPaths = JSON.decode(args['workerPaths']);
     }
 
-
-    if(args.length > 3)
-      extraArgs = args[3];
+    extraArgs = args['extraArgs'];
 
     _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.NONE, _receivePort.sendPort));
     _spawnWorkers(extraArgs);
@@ -217,10 +217,9 @@ abstract class Router {
 
   _spawnWorker(String id, String path, {var args}) {
     id = "${this._id}/$id";
-    Uri proxyUri = Uri.parse("../worker/Proxy.dart");
+    //Uri proxyUri = Uri.parse("../worker/Proxy.dart");
     if(path.startsWith("ws://")) {
-      //_out("Spawning remote isolate");
-      Isolate.spawnUri(proxyUri, [id, this._id, path, _workerSourceUri, args], _receivePort.sendPort).then((Isolate isolate) {
+      Isolate.spawn(proxyWorker, {'id':id, 'routerId':this._id, 'workerPath':path, 'workerSourceUri': _workerSourceUri, 'extraArgs':args, 'sendPort': _me}).then((Isolate isolate){
         Worker w = new Worker(id, path, isolate);
         workers.add(w);
       });

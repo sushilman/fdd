@@ -1,9 +1,9 @@
+library isolatesystem.FileMonitor;
+
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:async';
-import 'dart:math' as Math;
 
-import 'package:path/path.dart';
 import 'package:crypto/crypto.dart';
 
 import '../worker/Worker.dart';
@@ -17,16 +17,16 @@ import '../message/SenderType.dart';
  * and each isolate group can have it enabled or disabled
  */
 
-main(List<String> args, SendPort sendPort) {
-  new FileMonitor(args, sendPort);
+fileMonitor(Map args) {
+  new FileMonitor(args);
 }
 
 class FileMonitor extends Worker {
 
-  FileMonitor(List<String> args, SendPort sendPort) : super.withoutReadyMessage(args, sendPort) {
+  FileMonitor(Map args) : super.internal(args) {
     sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.CREATED, receivePort.sendPort));
 
-    startMonitoring(Uri.parse(args[0]));
+    startMonitoring(Uri.parse(args['workerUri']));
   }
 
   onReceive(var message) {

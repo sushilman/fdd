@@ -10,12 +10,13 @@ import 'package:uuid/uuid.dart';
 
 import 'action/Action.dart';
 import 'router/Router.dart';
-import 'router/Random.dart';
+
 import 'message/MessageUtil.dart';
 import 'message/SenderType.dart';
 import 'message/MQSMessageUtil.dart';
 
 import 'IsolateRef.dart';
+import 'controller/Controller.dart';
 
 /**
  * TODO: Take care of these Possible Issues
@@ -122,20 +123,20 @@ class IsolateSystem {
     name = "$_name/$name";
     String routerUri = routerType;
 
-    switch(routerType) {
-      case Router.RANDOM:
-        routerUri = "../router/Random.dart";
-        break;
-      case Router.ROUND_ROBIN:
-        routerUri = "../router/RoundRobin.dart";
-        break;
-      case Router.BROADCAST:
-        routerUri = "../router/BroadCast.dart";
-        break;
-      default:
-    }
+//    switch(routerType) {
+//      case Router.RANDOM:
+//        routerUri = "../router/Random.dart";
+//        break;
+//      case Router.ROUND_ROBIN:
+//        routerUri = "../router/RoundRobin.dart";
+//        break;
+//      case Router.BROADCAST:
+//        routerUri = "../router/BroadCast.dart";
+//        break;
+//      default:
+//    }
 
-    var message = {'name':name, 'uri':uri, 'workerPaths':workersPaths, 'routerUri':routerUri, 'hotDeployment':hotDeployment, 'args':args};
+    var message = {'name':name, 'uri':uri, 'workerPaths':workersPaths, 'routerType':routerType, 'hotDeployment':hotDeployment, 'args':args};
     _me.send(MessageUtil.create(SenderType.DIRECT, _name, Action.SPAWN, message));
     return new IsolateRef(name, _me);
   }
@@ -234,7 +235,7 @@ class IsolateSystem {
     }
   }
 
-  _startController() {
+  _oldstartController() {
     String curDir = dirname(Platform.script.toString());
     String controllerUri = curDir + "/packages/isolatesystem/controller/Controller.dart";
     Isolate.spawnUri(Uri.parse(controllerUri), ["controller"], _receivePort.sendPort)
@@ -242,6 +243,10 @@ class IsolateSystem {
       _controllerIsolate = controller;
       controller.errors.handleError((_){_log("error handled");});
     });
+  }
+
+  _startController() {
+    Isolate.spawn(controller, {'id':"controller", 'sendPort':_me});
   }
 
   _connectToMqs(String path) {

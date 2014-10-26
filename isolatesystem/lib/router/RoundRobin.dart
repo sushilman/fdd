@@ -1,16 +1,15 @@
-import 'dart:isolate';
-import 'dart:math' as Math;
+library isolatesystem.router.RoundRobin;
 
 import 'Router.dart';
 
-main(List<String> args, SendPort sendPort) {
-  RoundRobin randomRouter = new RoundRobin(args, sendPort);
+roundRobin(Map args) {
+  RoundRobin randomRouter = new RoundRobin(args);
 }
 
 class RoundRobin extends Router {
   int counter = 0;
 
-  RoundRobin(List<String> args, SendPort sendPort) : super(args, sendPort);
+  RoundRobin(Map args) : super(args);
 
   @override
   Worker selectWorker() {
