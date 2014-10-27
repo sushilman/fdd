@@ -1,6 +1,17 @@
 library isolatesystem.router.Broadcast;
 
-class Broadcast {
-  Broadcast() {
+import 'Router.dart';
+
+broadcast(Map args) {
+  new Broadcast(args);
+}
+
+class Broadcast extends Router {
+
+  Broadcast(Map args):super(args);
+
+  @override
+  List<Worker> selectWorker() {
+    return workers;
   }
 }

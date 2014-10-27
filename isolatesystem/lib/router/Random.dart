@@ -4,7 +4,7 @@ import 'dart:math' as Math;
 import 'Router.dart';
 
 random(Map args) {
-  Random randomRouter = new Random(args);
+  new Random(args);
 }
 
 class Random extends Router {

@@ -74,7 +74,12 @@ abstract class Router {
     _startMonitoringIdleWorkers();
   }
 
-  Worker selectWorker();
+  /**
+   * Return type should either be a single Worker
+   * or List<Worker>
+   * if a list is returned, message will be replicated to each worker
+   */
+  selectWorker();
 
   _onReceive(var message) {
     _log("Router: $message");
@@ -140,7 +145,16 @@ abstract class Router {
           }
 
           if (worker != null) {
-            if (worker.sendPort == null) {
+            if (worker is List) {
+              //in case router returns multiple workers
+              for (Worker w in worker) {
+                if(w.sendPort != null) {
+                  w.sendPort.send(payload['message']);
+                } else {
+                  _messageBuffer.add(fullMessage);
+                }
+              }
+            } else if (worker.sendPort == null) {
               //_me.send(fullMessage);
               _messageBuffer.add(fullMessage);
             } else {
@@ -319,6 +333,10 @@ abstract class Router {
     new Timer.periodic(const Duration(seconds:2), (Timer t) {
       int currentTimeStamp = new DateTime.now().millisecondsSinceEpoch;
       for(Worker w in workers) {
+        if(w.lastMessageTimestamp == null) {
+          continue;
+        }
+
         int difference = currentTimeStamp - w.lastMessageTimestamp;
         if(difference > TIMEOUT_MILLISECONDS) {
           _pingWorker(w);

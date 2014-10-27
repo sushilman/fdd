@@ -3,7 +3,7 @@ library isolatesystem.router.RoundRobin;
 import 'Router.dart';
 
 roundRobin(Map args) {
-  RoundRobin randomRouter = new RoundRobin(args);
+  new RoundRobin(args);
 }
 
 class RoundRobin extends Router {

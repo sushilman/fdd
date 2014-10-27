@@ -14,6 +14,7 @@ import '../worker/Worker.dart' as Constants;
 import '../router/Router.dart';
 import '../router/Random.dart';
 import '../router/RoundRobin.dart';
+import '../router/Broadcast.dart';
 
 import '../src/FileMonitor.dart';
 
@@ -229,7 +230,7 @@ class Controller {
         router = roundRobin;
         break;
       case Router.BROADCAST:
-        //router = broadcast;
+        router = broadcast;
         break;
       case Router.CUSTOM:
         //TODO: spawn by uri?

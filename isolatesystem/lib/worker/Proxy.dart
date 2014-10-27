@@ -38,7 +38,7 @@ class Proxy extends Worker {
     workerSourceUri = args['workerSourceUri'];
     extraArgs = args['extraArgs'];
 
-    print("Proxy: Connecting to webSocket...");
+    _log("Proxy: Connecting to webSocket...");
     _initWebSocket();
   }
 
@@ -140,6 +140,6 @@ class Proxy extends Worker {
   }
 
   void _log(String text) {
-    print(text);
+    //print(text);
   }
 }
