@@ -48,11 +48,14 @@ abstract class Router {
 
   var extraArgs;
 
+  List _messageBuffer;
+
   Router(Map args) {
     this._sendPortOfController = args['sendPort'];
     _receivePort = new ReceivePort();
     _me = _receivePort.sendPort;
     workers = new List<Worker>();
+    _messageBuffer = new List();
 
     _id = args['id'];
     _workerSourceUri = Uri.parse(args['workerUri']);
@@ -118,7 +121,8 @@ abstract class Router {
         break;
       case Action.NONE:
         if(workers.length == 0) {
-          _me.send(fullMessage);
+          //_me.send(fullMessage);
+          _messageBuffer.add(fullMessage);
         } else {
           Worker worker;
           List<String> pathPieces = payload['to'].split('/');
@@ -137,7 +141,8 @@ abstract class Router {
 
           if (worker != null) {
             if (worker.sendPort == null) {
-              _me.send(fullMessage);
+              //_me.send(fullMessage);
+              _messageBuffer.add(fullMessage);
             } else {
               _log("Router -> Worker: ${payload['message']}");
               worker.sendPort.send(payload['message']);
@@ -164,10 +169,12 @@ abstract class Router {
       case Action.CREATED:
         if(worker == null) {
           _log("Worker still NULL so sending same message to self, bad senderId/workerId?");
-          _me.send(fullMessage);
+          //_me.send(fullMessage);
+          _messageBuffer.add(fullMessage);
         } else {
           _log("Router: Assigning sendport");
           worker.sendPort = payload;
+          _flushBuffer();
           _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.CREATED, null));
         }
         break;
@@ -285,6 +292,13 @@ abstract class Router {
 
   removeWorker(Worker w) {
     workers.remove(w);
+  }
+
+  void _flushBuffer() {
+    int len = _messageBuffer.length;
+    for(int i = 0; i < len; i++) {
+      _me.send(_messageBuffer.removeAt(0));
+    }
   }
 
   _log(String text) {

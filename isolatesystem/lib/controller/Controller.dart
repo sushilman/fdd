@@ -38,6 +38,8 @@ class Controller {
 
   List<_Router> _routers;
 
+  List _messageBuffer;
+
   Controller(Map args) {
     _id = args['id'];
     _sendPortOfIsolateSystem = args['sendPort'];
@@ -46,6 +48,8 @@ class Controller {
     _sendPortOfIsolateSystem.send(_receivePort.sendPort);
 
     _routers = new List<_Router>();
+
+    _messageBuffer = new List();
 
     _receivePort.listen((message) {
       try {
@@ -126,7 +130,8 @@ class Controller {
         if(routerId != null) {
           _Router router = _getRouterById(routerId);
           if(router == null || router.sendPort == null) {
-            _me.send(fullMessage);
+            //_me.send(fullMessage);
+            _messageBuffer.add(fullMessage);
           } else {
             router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload));
           }
@@ -151,6 +156,7 @@ class Controller {
     if(payload is SendPort) {
       _Router router = _getRouterById(senderId);
       router.sendPort = payload;
+      _flushBuffer();
       _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
     } else {
       switch (action) {
@@ -260,6 +266,13 @@ class Controller {
       return payload[Constants.Worker.TO];
     }
     return null;
+  }
+
+  void _flushBuffer() {
+    int len = _messageBuffer.length;
+    for(int i = 0; i < len; i++) {
+      _me.send(_messageBuffer.removeAt(0));
+    }
   }
 
   _log(String text) {

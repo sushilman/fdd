@@ -19,7 +19,7 @@ class PrinterSystem {
     List<String> workersPaths = ["localhost", "ws://localhost:42042/activator"];
 
     IsolateSystem system = new IsolateSystem("isolateSystem", "ws://localhost:42043/mqs");
-    IsolateRef helloPrinter = system.addIsolate("helloPrinter5", PrinterSystemWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
+    IsolateRef helloPrinter = system.addIsolate("helloPrinter5", PrinterSystemWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
     //IsolateRef helloPrinter2 = system.addIsolate("helloPrinter2", PrinterSystemWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
 
   }
