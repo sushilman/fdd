@@ -77,6 +77,9 @@ abstract class Worker {
         onReceive(payload['message']);
       } else {
         switch (action) {
+          case Action.PING:
+            _replyToPing();
+            break;
           case Action.KILL:
             kill();
             break;
@@ -103,14 +106,9 @@ abstract class Worker {
    * to -> send current message to isolatePool
    * replyTo -> after this message has been process, reply to my pool or forward to mentioned isolate
    *
-   * === Some thoughts ===
-   * May be add something like, reply specifically to me -> which would be similar to implementation of "ask"
-   * also send uuid of self so that resulting message comes back to this isolate
    *
-   * And may be the isolatesystem adds something too (whenever there is uuid attached in replyTo/replyExactlyTo) to identify itself?
-   * so that the response comes exactly to same isolate of same system
-   *
-   * respondTo is the isolate set as replyTo be original sender
+   * respondTo is the set as replyTo if present, else set to sender
+   * sender is the original sender
    */
   send(var message, String to, {String replyTo}) {
     var msg = {'sender':this.me,
@@ -142,6 +140,10 @@ abstract class Worker {
   void kill() {
     receivePort.close();
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.KILLED, null));
+  }
+
+  void _replyToPing() {
+    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.PONG, null));
   }
 
   _extractExtraArguments(var args) {

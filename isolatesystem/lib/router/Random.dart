@@ -12,6 +12,7 @@ class Random extends Router {
 
   @override
   Worker selectWorker() {
+    print("TOTAL WORKERS)random => ${workers.length}");
     Math.Random random = new Math.Random();
     int randomInt = 0;
     if(workers.length > 1) {

@@ -112,7 +112,8 @@ class Proxy extends Worker {
   void _onDone() {
     _log("Connection closed by server!");
     _log("Reconnecting...");
-    _initWebSocket();
+    this.sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.ERROR, null));
+    //_initWebSocket();
   }
 
 
@@ -139,6 +140,6 @@ class Proxy extends Worker {
   }
 
   void _log(String text) {
-    //print(text);
+    print(text);
   }
 }

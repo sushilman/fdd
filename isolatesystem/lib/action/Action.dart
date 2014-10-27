@@ -27,4 +27,8 @@ class Action {
   // message replied by isolate that it is going to end (close it's receivePort)
   static const String KILLED = "action.killed";
   static const String RESTARTING = "action.restarting";
+
+  // actions to check if isolate is active
+  static const String PING = "action.ping";
+  static const String PONG = "action.pong";
 }

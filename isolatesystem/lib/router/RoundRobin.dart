@@ -14,6 +14,7 @@ class RoundRobin extends Router {
   @override
   Worker selectWorker() {
     int totalWorkers = workers.length;
+    print("TOTAL WORKERS => $totalWorkers");
     int index = counter % totalWorkers;
     counter++;
 
