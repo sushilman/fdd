@@ -136,7 +136,7 @@ abstract class Router {
             worker = _getWorkerById(payload['to']);
 
             if (worker == null) {
-              // if designated worker is not found, message is discarded in this case
+              // if designated worker is not found, message is discarded
               _log("Worker with ${payload['to']} not found !");
               _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.PULL_MESSAGE, null));
             }
