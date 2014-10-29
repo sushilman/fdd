@@ -1,0 +1,7 @@
+name: registryWebclient
+version: 0.0.1
+description: A simple client for management of isolate systems
+dependencies:
+  browser: any
+dev_dependencies:
+#  unittest: any

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>RegistryWebclient</title>
+    <link rel="stylesheet" href="registrywebclient.css">
+  </head>
+  <body>
+    <h1>FDD Manager</h1>
+
+    <p>A simple client for management of isolate systems !</p>
+
+    <div id = "container">
+      <div class="column" id="nodes">
+        <div class="header">
+          <h1>Nodes</h1>
+        </div>
+        <div class="contents">
+          <ol id="nodeList">
+
+          </ol>
+        </div>
+      </div>
+
+      <div class="column" id="systems">
+        <div class="header">
+          <h1>Running Systems</h1>
+        </div>
+        <div class="contents">
+          <ul id="systemsList">
+
+          </ul>
+        </div>
+      </div>
+
+      <div class="column" id="details">
+        <div class="header">
+          <h1>Details</h1>
+        </div>
+        <div class="contents">
+          <ul id="detailsInfo">
+
+          </ul>
+        </div>
+      </div>
+    </div>
+    <script type="application/dart" src="registrywebclient.dart"></script>
+    <script src="packages/browser/dart.js"></script>
+  </body>
+</html>
