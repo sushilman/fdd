@@ -147,12 +147,35 @@ class IsolateSystem {
    * including receivePorts and webSockets
    * and no Timers should be running
    */
-  void kill() {
-    _log("KILL message");
-    _me.send(MessageUtil.create(SenderType.DIRECT, _name, Action.KILL, null));
+  void killSystem() {
+    _log("KILLALL message");
+    _me.send(MessageUtil.create(SenderType.DIRECT, _name, Action.KILL_ALL, null));
     _receivePort.close();
     _mqsSocket.close();
     _isSystemKilled = true;
+  }
+
+  void killIsolate(String isolateName) {
+    _log("KILL isolate");
+    isolateName = "$_name/$isolateName";
+    _me.send(MessageUtil.create(SenderType.DIRECT, _name, Action.KILL, {"routerId":isolateName}));
+  }
+
+  /**
+   * Returns in json format
+   */
+  Future<String> getRunningIsolates() {
+    Completer c = new Completer();
+    ReceivePort r = new ReceivePort();
+    if(_sendPortOfController == null) {
+      c.complete(null);
+    } else {
+      _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, this.name, Controller.GET_RUNNING_ISOLATES, {'sendPort':r.sendPort}));
+      r.listen((var msg){
+        c.complete(msg);
+      });
+    }
+    return c.future;
   }
 
   _onReceive(message) {
@@ -227,22 +250,13 @@ class IsolateSystem {
     switch(action) {
       case Action.SPAWN:
       case Action.KILL:
+      case Action.KILL_ALL:
       case Action.NONE:
         _sendToController(message);
         break;
       default:
         _log("IsolateSystem: (Direct Message Handler): Unknown Action -> $action");
     }
-  }
-
-  _oldstartController() {
-    String curDir = dirname(Platform.script.toString());
-    String controllerUri = curDir + "/packages/isolatesystem/controller/Controller.dart";
-    Isolate.spawnUri(Uri.parse(controllerUri), ["controller"], _receivePort.sendPort)
-    .then((controller) {
-      _controllerIsolate = controller;
-      controller.errors.handleError((_){_log("error handled");});
-    });
   }
 
   _startController() {
@@ -345,10 +359,6 @@ class IsolateSystem {
       _log("Sending to buffer : $message");
       _bufferMessagesToController.add(message);
     }
-  }
-
-  _forward(var message) {
-
   }
 
   _sendToMqs(var message) {

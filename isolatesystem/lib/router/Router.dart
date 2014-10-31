@@ -112,13 +112,12 @@ abstract class Router {
       case Action.SPAWN:
       //TODO: may be, to relocate individual isolate in same isolate system
         break;
+      case Action.KILL_ALL:
       case Action.KILL:
         _killAllWorkers();
         _receivePort.close();
         break;
       case Action.RESTART:
-        break;
-      case Action.KILL_ALL:
         break;
       case Action.RESTART_ALL:
         _killAllWorkers();
@@ -264,6 +263,7 @@ abstract class Router {
   }
 
   _killAllWorkers() {
+    _log("–––––––––––––––––––– KILLING ALL ––––––––––––––––––––");
     for(Worker worker in workers) {
       worker.sendPort.send(MessageUtil.create(SenderType.ROUTER, this._id, Action.KILL, null));
     }

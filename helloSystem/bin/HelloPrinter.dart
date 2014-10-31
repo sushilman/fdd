@@ -32,7 +32,7 @@ class HelloPrinter extends Worker {
    * which might take varied amount of time to complete
    */
   outText(var message) {
-    int rand = new Math.Random().nextInt(10);
+    int rand = 5; //new Math.Random().nextInt(10);
     Duration duration = new Duration(seconds: rand);
     //print("\n\n Processed by Worker ID: $id");
     //print("=======================================================");
@@ -61,7 +61,7 @@ class HelloPrinter extends Worker {
     """;
     print(text);
     //print("doing something for $rand seconds...\n\n");
-    //sleep(duration);
+    sleep(duration);
     reply(message);
   }
 }

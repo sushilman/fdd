@@ -3,14 +3,17 @@ import 'dart:convert';
 
 String registryHost = "localhost";
 String registryPort = "8000";
-String baseUri = "http://$registryHost:$registryPort/registry/systems";
+String baseUri = "http://$registryHost:$registryPort/registry";
 
 void main() {
   fetchNodes();
+  querySelector("#addWorkerButton").onClick.listen(_showAddWorkerForm);
+  querySelector("#closeButton").onClick.listen(_closeAddWorkerForm);
+  querySelector("#submit").onClick.listen(_addWorker);
 }
 
 void fetchNodes() {
-  var url = "$baseUri/list";
+  var url = "$baseUri/system/list";
   var request = HttpRequest.getString(url).then(_onNodesFetched);
 }
 
@@ -28,41 +31,41 @@ void _onNodesFetched(responseText) {
   List<Element> elementList = querySelectorAll('#nodeList li');
   for(Element e in elementList) {
     e.onClick.listen((MouseEvent event) {
-      print("Clicked -> ${e.id}");
       _setSelectedNode(e);
-      _clear(querySelector('#systemsList'));
-      _clear(querySelector('#detailsInfo'));
       _fetchRunningSystems(e.id);
     });
   }
 }
 
 void _fetchRunningSystems(String id) {
-  var url = "$baseUri/$id";
+  _clear(querySelector('#systemsList'));
+  _clear(querySelector('#detailsInfo'));
+  var url = "$baseUri/system/$id";
   var request = HttpRequest.getString(url).then(_onSystemsFetched);
 }
 
 void _onSystemsFetched(responseText) {
+  print("Systems Fetched : $responseText");
   Map systems = JSON.decode(responseText);
-  print(systems);
+  print("Systems Fetched decoded : $systems");
   StringBuffer elements = new StringBuffer();
   for(String systemName in systems.keys) {
 
     StringBuffer workers = new StringBuffer();
     for(Map worker in systems[systemName]) {
-      workers.write('''<li id="${worker['name']}">${worker['name']}
+      workers.write('''<li id="${worker['id']}">${worker['id']}
                       <ul class="hidden details">
-                        <li>Name: ${worker['name']}</li>
-                        <li>Source Uri: ${worker['uri']}</li>
-                        <li>No. of Instances: ${JSON.decode(worker['paths']).length}</li>
-                        <li>Deployed paths: ${worker['paths']}</li>
+                        <li>Name: ${worker['id']}</li>
+                        <li>Source Uri: ${worker['workerUri']}</li>
+                        <li>No. of Instances: ${worker['workersPaths'].length}</li>
+                        <li>Deployed paths: ${worker['workersPaths']}</li>
                         <li>RouterType: ${worker['routerType']}</li>
                         <li>HotDeployment: ${worker['hotDeployment']}</li>
                       </ul></li>''');
     }
 
     elements.write('''<li id = '$systemName'>
-                        $systemName:
+                        $systemName: <div class="removeSystem" title="Shutdown">x</div>
                         <ul>
                             $workers
                         </ul>
@@ -75,9 +78,17 @@ void _onSystemsFetched(responseText) {
   for(Element e in elementList) {
     if(e != null) {
       e.onClick.listen((MouseEvent event) {
-        print("Clicked -> ${e.id}");
         _setSelectedSystem(e);
         _displayDetails(e.querySelector(".details"));
+      });
+    }
+  }
+
+  ElementList systemsList = querySelectorAll('#systemsList li .removeSystem');
+  for(Element systemElem in systemsList) {
+    if(systemElem != null) {
+      systemElem.onClick.listen((MouseEvent event) {
+        _shutdownIsolateSystem(event, systemElem);
       });
     }
   }
@@ -110,9 +121,98 @@ void _setSelectedSystem(Element e) {
 
 void _clear(Element e) {
   if(e != null) {
-    print('CLEARING');
     e.remove();
-  } else {
-    print("$e is null");
   }
 }
+
+void _showAddWorkerForm(MouseEvent e) {
+  Element selectedNode = querySelector("#nodeList .selected");
+  if(selectedNode == null) {
+    window.alert("Please select a Node !");
+  } else {
+    String id = selectedNode.id;
+    querySelector("#bootstrapperId").value = id;
+    querySelector("#overlay").classes.remove('hidden');
+    querySelector("#isolateSystemName").focus();
+    window.onKeyDown.listen((KeyEvent k) {
+      if(k.keyCode == KeyCode.ESC) {
+        _closeAddWorkerForm(null);
+      }
+    });
+  }
+}
+
+void _closeAddWorkerForm(MouseEvent e) {
+  querySelector("#overlay").classes.add('hidden');
+}
+
+void _addWorker(MouseEvent e) {
+  FormElement form = querySelector("#addWorkerForm");
+  Map formData = serializeForm(form);
+  var url = "$baseUri/deploy";
+  HttpRequest request = new HttpRequest();
+  request.open("POST", url, async:false);
+  request.setRequestHeader("Content-type", "application/json");
+  request.send(JSON.encode(formData));
+  window.location.reload();
+  /*
+  String nodeId = formData['bootstrapperId'];
+  _closeAddWorkerForm(null);
+  _fetchRunningSystems(nodeId);
+  */
+}
+
+void _shutdownIsolateSystem(MouseEvent e, Element el) {
+  String nodeId = querySelector("#nodeList .selected").id;
+  String systemName = el.parent.id;
+  bool confirm = window.confirm("Do you really want to shutdown isolateSystem: ${systemName}");
+  if(confirm) {
+    Map data = {'bootstrapperId':nodeId, 'isolateSystemName':systemName};
+    var url = "$baseUri/system/shutdown";
+    HttpRequest request = new HttpRequest();
+    request.open("POST", url, async:false);
+    request.setRequestHeader("Content-type", "application/json");
+    request.send(JSON.encode(data));
+    _fetchRunningSystems(nodeId);
+  }
+}
+
+_onDeployed(var responseText, FormElement form) {
+  _clearForm(form);
+}
+
+_clearForm(FormElement form) {
+  for(var el in form.querySelectorAll("input, select")) {
+    if(el is InputElement) {
+      el.value = null;
+    }
+  }
+}
+
+serializeForm(FormElement form) {
+  Map data = {};
+
+  form.querySelectorAll("input,select").forEach((Element el) {
+    if(el is InputElement) {
+      if(el.id == "hotDeployment") {
+        data[el.id] = false;
+        if(el.checked) {
+          data[el.id] = true;
+        }
+      } else if(el.id == "workersPaths") {
+        List<String> paths = el.value.trim().split(',');
+        for(int i = 0; i < paths.length; i++) {
+          paths[i] = paths[i].trim();
+        }
+        data[el.id] = paths;
+      } else {
+        data[el.id] = el.value;
+      }
+    }
+  });
+
+  return data;
+}
+
+
+

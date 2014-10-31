@@ -3,6 +3,9 @@ library messageQueuingSystem.enqueueIsolate;
 import "package:stomp/stomp.dart";
 import "package:stomp/vm.dart" show connect;
 
+//import "package:custom_stomp/CustomStomp.dart";
+//import "package:custom_stomp/CustomVm.dart";
+
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:async';
@@ -68,6 +71,7 @@ class Enqueuer {
   bool _enqueueMessage(String topic, String message, {Map<String, String> headers}) {
     if(client != null) {
       client.sendString(topic, JSON.encode(message), headers: headers);
+
       _log("Message sent successfully from enqueuer to rabbitmq via stomp...");
       return true;
     }

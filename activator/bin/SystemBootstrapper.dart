@@ -84,19 +84,19 @@ class SystemBootstrapper {
     print("Bootstrapper: $message");
     String action = message['action'];
 
-    switch(action) {
+    switch (action) {
       case ADD_ISOLATE:
         String systemName = message['isolateSystemName'];
         String pathToMQS = message['messageQueuingSystemServer'];
         String name = message['isolateName'];
         String uri = message['uri'];
-        String workersPaths = message['workerPaths'];
+        String workersPaths = message['workersPaths'];
         String routerType = message['routerType'];
         bool deploymentType = message['hotDeployment'];
         String extraArgs = message['args'];
 
         IsolateSystem system = _getSystemByName(systemName);
-        if(system == null) {
+        if (system == null) {
           system = new IsolateSystem(systemName, pathToMQS);
           _systems.add(system);
         }
@@ -105,23 +105,59 @@ class SystemBootstrapper {
 
         IsolateRef myIsolate = system.addIsolate(name, uri, workersPaths, routerType, hotDeployment:deploymentType, args:extraArgs);
 
-        if(_runningIsolates.containsKey([systemName])) {
+        if (_runningIsolates.containsKey(systemName)) {
           _runningIsolates[systemName].add(new _Worker(name, uri, workersPaths, routerType, deploymentType));
         } else {
-          _runningIsolates[systemName] = new List()..add(new _Worker(name, uri, workersPaths, routerType, deploymentType));
+          _runningIsolates[systemName] = new List();
+          _runningIsolates[systemName].add(new _Worker(name, uri, workersPaths, routerType, deploymentType));
         }
         break;
       case LIST_SYSTEMS:
-        webSocket.add(JSON.encode({'requestId':message['requestId'], 'details':_runningIsolates}));
+//        print("Running Isolates: $_runningIsolates");
+//        webSocket.add(JSON.encode({
+//            'requestId':message['requestId'], 'details':_runningIsolates
+//        }));
+
+
+        Map <String, List> fullDetails = new Map<String, List>();
+        for(String s in _runningIsolates.keys) {
+          _getSystemByName(s).getRunningIsolates().then((String value) {
+            if(value != null) {
+              List<Map> list1 = JSON.decode(value);
+              fullDetails[s] = list1;
+              print('Response: $list1');
+              if(fullDetails.length == _systems.length) {
+                webSocket.add(JSON.encode({
+                  'requestId':message['requestId'], 'details':fullDetails
+                }));
+              }
+            }
+          });
+          //when all details of all systems are fetched
+//            webSocket.add(JSON.encode({
+//                'requestId':message['requestId'], 'details':fullDetails
+//            }));
+        }
+
         break;
       case KILL:
-        // the isolate system must close all the connections / websocket as well as other isolate ports.
-        print("Killing an isolate system is not implemented yet!");
-        String name = message['isolateName'];
-        _getSystemByName(name).kill();
-        break;
-      default:
-
+      // the isolate system must close all the connections / websocket as well as other isolate ports.
+        String systemName = message['isolateSystemName'];
+        if (message.containsKey('isolateName')) {
+          IsolateSystem s = _getSystemByName(systemName);
+          String isolateName = message['isolateName'];
+          if(s != null) {
+            s.killIsolate(isolateName);
+            _removeWorkerFromSystem(systemName, isolateName);
+          }
+        } else {
+          IsolateSystem s = _getSystemByName(systemName);
+          if(s != null) {
+            s.killSystem();
+            _removeSystemByName(systemName);
+          }
+        }
+      break;
     }
   }
 
@@ -132,6 +168,24 @@ class SystemBootstrapper {
       }
     }
     return null;
+  }
+
+  _removeWorkerFromSystem(String isolateSystemName, String workerName) {
+    if(_runningIsolates.containsKey(isolateSystemName)) {
+      _runningIsolates[isolateSystemName].removeWhere((_Worker w) {
+        return w.name == workerName;
+      });
+    }
+  }
+
+  void _removeSystemByName(String name) {
+    for(int i = 0; i < _systems.length; i++) {
+      if(_systems[i].name == name) {
+        _runningIsolates.remove(_systems[i].name);
+        _systems.remove(_systems[i]);
+        break;
+      }
+    }
   }
 
 //_getSystemById(systemId).addIsolate(name, uri, workersPaths, routerType, hotDeployment: hotDeployment, args:args);

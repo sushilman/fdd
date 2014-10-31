@@ -1,6 +1,7 @@
 library isolatesystem.controller.Controller;
 
 import 'dart:io';
+import 'dart:convert';
 import 'dart:isolate';
 
 
@@ -32,6 +33,7 @@ controller(Map args) {
 }
 
 class Controller {
+  static const GET_RUNNING_ISOLATES = "action.getRunningIsolates";
   String _id;
   ReceivePort _receivePort;
   SendPort _sendPortOfIsolateSystem;
@@ -96,7 +98,12 @@ class Controller {
 
   _handleMessagesFromIsolateSystem(String action, var payload, var fullMessage) {
     switch(action) {
-
+      case GET_RUNNING_ISOLATES:
+        if(payload['sendPort'] is SendPort) {
+          String a = JSON.encode(_routers);
+          payload['sendPort'].send(a);
+        }
+        break;
       case Action.SPAWN:
         String routerId = payload['name'];
         String workerUri = payload['uri'];
@@ -141,6 +148,16 @@ class Controller {
         }
         break;
       case Action.KILL:
+        _Router router = _getRouterById(payload['routerId']);
+        if(router == null || router.sendPort == null) {
+          _messageBuffer.add(fullMessage);
+        } else {
+          fullMessage = MessageUtil.setSenderType(SenderType.CONTROLLER, fullMessage);
+          router.sendPort.send(fullMessage);
+        }
+        break;
+
+      case Action.KILL_ALL:
         for(_Router router in _routers) {
           fullMessage = MessageUtil.setSenderType(SenderType.CONTROLLER, fullMessage);
           router.sendPort.send(fullMessage);
@@ -238,15 +255,9 @@ class Controller {
     }
 
     Isolate.spawn(router, {'id':routerId, 'workerUri':workerUri, 'workerPaths':workersPaths, 'extraArgs':extraArgs, 'sendPort': _me}).then((isolate){
-      _Router router = new _Router(routerId, routerType, workersPaths.length);
+      _Router router = new _Router(routerId, routerType, workerUri, workersPaths);
       _routers.add(router);
     });
-  }
-
-  _oldSpawnFileMonitor(String routerId, String workerUri) {
-    String curDir = dirname(Platform.script.toString());
-    Uri fileMonitorUri = Uri.parse(curDir + "/../src/FileMonitor.dart");
-    Isolate.spawnUri(fileMonitorUri, ["fileMonitor_$routerId", routerId, workerUri], _receivePort.sendPort);
   }
 
   _spawnFileMonitor(String routerId, String workerUri) {
@@ -284,6 +295,8 @@ class Controller {
 class _Router {
   String _id;
   SendPort _sendPort;
+  String _workerUri;
+  List<String> _workersPaths;
   int _workersCount;
   String _type;
   Isolate _isolate;
@@ -304,6 +317,17 @@ class _Router {
   Isolate get isolate => _isolate;
   set isolate(Isolate value) => _isolate = value;
 
+  _Router(this._id, this._type, this._workerUri, this._workersPaths) {
+    this._workersCount = this._workersPaths.length;
+  }
 
-  _Router(this._id, this._type, this._workersCount);
+  Map toJson() {
+    Map m = {};
+    m['id'] = _id;
+    m['workerUri'] = _workerUri;
+    m['workersCount'] = _workersCount;
+    m['workersPaths'] = _workersPaths;
+    m['routerType'] = _type;
+    return m;
+  }
 }

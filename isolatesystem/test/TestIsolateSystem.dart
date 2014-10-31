@@ -39,7 +39,7 @@ main1() {
 
     test('IsolateSystem Destruction test', () {
       new Timer(const Duration(seconds:3), () {
-        system.kill();
+        system.killSystem();
       });
     });
 

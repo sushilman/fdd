@@ -8,9 +8,9 @@ class MyEndpoint {
   MyEndpoint() {
     final HOST = InternetAddress.LOOPBACK_IP_V4;
     final PORT = 8000;
-
     HttpServer.bind(HOST, PORT).then((_server) {
       _server.listen((HttpRequest request) {
+        print("Request:${request.session.id}");
         addCorsHeaders(request.response);
         switch (request.method) {
           case 'GET':
@@ -32,13 +32,14 @@ class MyEndpoint {
   }
 
   handleGetRequest(HttpRequest request) {
-    if(request.uri.path == '/registry/systems/list') {
+    print("GET: ${request.uri.path}");
+    if(request.uri.path == '/registry/system/list') {
       request.response.statusCode = HttpStatus.OK;
       request.response.headers.contentType = ContentType.JSON;
       List connectedNodes = registry.getConnectedNodes();
       request.response.write(JSON.encode(connectedNodes));
       request.response.close();
-    } else if (request.uri.path.startsWith('/registry/systems/')) {
+    } else if (request.uri.path.startsWith('/registry/system/')) {
       String bootstrapperId = request.uri.path.split('/').last;
       request.response.statusCode = HttpStatus.OK;
       request.response.headers.contentType = ContentType.JSON;
@@ -49,28 +50,37 @@ class MyEndpoint {
   }
 
   handlePostRequest(HttpRequest request) {
-    if(request.uri.path == '/registry/deploy') {
-      print("${request.headers.contentType.value}\n${request.headers}");
-      if (request.headers.contentType.value.toLowerCase() == ContentType.JSON.value.toLowerCase()) {
+      if(request.uri.path == '/registry/deploy') {
+        print("Deploying ${request.uri.path}");
         request.response.statusCode = HttpStatus.OK;
         UTF8.decodeStream(request).then((data) {
-          print('$data');
           try {
             Map isolateSystem = JSON.decode(data);
             registry.deployIsolate(isolateSystem);
           } on Exception {
-
-            request.response.statusCode = HttpStatus.BAD_REQUEST;
             request.response.write("body must be json data");
             print("bad data");
           }
         });
+      } else if(request.uri.path == '/registry/system/shutdown') {
+        UTF8.decodeStream(request).then((data) {
+          try {
+            Map isolateSystem = JSON.decode(data);
+            registry.shutdownIsolateSystemOnNode(isolateSystem);
+          } on Exception {
+            request.response.write("body must be json data: $data");
+            print("bad data: $data");
+          }
+        });
       } else {
-        request.response.statusCode = HttpStatus.BAD_REQUEST;
-        request.response.write("Content-Type must be application/json");
-        print ("bad content type or no content type");
+        defaultHandler(request);
       }
-    }
+//    } else {
+//      request.response.statusCode = HttpStatus.BAD_REQUEST;
+//      request.response.write("Content-Type must be application/json");
+//      print ("bad content type or no content type");
+//    }
+    print("deployed and connection closed !");
     request.response.close();
   }
 

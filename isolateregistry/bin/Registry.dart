@@ -139,6 +139,7 @@ class Registry {
     String id = data.remove('bootstrapperId');
 
     Bootstrapper bootstrapper = _getBootstrapperById(id);
+    data['action'] = "action.addIsolate";
 
     print("Before sending: $data");
 
@@ -151,8 +152,21 @@ class Registry {
   List getConnectedNodes() {
     return _connectedBootstrappers;
   }
-}
 
+
+  shutdownIsolateSystemOnNode(Map data) {
+    String id = data.remove('bootstrapperId');
+    Bootstrapper bootstrapper = _getBootstrapperById(id);
+    data['action'] = "action.kill";
+    print("KILL isolate : $data");
+    if(bootstrapper != null) {
+      bootstrapper.socket.add(JSON.encode(data));
+    } else {
+      print("Bootstrapper is not available anymore");
+    }
+  }
+
+}
 
 class Bootstrapper {
   String _id;

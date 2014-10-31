@@ -87,7 +87,7 @@ class Mqs {
   //TODO: persistent queue - "topic/name"?
   static const String TOPIC = "/queue";
 
-  static Map<String, String> HEADERS = null;//{'delivery-mode':'2'};//{'reply-to' : '/queue/test'};
+  static Map<String, String> HEADERS = {"persistent":"true"};//{'delivery_mode':'2'};//{'reply-to' : '/queue/test'};
 
   List<_Dequeuer> _dequeuers;
 

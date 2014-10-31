@@ -3,6 +3,9 @@ library messageQueuingSystem.dequeueIsolate;
 import "package:stomp/stomp.dart";
 import "package:stomp/vm.dart" show connect;
 
+//import "package:custom_stomp/CustomStomp.dart";
+//import "package:custom_stomp/CustomVm.dart";
+
 import 'dart:isolate';
 import 'dart:async';
 import 'dart:convert';
@@ -144,7 +147,7 @@ class Dequeuer {
 
   _subscribeMessage(String topic) {
     try {
-      client.subscribeString(subscriptionId, topic, _onData, ack:CLIENT_INDIVIDUAL);
+      client.subscribeString(subscriptionId, topic, _onData, ack:CLIENT_INDIVIDUAL, extraHeaders:{"prefetch-count":"1"});
       _log("Subscribed to $topic");
     } catch(e) {
       _log("May be already Subscribed $e");
