@@ -157,7 +157,6 @@ class IsolateSystem {
 
   void killIsolate(String isolateName) {
     _log("KILL isolate");
-    isolateName = "$_name/$isolateName";
     _me.send(MessageUtil.create(SenderType.DIRECT, _name, Action.KILL, {"routerId":isolateName}));
   }
 

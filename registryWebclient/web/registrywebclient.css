@@ -56,6 +56,7 @@ ul > li, ol > li {
 
 #systems .contents > ul > li > ul {
   margin-left: -20px;
+  padding-top:5px;
   padding-bottom:10px;
   border-bottom: 1px solid #5B9C64;
   font-weight: normal;
@@ -133,11 +134,34 @@ ul > li, ol > li {
 
 .removeSystem {
   background: none repeat scroll 0 0 #f00;
-  border-radius: 17px;
+  font-size: 12px;
+  border-radius: 4px;
+  color:#fff;
+  display: inline;
+  font-weight: 100;
+  padding: 2px 4px 3px;
+  margin-left: 10px;
+  vertical-align: bottom;
+}
+
+.removeSystem:hover {
+  text-decoration: underline;
+}
+
+.removeIsolate {
+  background: none repeat scroll 0 0 #f00;
+  font-size: 12px;
+  border-radius: 4px;
   color:#fff;
   display: inline;
   font-weight: 100;
   padding: 2px 7px 3px;
+  margin-left: 10px;
+  vertical-align: bottom;
+}
+
+.removeIsolate:hover {
+  text-decoration: underline;
 }
 
 #overlay {

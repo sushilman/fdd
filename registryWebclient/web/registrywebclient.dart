@@ -53,7 +53,7 @@ void _onSystemsFetched(responseText) {
 
     StringBuffer workers = new StringBuffer();
     for(Map worker in systems[systemName]) {
-      workers.write('''<li id="${worker['id']}">${worker['id']}
+      workers.write('''<li id="${worker['id']}">${worker['id']} <span class="removeIsolate" title="Remove this isolate from this isolate system">Kill</span>
                       <ul class="hidden details">
                         <li>Name: ${worker['id']}</li>
                         <li>Source Uri: ${worker['workerUri']}</li>
@@ -65,7 +65,7 @@ void _onSystemsFetched(responseText) {
     }
 
     elements.write('''<li id = '$systemName'>
-                        $systemName: <div class="removeSystem" title="Shutdown">x</div>
+                        $systemName: <div class="removeSystem" title="Shutdown the Isolate System and all isolates in it">Shutdown</div>
                         <ul>
                             $workers
                         </ul>
@@ -92,6 +92,14 @@ void _onSystemsFetched(responseText) {
       });
     }
   }
+
+  ElementList isolateList = querySelectorAll('.removeIsolate');
+  for(Element isolateElem in isolateList) {
+    isolateElem.onClick.listen((MouseEvent event) {
+      _killIsolate(event, isolateElem);
+    });
+  }
+
 }
 
 void _displayDetails(Element e) {
@@ -165,16 +173,34 @@ void _addWorker(MouseEvent e) {
 void _shutdownIsolateSystem(MouseEvent e, Element el) {
   String nodeId = querySelector("#nodeList .selected").id;
   String systemName = el.parent.id;
-  bool confirm = window.confirm("Do you really want to shutdown isolateSystem: ${systemName}");
+  bool confirm = window.confirm("Do you really want to\nshutdown Isolate System: \"${systemName}\"?");
   if(confirm) {
-    Map data = {'bootstrapperId':nodeId, 'isolateSystemName':systemName};
-    var url = "$baseUri/system/shutdown";
-    HttpRequest request = new HttpRequest();
-    request.open("POST", url, async:false);
-    request.setRequestHeader("Content-type", "application/json");
-    request.send(JSON.encode(data));
+    _postShutdownRequest(nodeId, systemName);
     _fetchRunningSystems(nodeId);
   }
+}
+
+void _killIsolate(MouseEvent e, Element isolateElement) {
+  String nodeId = querySelector("#nodeList .selected").id;
+  String systemName = isolateElement.parent.parent.parent.id;
+  String isolateName = isolateElement.parent.id;
+  bool confirm = window.confirm("Do you really want to\nkill isolate \"$isolateName\"\nof\nIsolate System \"$systemName\"?");
+  if(confirm) {
+    _postShutdownRequest(nodeId, systemName, isolateName:isolateName);
+    _fetchRunningSystems(nodeId);
+  }
+}
+
+void _postShutdownRequest(String nodeId, String systemName, {String isolateName}) {
+  Map data = {'bootstrapperId':nodeId, 'isolateSystemName':systemName};
+  if(isolateName != null) {
+    data['isolateName'] = isolateName;
+  }
+  var url = "$baseUri/system/shutdown";
+  HttpRequest request = new HttpRequest();
+  request.open("POST", url, async:false);
+  request.setRequestHeader("Content-type", "application/json");
+  request.send(JSON.encode(data));
 }
 
 _onDeployed(var responseText, FormElement form) {

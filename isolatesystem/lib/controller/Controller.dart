@@ -149,11 +149,14 @@ class Controller {
         break;
       case Action.KILL:
         _Router router = _getRouterById(payload['routerId']);
+        print("Router: killing router with ${router.id}");
         if(router == null || router.sendPort == null) {
           _messageBuffer.add(fullMessage);
         } else {
           fullMessage = MessageUtil.setSenderType(SenderType.CONTROLLER, fullMessage);
           router.sendPort.send(fullMessage);
+          _routers.remove(router);
+          print("Router: killing msg sent");
         }
         break;
 
