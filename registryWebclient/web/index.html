@@ -46,7 +46,7 @@
         </div>
       </div>
     </div>
-    <div id="overlay" class="hidden">
+    <div id="overlay" class="uhidden">
       <form id="addWorkerForm">
         <input type="hidden" id="bootstrapperId" value = ""/>
         <div id="closeButton"> X </div>
@@ -64,7 +64,12 @@
         </div>
         <div>
           <label for="routerType">Router Type</label>
-          <input id="routerType" type="text" />
+          <input id="routerType" type="text" list="routerTypeList"/>
+          <datalist id="routerTypeList">
+            <option value="random"></option>
+            <option value="roundRobin"></option>
+            <option value="broadcast"></option>
+          </datalist>
         </div>
         <div>
           <label for="workersPaths">Deployment paths</label>
