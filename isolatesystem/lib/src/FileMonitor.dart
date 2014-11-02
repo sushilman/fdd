@@ -22,7 +22,7 @@ fileMonitor(Map args) {
 }
 
 class FileMonitor extends Worker {
-
+  bool killed = false;
   FileMonitor(Map args) : super.internal(args) {
     sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.CREATED, receivePort.sendPort));
 
@@ -48,39 +48,48 @@ class FileMonitor extends Worker {
     || uri.toString().startsWith("https://")
     || uri.toString().startsWith("ftp://")) {
       new Timer.periodic(duration, (t) {
-        new HttpClient().getUrl(uri) //Uri.parse("http://127.0.0.1:8080/bin/PrinterIsolate.dart")
-        .then((HttpClientRequest request) => request.close())
-        .then((HttpClientResponse response) => response.listen((value) {
-          List<int> fileContent = new List<int>();
-          fileContent.addAll(value);
-          hash = _calcHash(fileContent);
-          //print("Hash:" + hash);
-          if (oldHash == null) {
-            oldHash = hash;
-          } else if (hash != null) {
-            if (oldHash != hash) {
+        if(killed) {
+          t.cancel();
+        } else {
+          new HttpClient().getUrl(uri)
+          .then((HttpClientRequest request) => request.close())
+          .then((HttpClientResponse response) => response.listen((value) {
+            List<int> fileContent = new List<int>();
+            fileContent.addAll(value);
+            hash = _calcHash(fileContent);
+            //print("Hash:" + hash);
+            if (oldHash == null) {
               oldHash = hash;
-              _restartIsolate();
+            } else if (hash != null) {
+              if (oldHash != hash) {
+                oldHash = hash;
+                _restartIsolate();
+              }
             }
-          }
-        }));
+          }));
+        }
       });
     } else {
       new Timer.periodic(duration, (t) {
-        new File.fromUri(uri).readAsBytes().then((bytes) {
-          List<int> fileContent = new List<int>();
-          fileContent.addAll(bytes);
-          hash = _calcHash(fileContent);
-          //print("Hash:" + hash);
-          if (oldHash == null) {
-            oldHash = hash;
-          } else if (hash != null) {
-            if (oldHash != hash) {
+        if(killed) {
+          t.cancel();
+          print("Timer cancelled");
+        } else {
+          new File.fromUri(uri).readAsBytes().then((bytes) {
+            List<int> fileContent = new List<int>();
+            fileContent.addAll(bytes);
+            hash = _calcHash(fileContent);
+            //print("Hash:" + hash);
+            if (oldHash == null) {
               oldHash = hash;
-              _restartIsolate();
+            } else if (hash != null) {
+              if (oldHash != hash) {
+                oldHash = hash;
+                _restartIsolate();
+              }
             }
-          }
-        });
+          });
+        }
       });
     }
   }
@@ -100,5 +109,11 @@ class FileMonitor extends Worker {
   _restartIsolate() {
     sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.RESTART, {'to': this.me}));
     print("Restart command issued !");
+  }
+
+  @override
+  kill() {
+    this.killed = true;
+    print("KILL fileMonitor $id");
   }
 }

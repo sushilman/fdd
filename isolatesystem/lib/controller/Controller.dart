@@ -155,6 +155,7 @@ class Controller {
         } else {
           fullMessage = MessageUtil.setSenderType(SenderType.CONTROLLER, fullMessage);
           router.sendPort.send(fullMessage);
+          router.fileMonitorSendPort.send(fullMessage);
           _routers.remove(router);
           print("Router: killing msg sent");
         }
@@ -184,25 +185,6 @@ class Controller {
       //When all isolates have been spawned
         case Action.SEND:
         case Action.REPLY:
-        /**
-         * TODO: Discuss
-         * Re-route without sending it to top level queue?
-         * But this causes issues -> if one isolate keeps sending a lots of messages and another one is slow to react?
-         *
-         * That's why we have MQS with rabbit-mq in backend
-         * which only serves message on demand from isolate(pool)
-         *
-         * But, that's why we have load balancing - router with pool of isolates to take care of such loads
-         * if an isolate is known/expected to be slow, the developer should spawn more number of such isolates.
-         */
-
-//          _Router targetRouter = _getRouterById(_getIdOfTargetIsolatePool(payload));
-//          if(targetRouter != null) {
-//            targetRouter.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.NONE, payload));
-//          } else {
-//            _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.REPLY, payload));
-//          }
-
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.SEND, payload));
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           break;
@@ -225,17 +207,26 @@ class Controller {
 
   _handleMessagesFromFileMonitor(String senderId, String action, var payload) {
     //_out("Controller: Message from file monitor $payload");
-    switch(action) {
-      case Action.RESTART:
-        // should all isolates of a router be restarted?
-        // issuing a restart command for single isolate does not make sense
-        // get id of router, send restart command to that router
-        String routerId = payload['to'];
-        _Router router = _getRouterById(routerId);
-        router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
-        break;
-      default:
-        break;
+    if(payload is SendPort) {
+      String routerId = senderId.split('_').last;
+      _Router router = _getRouterById(routerId);
+      if(router != null) {
+        router.fileMonitorSendPort = payload;
+        router.hotDeployment = true;
+      }
+    } else {
+      switch(action) {
+        case Action.RESTART:
+          // should all isolates of a router be restarted?
+          // issuing a restart command for single isolate does not make sense
+          // get id of router, send restart command to that router
+          String routerId = payload['to'];
+          _Router router = _getRouterById(routerId);
+          router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
+          break;
+        default:
+          break;
+      }
     }
   }
 
@@ -303,7 +294,8 @@ class _Router {
   int _workersCount;
   String _type;
   Isolate _isolate;
-  Isolate _fileMonitorIsolate;
+  SendPort _fileMonitorSendPort;
+  bool _hotDeployment;
 
   String get id => _id;
   set id(String value) => _id = value;
@@ -320,8 +312,15 @@ class _Router {
   Isolate get isolate => _isolate;
   set isolate(Isolate value) => _isolate = value;
 
+  SendPort get fileMonitorSendPort => _fileMonitorSendPort;
+  set fileMonitorSendPort(SendPort value) => _fileMonitorSendPort = value;
+
+  bool get hotDeployment => _hotDeployment;
+  set hotDeployment(bool value) => _hotDeployment = value;
+
   _Router(this._id, this._type, this._workerUri, this._workersPaths) {
     this._workersCount = this._workersPaths.length;
+    this._hotDeployment = false;
   }
 
   Map toJson() {
@@ -331,6 +330,7 @@ class _Router {
     m['workersCount'] = _workersCount;
     m['workersPaths'] = _workersPaths;
     m['routerType'] = _type;
+    m['hotDeployment'] = _hotDeployment;
     return m;
   }
 }

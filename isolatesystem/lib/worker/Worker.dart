@@ -137,9 +137,15 @@ abstract class Worker {
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.ASK, msg));
   }
 
-  void kill() {
+  void _kill() {
     receivePort.close();
+    print("Killing WORKER $id");
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.KILLED, null));
+    kill();
+  }
+
+  void kill() {
+    // optional implementation and can be safely overridden
   }
 
   void _replyToPing() {
