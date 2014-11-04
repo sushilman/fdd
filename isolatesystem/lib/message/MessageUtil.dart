@@ -7,6 +7,9 @@ class MessageUtil {
 
   static getSenderType(Map message) {
     try {
+      if(message is List) {
+        return message[0];
+      }
       return message['senderType'];
     } catch (e) {
       return null;
@@ -15,7 +18,11 @@ class MessageUtil {
 
   static setSenderType(String senderType, Map message) {
     try {
-      message['senderType'] =  senderType;
+      if(message is List) {
+        message[0] =  senderType;
+      } else {
+        message['senderType'] =  senderType;
+      }
       return message;
     } catch (e) {
       return null;
@@ -24,6 +31,9 @@ class MessageUtil {
 
   static getId(Map message) {
     try {
+      if(message is List) {
+        return message[1];
+      }
       return message['id'];
     } catch (e) {
       return null;
@@ -32,6 +42,9 @@ class MessageUtil {
 
   static getAction(Map message) {
     try {
+      if(message is List) {
+        return message[2];
+      }
       return message['action'];
     } catch (e) {
       return null;
@@ -40,6 +53,9 @@ class MessageUtil {
 
   static getPayload(Map message) {
     try {
+      if(message is List) {
+        return message[3];
+      }
       return message['payload'];
     } catch (e) {
       return null;
@@ -55,6 +71,6 @@ class MessageUtil {
   }
 
   static isValidMessage(var message) {
-    return (message is Map);
+    return (message is String || message is List);
   }
 }

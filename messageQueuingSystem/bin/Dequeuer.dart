@@ -20,8 +20,6 @@ import "action/Action.dart";
  * because of ack problem, ack will ack only one message from one of the queue, and buffer will have old message
  * so rabbitmq, will not send another message unless old one is delivered and ack'ed
  *
- * Each isolate for each queue is good solution -> done
- *
  * Oct 12:
  * May be store number of dequeue requests,
  * and once the data arrives from broker system, just dequeue the  number of messages
@@ -68,7 +66,7 @@ class Dequeuer {
     topic = args[4];
     subscriptionId = "id_$topic";
 
-    sendPort.send({'senderType':DEQUEUER, 'topic':topic, 'payload': _me});
+    sendPort.send([DEQUEUER, topic, _me]); //{'senderType':DEQUEUER, 'topic':topic, 'payload': _me});
 
     _initConnection();
 
@@ -138,7 +136,7 @@ class Dequeuer {
       _log("\nFlushing buffer");
       print("Size of requests : ${dequeueRequestsFrom.length}");
       bufferMailBox.forEach((key, value) {
-        sendPort.send({
+        _sendToMqs({
             'senderType':DEQUEUER, 'topic':topic, 'payload':value, 'isolateSystemId':dequeueRequestsFrom.removeAt(0)
         });
         client.ack(key);
@@ -167,7 +165,7 @@ class Dequeuer {
           dequeueRequestsFrom.add(msg['isolateSystemId']);
           if (dequeueRequestsFrom.length >= maxDequeueRequestsBuffered) {
             var a = dequeueRequestsFrom.removeAt(0); // removing oldest queue if limit is reached
-            print("Removing request as limit is reached : $a");
+            print("Removing request as limit is reached : $topic");
           }
           _flushBuffer();
           break;
@@ -184,6 +182,10 @@ class Dequeuer {
     } else {
       _log("Dequeuer: Bad message: $msg");
     }
+  }
+
+  _sendToMqs(var message) {
+    sendPort.send(JSON.encode(message));
   }
 
   /**
@@ -210,9 +212,13 @@ class Dequeuer {
 
   _shutDown() {
     print("Shutting Down");
-    client.unsubscribe(subscriptionId);
+    try {
+      client.unsubscribe(subscriptionId);
+    } catch (e) {
+
+    }
     receivePort.close();
-    sendPort.send({'senderType':DEQUEUER, 'payload':null, 'action':"action.killed", 'topic':this.topic});
+    _sendToMqs({'senderType':DEQUEUER, 'payload':null, 'action':"action.killed", 'topic':this.topic});
     throw new Exception("Isolate Shutdown Ugly Hack");
   }
 

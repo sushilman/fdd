@@ -69,7 +69,7 @@ class Mqs {
 
   static const String TOPIC = "/queue";
 
-  static Map<String, String> HEADERS = {"persistent":"true"};//{'delivery_mode':'2'};//{'reply-to' : '/queue/test'};
+  static Map<String, String> HEADERS = null;//{"persistent":"true"};//{'delivery_mode':'2'};//{'reply-to' : '/queue/test'};
 
   List<_Dequeuer> _dequeuers;
 
@@ -127,7 +127,12 @@ class Mqs {
 
   _onReceive(var message) {
     _log("MQS: $message");
-    if(message is Map) {
+    if(MessageUtil.isValidMessage(message)) {
+      if(message is String) {
+        message = JSON.decode(message);
+      } else if(message is List) {
+        message = {'senderType': message[0], 'topic': message[1], 'payload': message[2]};
+      }
       String senderType = MessageUtil.getSenderType(message);
 
       switch(senderType) {
@@ -285,13 +290,12 @@ class Mqs {
     _log("MQS: Enqueuing message -> ${message['payload']} to ${message['topic']}");
 
     if(_enqueuerSendPort != null) {
-      _enqueuerSendPort.send(message);
+      _sendToEnqueuer(message);
     } else {
       _bufferMessagesToEnqueuer.add(fullMessage);
     }
   }
 
-  //
   void _dequeueMessage(String isolateSystemName, String topic, String isolateSystemId, Map fullMessage) {
     Map messageForDequeuer = {'action':Action.DEQUEUE, 'topic':topic, 'isolateSystemId':isolateSystemId};
     _log("MQS: Dequeuing -> $messageForDequeuer");
@@ -312,6 +316,18 @@ class Mqs {
     } else {
       _bufferMessagesToDequeuer.add(fullMessage);
     }
+  }
+
+  void _sendToEnqueuer(var message) {
+    _enqueuerSendPort.send(JSON.encode(message));
+  }
+
+  void _sendToDequeuer(_Dequeuer dequeuer, var message) {
+    dequeuer.sendPort.send(JSON.encode(message));
+  }
+
+  void _sendToSelf(var message) {
+    _me.send(JSON.encode(message));
   }
 
   void _flushBufferToEnqueuer() {

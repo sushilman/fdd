@@ -77,7 +77,10 @@ class Enqueuer {
 
   void _onReceive(var message) {
     _log("Enqueue Isolate: $message");
-    if (message is Map) {
+    if (MessageUtil.isValidMessage(message)) {
+      if(message is String) {
+        message = JSON.decode(message);
+      }
       String topic = Mqs.TOPIC + "/" + MessageUtil.getTopic(message);
       String action = MessageUtil.getAction(message);
       String msg = message['payload'];

@@ -57,5 +57,6 @@ class Ping extends Worker {
 
       reply({'value': "PING", 'count' :  "$count"}, replyTo:me);
     }
+    done();
   }
 }

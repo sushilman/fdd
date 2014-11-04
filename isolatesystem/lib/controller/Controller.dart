@@ -67,12 +67,11 @@ class Controller {
   }
 
   _onReceive(message) {
-    //stopwatch.start();
-    //stopwatch.reset();
-    //return new Future(() {
-    //print("\nController Received At: ${new DateTime.now().millisecondsSinceEpoch}: $message");
       _log("Controller: $message");
       if (MessageUtil.isValidMessage(message)) {
+        if(message is String) {
+          message = JSON.decode(message);
+        }
         String senderType = MessageUtil.getSenderType(message);
         String senderId = MessageUtil.getId(message);
         String action = MessageUtil.getAction(message);
@@ -100,9 +99,8 @@ class Controller {
   _handleMessagesFromIsolateSystem(String action, var payload, var fullMessage) {
     switch(action) {
       case GET_RUNNING_ISOLATES:
-        if(payload['sendPort'] is SendPort) {
-          String a = JSON.encode(_routers);
-          payload['sendPort'].send(a);
+        if(payload is SendPort) {
+          payload.send(JSON.encode(_routers));
         }
         break;
       case Action.SPAWN:
@@ -123,11 +121,11 @@ class Controller {
       case Action.RESTART:
         String routerId = payload['to'];
         _Router router = _getRouterById(routerId);
-        router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
+        _sendToRouter(router, MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
         break;
       case Action.RESTART_ALL:
         for(_Router router in _routers) {
-          router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
+          _sendToRouter(router, MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
         }
         break;
       case Action.NONE:
@@ -137,7 +135,7 @@ class Controller {
           if(router == null || router.sendPort == null) {
             _messageBuffer.add(fullMessage);
           } else {
-            router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload));
+            _sendToRouter(router, MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload));
           }
         } else {
           _log("Controller: Destination Isolate unknown !");
@@ -150,8 +148,8 @@ class Controller {
           _messageBuffer.add(fullMessage);
         } else {
           fullMessage = MessageUtil.setSenderType(SenderType.CONTROLLER, fullMessage);
-          router.sendPort.send(fullMessage);
-          router.fileMonitorSendPort.send(fullMessage);
+          _sendToRouter(router, fullMessage);
+          router.fileMonitorSendPort.send(JSON.encode(fullMessage));
           _routers.remove(router);
           print("Router: killing msg sent");
         }
@@ -160,7 +158,7 @@ class Controller {
       case Action.KILL_ALL:
         for(_Router router in _routers) {
           fullMessage = MessageUtil.setSenderType(SenderType.CONTROLLER, fullMessage);
-          router.sendPort.send(fullMessage);
+          _sendToRouter(router, fullMessage);
         }
         _receivePort.close();
         break;
@@ -175,24 +173,28 @@ class Controller {
       _Router router = _getRouterById(senderId);
       router.sendPort = payload;
       _flushBuffer();
-      _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
+      _sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
     } else {
       switch (action) {
         case Action.SEND:
         case Action.REPLY:
-          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.SEND, payload));
-          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
+          _sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.SEND, payload));
+          //_sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           //print("\nController Sent At: ${new DateTime.now().millisecondsSinceEpoch} & elapsed microseconds ${stopwatch.elapsedMicroseconds}: $payload");
           break;
         case Action.ASK:
-          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.ASK, payload));
-          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
+          _sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.ASK, payload));
+          _sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           break;
         case Action.CREATED:
-          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
+          _sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           break;
         case Action.PULL_MESSAGE:
-          _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
+          Stopwatch s = new Stopwatch();
+          s.start();
+          s.reset();
+          _sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
+          _log("Time taken to send pull request => ${s.elapsedMicroseconds}");
           break;
         default:
           _log("Controller: Unknown Action from Router: $action");
@@ -215,12 +217,24 @@ class Controller {
         case Action.RESTART:
           String routerId = payload['to'];
           _Router router = _getRouterById(routerId);
-          router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
+          _sendToRouter(router, MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
           break;
         default:
           break;
       }
     }
+  }
+
+  _sendToIsolateSystem(var message) {
+    _sendPortOfIsolateSystem.send(JSON.encode(message));
+  }
+
+  _sendToRouter(_Router router, var message) {
+    router.sendPort.send(JSON.encode(message));
+  }
+
+  _sendToSelf(var message) {
+    _me.send(JSON.encode(message));
   }
 
   _spawnRouter(String routerId, String routerType, String workerUri, List<String> workersPaths, var extraArgs) {
@@ -263,7 +277,7 @@ class Controller {
   void _flushBuffer() {
     int len = _messageBuffer.length;
     for(int i = 0; i < len; i++) {
-      _me.send(_messageBuffer.removeAt(0));
+      _sendToSelf(_messageBuffer.removeAt(0));
     }
   }
 

@@ -36,6 +36,6 @@ class MessageUtil {
   }
 
   static bool isValidMessage(var message) {
-    return (message is Map);
+    return (message is String || message is List);
   }
 }

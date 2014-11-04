@@ -71,7 +71,9 @@ abstract class Router {
 
     extraArgs = args['extraArgs'];
 
-    _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.NONE, _receivePort.sendPort));
+    // List is faster than Map while sending via sendport
+    _sendPortOfController.send([SenderType.ROUTER, _id, Action.NONE, _receivePort.sendPort]);
+
     _spawnWorkers(extraArgs);
     _receivePort.listen(_onReceive);
     _startMonitoringIdleWorkers();
@@ -88,9 +90,11 @@ abstract class Router {
     //stopwatch.start();
     //stopwatch.reset();
     //print("\nRouter Received At: ${new DateTime.now().millisecondsSinceEpoch}: $message");
-
     _log("Router: $message");
     if(MessageUtil.isValidMessage(message)) {
+      if(message is String) {
+        message = JSON.decode(message);
+      }
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
       String action = MessageUtil.getAction(message);
@@ -143,7 +147,7 @@ abstract class Router {
             if (worker == null) {
               // if designated worker (i.e. uuid of worker) is not found, message is discarded
               _log("Worker with ${payload['to']} not found !");
-              _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.PULL_MESSAGE, null));
+              _sendToController(MessageUtil.create(SenderType.ROUTER, _id, Action.PULL_MESSAGE, null));
             }
           } else {
             worker = selectWorker();
@@ -154,7 +158,7 @@ abstract class Router {
               //in case router returns multiple workers
               for (Worker w in worker) {
                 if(w.sendPort != null) {
-                  w.sendPort.send(payload['message']);
+                  _sendToWorker(w, payload['message']);
                 } else {
                   _messageBuffer.add(fullMessage);
                 }
@@ -163,7 +167,7 @@ abstract class Router {
               _messageBuffer.add(fullMessage);
             } else {
               _log("Router -> Worker: ${payload['message']}");
-              worker.sendPort.send(payload['message']);
+              _sendToWorker(worker, payload['message']);
             }
           }
         }
@@ -175,6 +179,7 @@ abstract class Router {
   }
 
   _handleMessageFromWorker(String action, String senderId, var payload, var fullMessage) {
+
     _log("$action Sender: $senderId");
     Worker worker = _getWorkerById(senderId);
     if(worker != null) {
@@ -193,21 +198,25 @@ abstract class Router {
           _log("Router: Assigning sendport");
           worker.sendPort = payload;
           _flushBuffer();
-          _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.CREATED, null));
+          _sendToController(MessageUtil.create(SenderType.ROUTER, _id, Action.CREATED, null));
         }
         break;
 
       case Action.DONE:
       case Action.NONE:
-          _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.PULL_MESSAGE, null));
+        _sendToController(MessageUtil.create(SenderType.ROUTER, _id, Action.PULL_MESSAGE, null));
         break;
       case Action.SEND:
       case Action.REPLY:
-        _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.SEND, payload));
+        Stopwatch s = new Stopwatch();
+        s.start();
+        s.reset();
+        _sendToController(MessageUtil.create(SenderType.ROUTER, _id, Action.SEND, payload));
+        _log("Router: Time taken to send to controller ${s.elapsedMicroseconds}");
         break;
       // In case of ASK, we need to dequeue from separate_individual queue, thus full-id of the worker is required in this case
       case Action.ASK:
-        _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, senderId, Action.ASK, payload));
+        _sendToController(MessageUtil.create(SenderType.ROUTER, senderId, Action.ASK, payload));
         break;
       case Action.KILLED:
       case Action.ERROR:
@@ -218,11 +227,28 @@ abstract class Router {
         _log("Response to ping arrived!");
         // if a response has arrived before responding to ping, then ignore pull message.
         // This can be done by checking difference in timestamp, if it is higher than timeout or not.
-        _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.PULL_MESSAGE, null));
+        _sendToController(MessageUtil.create(SenderType.ROUTER, _id, Action.PULL_MESSAGE, null));
         break;
       default:
         _log("Router: Unknown Action -> $action");
     }
+  }
+
+  /**
+   * Converting to String from Map
+   * Speeds up message transfer via sendport by a factor of >50
+   */
+  _sendToController(var message) {
+    _sendPortOfController.send(JSON.encode(message));
+  }
+
+  _sendToWorker(Worker w, var message) {
+    String encodedMessage = JSON.encode(message);
+    w.sendPort.send(encodedMessage);
+  }
+
+  _sentToSelf(var message) {
+    _me.send(JSON.encode(message));
   }
 
   _spawnWorkers([args]) {
@@ -250,7 +276,7 @@ abstract class Router {
   }
 
   _restartWorker(String id) {
-    _getWorkerById(id).sendPort.send(MessageUtil.create(SenderType.ROUTER, id, Action.RESTART, null));
+    _sendToWorker(_getWorkerById(id), MessageUtil.create(SenderType.ROUTER, id, Action.RESTART, null));
     workers.remove(id);
   }
 
@@ -262,7 +288,7 @@ abstract class Router {
 
   _killWorker(Worker worker) {
     if(worker != null) {
-      worker.sendPort.send(MessageUtil.create(SenderType.ROUTER, this._id, Action.KILL, null));
+      _sendToWorker(worker, MessageUtil.create(SenderType.ROUTER, this._id, Action.KILL, null));
       workers.remove(worker);
     }
   }
@@ -270,7 +296,7 @@ abstract class Router {
   _killAllWorkers() {
     _log("–––––––––––––––––––– KILLING ALL ––––––––––––––––––––");
     for(Worker worker in workers) {
-      worker.sendPort.send(MessageUtil.create(SenderType.ROUTER, this._id, Action.KILL, null));
+      _sendToWorker(worker, MessageUtil.create(SenderType.ROUTER, this._id, Action.KILL, null));
     }
     workers.clear();
   }
@@ -316,7 +342,7 @@ abstract class Router {
   void _flushBuffer() {
     int len = _messageBuffer.length;
     for(int i = 0; i < len; i++) {
-      _me.send(_messageBuffer.removeAt(0));
+      _sentToSelf(_messageBuffer.removeAt(0));
     }
   }
 
@@ -325,7 +351,7 @@ abstract class Router {
   }
 
   _pingWorker(Worker worker) {
-    worker.sendPort.send(MessageUtil.create(SenderType.ROUTER, this._id, Action.PING, null));
+    _sendToWorker(worker, MessageUtil.create(SenderType.ROUTER, this._id, Action.PING, null));
   }
 
   // keep record of dequeue records sent by workers

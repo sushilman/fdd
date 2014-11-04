@@ -48,5 +48,6 @@ class Pong extends Worker {
       int count = int.parse(message['count']) + 1;
       reply({'value': "PONG", 'count' : "$count"}, replyTo:me);
     }
+    done();
   }
 }

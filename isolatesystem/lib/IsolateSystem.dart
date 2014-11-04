@@ -119,23 +119,8 @@ class IsolateSystem {
   /// if path to router is sent in RouterType, it will be used as the router, it should be absolute uri
   IsolateRef addIsolate(String name, String uri, workersPaths, String routerType, {hotDeployment: true, args}) {
     name = "$_name/$name";
-    String routerUri = routerType;
-
-//    switch(routerType) {
-//      case Router.RANDOM:
-//        routerUri = "../router/Random.dart";
-//        break;
-//      case Router.ROUND_ROBIN:
-//        routerUri = "../router/RoundRobin.dart";
-//        break;
-//      case Router.BROADCAST:
-//        routerUri = "../router/BroadCast.dart";
-//        break;
-//      default:
-//    }
-
     var message = {'name':name, 'uri':uri, 'workerPaths':workersPaths, 'routerType':routerType, 'hotDeployment':hotDeployment, 'args':args};
-    _me.send(MessageUtil.create(SenderType.DIRECT, _name, Action.SPAWN, message));
+    _sendToSelf(MessageUtil.create(SenderType.DIRECT, _name, Action.SPAWN, message));
     return new IsolateRef(name, _me);
   }
 
@@ -147,7 +132,7 @@ class IsolateSystem {
    */
   void killSystem() {
     _log("KILLALL message");
-    _me.send(MessageUtil.create(SenderType.DIRECT, _name, Action.KILL_ALL, null));
+    _sendToSelf(MessageUtil.create(SenderType.DIRECT, _name, Action.KILL_ALL, null));
     _receivePort.close();
     _mqsSocket.close();
     _isSystemKilled = true;
@@ -155,7 +140,7 @@ class IsolateSystem {
 
   void killIsolate(String isolateName) {
     _log("KILL isolate");
-    _me.send(MessageUtil.create(SenderType.DIRECT, _name, Action.KILL, {"routerId":isolateName}));
+    _sendToSelf(MessageUtil.create(SenderType.DIRECT, _name, Action.KILL, {"routerId":isolateName}));
   }
 
   /**
@@ -167,8 +152,8 @@ class IsolateSystem {
     if(_sendPortOfController == null) {
       c.complete(null);
     } else {
-      _sendPortOfController.send(MessageUtil.create(SenderType.ISOLATE_SYSTEM, this.name, Controller.GET_RUNNING_ISOLATES, {'sendPort':r.sendPort}));
-      r.listen((var msg){
+      _sendPortOfController.send([SenderType.ISOLATE_SYSTEM, this.name, Controller.GET_RUNNING_ISOLATES, r.sendPort]); // sendPort:r.sendPort
+      r.listen((var msg) {
         c.complete(msg);
       });
     }
@@ -181,7 +166,12 @@ class IsolateSystem {
       _sendPortOfController = message;
       _flushBufferToController();
     } else if (MessageUtil.isValidMessage(message)) {
+      if(message is String) {
+        message = JSON.decode(message);
+      }
+
       String senderType = MessageUtil.getSenderType(message);
+
       switch(senderType) {
         case SenderType.CONTROLLER:
           _handleMessageFromController(message);
@@ -310,7 +300,7 @@ class IsolateSystem {
 
     Map payload = {'to':isolateId, 'message':decodedData['payload']};
 
-    _me.send(MessageUtil.create(SenderType.MQS, _name, Action.NONE, payload));
+    _sendToSelf(MessageUtil.create(SenderType.MQS, _name, Action.NONE, payload));
   }
 
   /**
@@ -359,16 +349,23 @@ class IsolateSystem {
     }
   }
 
+  /**
+   * Converting to JSON
+   */
   _sendToController(var message) {
     message = MessageUtil.setSenderType(SenderType.ISOLATE_SYSTEM, message);
 
     if(_sendPortOfController != null) {
       _log("sending via sendport: $message");
-      _sendPortOfController.send(message);
+      _sendPortOfController.send(JSON.encode(message));
     } else {
       _log("Sending to buffer : $message");
       _bufferMessagesToController.add(message);
     }
+  }
+
+  _sendToSelf(var message) {
+    _me.send(JSON.encode(message));
   }
 
   _sendToMqs(var message) {

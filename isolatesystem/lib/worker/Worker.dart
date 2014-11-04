@@ -1,6 +1,7 @@
 library isolatesystem.worker.Worker;
 
 import 'dart:isolate';
+import 'dart:convert';
 
 import '../action/Action.dart';
 import '../message/MessageUtil.dart';
@@ -37,7 +38,7 @@ abstract class Worker {
 
     receivePort = new ReceivePort();
     _me = receivePort.sendPort;
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.CREATED, receivePort.sendPort));
+    sendPort.send([SenderType.WORKER, id, Action.CREATED, receivePort.sendPort]);
     receivePort.listen((var message) {
       _onReceive(message);
     });
@@ -58,6 +59,9 @@ abstract class Worker {
   _onReceive(var message) {
     _log("Worker $id: $message");
     if(MessageUtil.isValidMessage(message)) {
+      if(message is String) {
+        message = JSON.decode(message);
+      }
 
       String action = MessageUtil.getAction(message);
 
@@ -98,8 +102,12 @@ abstract class Worker {
 
   onReceive(var message);
 
+  /**
+   * Once the operations on a message is complete, this method must be invoked
+   * to further dequeue messages from its queue from Message Queuing System
+   */
   done() {
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.DONE, null));
+    _sendToRouter(MessageUtil.create(SenderType.WORKER, id, Action.DONE, null));
   }
 
   /**
@@ -116,7 +124,7 @@ abstract class Worker {
                'message': message,
                'replyTo': replyTo};
 
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.SEND, msg));
+    _sendToRouter(MessageUtil.create(SenderType.WORKER, id, Action.SEND, msg));
   }
 
   /**
@@ -129,11 +137,12 @@ abstract class Worker {
                'message': message,
                'replyTo': replyTo};
 
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
+    _sendToRouter(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 
   /**
    * Makes sure that this particular instance of worker will get the replied message
+   * Ask automatically sends request to dequeue from its queue
    */
   ask(var message, String to) {
     var msg = {'sender':this.id,
@@ -141,13 +150,13 @@ abstract class Worker {
                'message': message,
                'replyTo': this.id};
 
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.ASK, msg));
+    _sendToRouter(MessageUtil.create(SenderType.WORKER, id, Action.ASK, msg));
   }
 
   void _kill() {
     receivePort.close();
-    print("Killing WORKER $id");
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.KILLED, null));
+    _log("Killing WORKER $id");
+    _sendToRouter(MessageUtil.create(SenderType.WORKER, id, Action.KILLED, null));
     kill();
   }
 
@@ -155,8 +164,12 @@ abstract class Worker {
     // optional implementation and can be safely overridden
   }
 
+  void _sendToRouter (var message) {
+    sendPort.send(JSON.encode(message));
+  }
+
   void _replyToPing() {
-    sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.PONG, null));
+    _sendToRouter(MessageUtil.create(SenderType.WORKER, id, Action.PONG, null));
   }
 
   _extractExtraArguments(var args) {
