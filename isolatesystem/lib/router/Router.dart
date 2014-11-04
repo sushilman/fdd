@@ -50,12 +50,15 @@ abstract class Router {
 
   List _messageBuffer;
 
+  //Stopwatch stopwatch;
+
   Router(Map args) {
     this._sendPortOfController = args['sendPort'];
     _receivePort = new ReceivePort();
     _me = _receivePort.sendPort;
     workers = new List<Worker>();
     _messageBuffer = new List();
+    //stopwatch = new Stopwatch();
 
     _id = args['id'];
     _workerSourceUri = Uri.parse(args['workerUri']);
@@ -82,6 +85,10 @@ abstract class Router {
   selectWorker();
 
   _onReceive(var message) {
+    //stopwatch.start();
+    //stopwatch.reset();
+    //print("\nRouter Received At: ${new DateTime.now().millisecondsSinceEpoch}: $message");
+
     _log("Router: $message");
     if(MessageUtil.isValidMessage(message)) {
       String senderType = MessageUtil.getSenderType(message);
@@ -125,7 +132,6 @@ abstract class Router {
         break;
       case Action.NONE:
         if(workers.length == 0) {
-          //_me.send(fullMessage);
           _messageBuffer.add(fullMessage);
         } else {
           Worker worker;
@@ -135,7 +141,7 @@ abstract class Router {
             worker = _getWorkerById(payload['to']);
 
             if (worker == null) {
-              // if designated worker is not found, message is discarded
+              // if designated worker (i.e. uuid of worker) is not found, message is discarded
               _log("Worker with ${payload['to']} not found !");
               _sendPortOfController.send(MessageUtil.create(SenderType.ROUTER, _id, Action.PULL_MESSAGE, null));
             }
@@ -154,7 +160,6 @@ abstract class Router {
                 }
               }
             } else if (worker.sendPort == null) {
-              //_me.send(fullMessage);
               _messageBuffer.add(fullMessage);
             } else {
               _log("Router -> Worker: ${payload['message']}");

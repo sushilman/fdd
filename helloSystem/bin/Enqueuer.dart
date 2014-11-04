@@ -13,19 +13,28 @@ main(List<String> args, SendPort sendPort) {
 }
 
 class HelloPrinter extends Worker {
-  HelloPrinter(List<String> args, SendPort sendPort) : super(args, sendPort);
+  HelloPrinter(List<String> args, SendPort sendPort) : super(args, sendPort) {
+    sendMsgUsingTimer();
+  }
 
   @override
   onReceive(message) {
     if(message is SendPort) {
       //use this to save sendports of spawned temporary isolates
-    } else {
-      outText(message);
     }
   }
 
-  outText(var message) {
-    print(message);
-    done();
+  sendMsg() {
+    int counter = 0;
+    String message = "Test #";
+    send("$message$counter", "isolateSystem/helloPrinter");
+  }
+
+  sendMsgUsingTimer() {
+    int counter = 0;
+    String message = "Test #";
+    new Timer.periodic(const Duration(microseconds:1),(t) {
+      send("$message${counter++}}", "isolateSystem/helloPrinter");
+    });
   }
 }

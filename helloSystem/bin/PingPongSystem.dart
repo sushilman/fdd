@@ -25,7 +25,7 @@ class PingPongSystem {
     String pongUri = "${dirname(Platform.script.toString())}/Pong.dart";
 
     List<String> pingWorkersPaths = ["localhost"];
-    List<String> pongWorkersPaths = ["ws://localhost:42042/activator"];
+    List<String> pongWorkersPaths = ["localhost"];
 
     IsolateSystem system = new IsolateSystem("isolateSystem2", "ws://localhost:42043/mqs");
     IsolateRef ping = system.addIsolate("ping", pingUri, pingWorkersPaths, Router.ROUND_ROBIN, hotDeployment:false);

@@ -5,11 +5,9 @@ import 'dart:isolate';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:path/path.dart' show dirname;
 import 'package:uuid/uuid.dart';
 
 import 'action/Action.dart';
-import 'router/Router.dart';
 
 import 'message/MessageUtil.dart';
 import 'message/SenderType.dart';
@@ -110,7 +108,7 @@ class IsolateSystem {
     _receivePort = new ReceivePort();
     _me = _receivePort.sendPort;
     _receivePort.listen(_onReceive);
-    _connectToMqs(_pathToMQS);
+    _connectToMqs();
 
     _bufferMessagesToController = new List();
     _bufferMessagesToMqs = new List();
@@ -262,22 +260,35 @@ class IsolateSystem {
     Isolate.spawn(controller, {'id':"controller", 'sendPort':_me});
   }
 
-  _connectToMqs(String path) {
+  _connectToMqs() {
     if(!_isSystemKilled) {
-      WebSocket.connect(path).then(_handleMqsWebSocket).catchError((_) {
-        new Timer(new Duration(seconds:3), () {
-          _log("Retrying...");
-          _connectToMqs(path);
-        });
-      });
+      WebSocket.connect(_pathToMQS).then(_handleMqsWebSocket).catchError(_onErrorFromMqs);
     }
   }
 
   _handleMqsWebSocket(WebSocket socket) {
+    _log("Connected to mqs!");
     _mqsSocket = socket;
-    _mqsSocket.listen(_onDataFromMqs);
+    _mqsSocket.listen(_onDataFromMqs, onDone:_onDisconnectedFromMqs);
     _flushBufferToMqs();
   }
+
+  _onErrorFromMqs(var message) {
+    _log("Error while connecting to MQS");
+    new Timer(new Duration(seconds:3), () {
+      _log("Retrying...");
+      _connectToMqs();
+    });
+  }
+
+  _onDisconnectedFromMqs() {
+    new Timer(new Duration(seconds:3), () {
+      _log("Retrying...");
+      _connectToMqs();
+    });
+  }
+
+
 
   /**
    * Incoming Message from MQS:
@@ -342,7 +353,7 @@ class IsolateSystem {
   }
 
   _flushBufferToMqs() {
-    int len = _bufferMessagesToController.length;
+    int len = _bufferMessagesToMqs.length;
     for(int i = 0; i < len; i++) {
       _sendToMqs(_bufferMessagesToMqs.removeAt(0));
     }

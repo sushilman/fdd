@@ -1,16 +1,11 @@
 library isolatesystem.controller.Controller;
 
-import 'dart:io';
 import 'dart:convert';
 import 'dart:isolate';
-
-
-import 'package:path/path.dart' show dirname;
 
 import '../message/MessageUtil.dart';
 import '../message/SenderType.dart';
 import '../action/Action.dart';
-import '../worker/Worker.dart' as Constants;
 
 import '../router/Router.dart';
 import '../router/Random.dart';
@@ -43,6 +38,8 @@ class Controller {
 
   List _messageBuffer;
 
+  //Stopwatch stopwatch;
+
   Controller(Map args) {
     _id = args['id'];
     _sendPortOfIsolateSystem = args['sendPort'];
@@ -53,6 +50,7 @@ class Controller {
     _routers = new List<_Router>();
 
     _messageBuffer = new List();
+    //stopwatch = new Stopwatch();
 
     _receivePort.listen((message) {
       try {
@@ -69,7 +67,10 @@ class Controller {
   }
 
   _onReceive(message) {
+    //stopwatch.start();
+    //stopwatch.reset();
     //return new Future(() {
+    //print("\nController Received At: ${new DateTime.now().millisecondsSinceEpoch}: $message");
       _log("Controller: $message");
       if (MessageUtil.isValidMessage(message)) {
         String senderType = MessageUtil.getSenderType(message);
@@ -120,9 +121,6 @@ class Controller {
 
         break;
       case Action.RESTART:
-        // means to restart all isolates of a router
-        // issuing a restart command for single isolate does not make sense
-        // get id of router, send restart command to that router
         String routerId = payload['to'];
         _Router router = _getRouterById(routerId);
         router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
@@ -133,12 +131,10 @@ class Controller {
         }
         break;
       case Action.NONE:
-      //Controller: {senderType: senderType.isolate_system, id: isolateSystem, action: action.none, payload: {to: isolateSystem/helloPrinter, message: {"message":"Enqueue this message 40"}}}
         String routerId = payload['to'];
         if(routerId != null) {
           _Router router = _getRouterById(routerId);
           if(router == null || router.sendPort == null) {
-            //_me.send(fullMessage);
             _messageBuffer.add(fullMessage);
           } else {
             router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.NONE, payload));
@@ -182,11 +178,11 @@ class Controller {
       _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
     } else {
       switch (action) {
-      //When all isolates have been spawned
         case Action.SEND:
         case Action.REPLY:
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.SEND, payload));
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
+          //print("\nController Sent At: ${new DateTime.now().millisecondsSinceEpoch} & elapsed microseconds ${stopwatch.elapsedMicroseconds}: $payload");
           break;
         case Action.ASK:
           _sendPortOfIsolateSystem.send(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.ASK, payload));
@@ -217,9 +213,6 @@ class Controller {
     } else {
       switch(action) {
         case Action.RESTART:
-          // should all isolates of a router be restarted?
-          // issuing a restart command for single isolate does not make sense
-          // get id of router, send restart command to that router
           String routerId = payload['to'];
           _Router router = _getRouterById(routerId);
           router.sendPort.send(MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
@@ -263,13 +256,6 @@ class Controller {
       if(router.id == id || router.id == id.substring(0, id.lastIndexOf('/'))) {
         return router;
       }
-    }
-    return null;
-  }
-
-  String _getIdOfTargetIsolatePool(Map payload) {
-    if(payload is Map && payload.containsKey(Constants.Worker.TO)) {
-      return payload[Constants.Worker.TO];
     }
     return null;
   }

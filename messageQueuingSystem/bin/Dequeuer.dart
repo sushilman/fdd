@@ -3,9 +3,6 @@ library messageQueuingSystem.dequeueIsolate;
 import "package:stomp/stomp.dart";
 import "package:stomp/vm.dart" show connect;
 
-//import "package:custom_stomp/CustomStomp.dart";
-//import "package:custom_stomp/CustomVm.dart";
-
 import 'dart:isolate';
 import 'dart:async';
 import 'dart:convert';
@@ -43,6 +40,7 @@ class Dequeuer {
   SendPort sendPort;
   SendPort _me;
   int maxMessageBuffer = 1;
+  int maxDequeueRequests = 1000;
   List<String> dequeueRequestsFrom;
 
   Map<String, String> bufferMailBox = new Map();
@@ -163,8 +161,11 @@ class Dequeuer {
       switch (action) {
         case Action.DEQUEUE:
           dequeueRequestsFrom.add(msg['isolateSystemId']);
+          if(dequeueRequestsFrom.length >= maxDequeueRequests) {
+            var a = dequeueRequestsFrom.removeAt(0); // removing oldest queue if limit is reached
+            print("Removing request as limit is reached : $a");
+          }
           _flushBuffer();
-
           break;
         case DEQUEUED:
           _log("RequestCount: ${dequeueRequestsFrom}");
