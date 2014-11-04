@@ -14,7 +14,7 @@ _handleWebSocket(WebSocket socket) {
   socket.listen(_onData, onError:_onError, onDone:_onDisconnect);
   int counter = 0;
   String poolName = "isolateSystem.helloPrinter";
-  String targetQueue = "isolateSystem.helloPrinter5";
+  String targetQueue = "isolateSystem.helloPrinter";
   new Timer.periodic(const Duration(microseconds:1),(t) {
     Map payload = {
         'sender': poolName, 'message': 'My Message #${counter++}', 'replyTo':poolName
@@ -31,7 +31,7 @@ _onData(var message) {
 
 }
 
-_onError() {
+_onError(var msg) {
   print("Error on Server, reconnect !");
 }
 

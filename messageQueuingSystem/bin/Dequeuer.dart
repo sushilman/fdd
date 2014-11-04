@@ -34,13 +34,12 @@ main(List<String> args, SendPort sendPort) {
 }
 
 class Dequeuer {
-
   StompClient client;
   ReceivePort receivePort;
   SendPort sendPort;
   SendPort _me;
   int maxMessageBuffer = 1;
-  int maxDequeueRequests = 1000;
+  int maxDequeueRequestsBuffered = 1000;
   List<String> dequeueRequestsFrom;
 
   Map<String, String> bufferMailBox = new Map();
@@ -78,7 +77,11 @@ class Dequeuer {
     receivePort.listen((msg) {
       _onReceive(msg);
     });
-   // _closeIfIdle();
+    _closeIfIdle();
+  }
+
+  _onErrorIsolate() {
+    print("Caught Exception here, Error in isolate and it is now shutdown");
   }
 
   _reconnect() {
@@ -133,6 +136,7 @@ class Dequeuer {
   _flushBuffer() {
     if(bufferMailBox.isNotEmpty) {
       _log("\nFlushing buffer");
+      print("Size of requests : ${dequeueRequestsFrom.length}");
       bufferMailBox.forEach((key, value) {
         sendPort.send({
             'senderType':DEQUEUER, 'topic':topic, 'payload':value, 'isolateSystemId':dequeueRequestsFrom.removeAt(0)
@@ -161,7 +165,7 @@ class Dequeuer {
       switch (action) {
         case Action.DEQUEUE:
           dequeueRequestsFrom.add(msg['isolateSystemId']);
-          if(dequeueRequestsFrom.length >= maxDequeueRequests) {
+          if (dequeueRequestsFrom.length >= maxDequeueRequestsBuffered) {
             var a = dequeueRequestsFrom.removeAt(0); // removing oldest queue if limit is reached
             print("Removing request as limit is reached : $a");
           }
@@ -170,7 +174,7 @@ class Dequeuer {
         case DEQUEUED:
           _log("RequestCount: ${dequeueRequestsFrom}");
           bufferMailBox[msg['key']] = msg['payload'];
-          if(dequeueRequestsFrom.length > 0) {
+          if (dequeueRequestsFrom.length > 0) {
             _flushBuffer();
           }
           break;
@@ -190,28 +194,26 @@ class Dequeuer {
    * It will be respawned, if needed again
    * TODO: implement in MQS
    */
-  _closeIfIdle() {
-
+  void _closeIfIdle() {
     bool keepCounting = true;
-
     new Timer.periodic(const Duration(seconds:1), (Timer t) {
-      print(idleCounter);
       if(keepCounting) {
         idleCounter++;
-        if (idleCounter >= 20) {
+        if (idleCounter >= 5) {
           t.cancel();
           _shutDown();
           keepCounting = false;
         }
       }
     });
-
   }
 
   _shutDown() {
     print("Shutting Down");
     client.unsubscribe(subscriptionId);
     receivePort.close();
+    sendPort.send({'senderType':DEQUEUER, 'payload':null, 'action':"action.killed", 'topic':this.topic});
+    throw new Exception("Isolate Shutdown Ugly Hack");
   }
 
   _log(String text) {

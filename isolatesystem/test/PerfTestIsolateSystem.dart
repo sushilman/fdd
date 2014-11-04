@@ -8,7 +8,8 @@ import '../lib/IsolateRef.dart';
 import '../lib/router/Router.dart';
 
 String EXPECTED_MESSAGE = "Test Message";
-const int MESSAGES_COUNT = 20000;
+const int MESSAGES_COUNT = 10000;
+
 main() {
   group('IsolateSystemTest', () {
     IsolateSystem system;
@@ -32,18 +33,27 @@ main() {
       testWorker = system.addIsolate("PerfTestWorker", simpleIsolateUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:false);
       expect(testWorker is IsolateRef, isTrue);
     });
-
-    test('IsolateSystem Message throughput', () {
-      int timeStamp;
-      for(int counter = 0; counter <= MESSAGES_COUNT; counter++) {
-        timeStamp = new DateTime.now().millisecondsSinceEpoch;
+/*
+    test('IsolateSystem Message throughput skipping Message Queuing System', () {
+      String timeStamp;
+      for(int counter = 0; counter < MESSAGES_COUNT; counter++) {
+        timeStamp = new DateTime.now().millisecondsSinceEpoch.toString();
         Map message = {'timestamp':timeStamp, 'value':EXPECTED_MESSAGE, 'counter':counter};
         testWorker.sendDirect(message);
       }
     });
+*/
+    test('IsolateSystem Message throughput via Message Queuing System', () {
+      String timeStamp;
+      for(int counter = 0; counter < MESSAGES_COUNT; counter++) {
+        timeStamp = new DateTime.now().millisecondsSinceEpoch.toString();
+        Map message = {'timestamp':timeStamp, 'value':EXPECTED_MESSAGE, 'counter':counter};
+        testWorker.send(message);
+      }
+    });
 
     test('IsolateSystem Destruction test', () {
-      new Timer(const Duration(seconds:25), () {
+      new Timer(const Duration(seconds:10), () {
         system.killSystem();
       });
     });

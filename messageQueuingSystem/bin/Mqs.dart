@@ -13,10 +13,6 @@ import "message/MessageUtil.dart";
 
 /**
  *
- * Code Hack:
- * stomp_impl.dart : 299 (_subscribe())
- * headers["prefetch-count"] = "1";
- *
  * Oct 5, 2014
  * MQS should handle at webSocket connections with three subsystems:
  *  1. over STOMP with Message Broker System
@@ -38,17 +34,6 @@ import "message/MessageUtil.dart";
  * so that a message is not delivered twice even if was not ack'ed
  *
  * Assumes that an Isolate System connects to "ws://<ip>/mqs/<isolateSystemName>"
- *
- *  == some thoughts ==> RESOLVED !
- * What if there are many instances of same isolate system running in different servers
- * Maintain list of sockets for an isolate system
- * so systemId and socket together can determine where to send reply
- * if socket is not available at the time of replying, send it to any of them?
- * to find out which socket when msg is dequeued, pass along socket's_hash id or assign some id to socket?
- *
- * remove socket on disconnect and add on new connection
- * if this is not taken care of, each request from anywhere
- * will result in sending of messages only to latest connected socket
  *
  */
 
@@ -82,9 +67,6 @@ class Mqs {
 
   static const String ISOLATE_SYSTEM = "senderType.isolateSystem";
 
-  //TODO: needs refactoring
-
-  //TODO: persistent queue - "topic/name"?
   static const String TOPIC = "/queue";
 
   static Map<String, String> HEADERS = {"persistent":"true"};//{'delivery_mode':'2'};//{'reply-to' : '/queue/test'};
@@ -125,7 +107,11 @@ class Mqs {
   Mqs({host:LOCALHOST, port:RABBITMQ_DEFAULT_PORT, username:DEFAULT_LOGIN, password:DEFAULT_PASSWORD}) {
     _receivePort = new ReceivePort();
     _me = _receivePort.sendPort;
-    _receivePort.listen(_onReceive);
+    try {
+      _receivePort.listen(_onReceive);
+    } catch(e) {
+      print("Exception caught => $e");
+    }
     _dequeuers = new List();
     _connectedSystems = new List();
 
@@ -228,6 +214,11 @@ class Mqs {
     if(payload is SendPort) {
       dequeuer.sendPort = payload;
       _flushBufferToDequeuer();
+    } else if(payload == null){
+      if(message['action'] == "action.killed") {
+        _Dequeuer removedDeq = _getDequeuerByTopic(MessageUtil.getTopic(message));
+        _dequeuers.remove(removedDeq);
+      }
     } else {
       _log("${dequeuer.isolateSystem.sockets.keys} sockets in -> ${dequeuer.isolateSystem.name}");
       String key = message['isolateSystemId'];
@@ -272,12 +263,6 @@ class Mqs {
    *
    */
   _onData(WebSocket socket, String isolateSystemName, String isolateSystemId, var msg) {
-    //TODO: instead of socket hash code, use isolate system's uniqueId
-    // better than socket hashcode which might change because of issue in network,
-    // whereas uniqueId is consistent unless the system is taken down
-    // but uniqueId must be known to Mqs!
-    // as soon as isolatesystem connects, it should immediately send its uniqueId
-    // or it should send its unique Id everytime
     var message = JSON.decode(msg);
     _log("MQS: ondata -> $message");
     _me.send({'senderType':ISOLATE_SYSTEM, 'isolateSystemName':isolateSystemName, 'isolateSystemId':isolateSystemId, 'message':message});
@@ -294,7 +279,6 @@ class Mqs {
       }
     }
     socket.close();
-    _displayDequeuers();
   }
 
   void _enqueueMessage(Map message, Map fullMessage) {
@@ -414,7 +398,7 @@ class Mqs {
  * Start the Message Queuing System
  */
 main() {
-  Mqs mqs = new Mqs(host:"127.0.0.1", port:61613);
+  Mqs mqs = new Mqs(host:"127.0.0.1", port:61613); //port for connection via STOMP (rabbitMQ)
 }
 
 class _IsolateSystem {

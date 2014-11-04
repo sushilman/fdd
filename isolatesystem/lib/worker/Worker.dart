@@ -119,6 +119,10 @@ abstract class Worker {
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.SEND, msg));
   }
 
+  /**
+   * Send reply message to sender
+   * * [replyTo] reply path which can be set to some other isolate
+   */
   reply(var message, {String replyTo}) {
     var msg = {'sender':this.me,
                'to': this.respondTo,
@@ -128,6 +132,9 @@ abstract class Worker {
     sendPort.send(MessageUtil.create(SenderType.WORKER, id, Action.REPLY, msg));
   }
 
+  /**
+   * Makes sure that this particular instance of worker will get the replied message
+   */
   ask(var message, String to) {
     var msg = {'sender':this.id,
                'to': to,
