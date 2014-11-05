@@ -1,7 +1,5 @@
 import 'dart:isolate';
-import 'dart:convert';
 import 'dart:async';
-import 'dart:io' show sleep;
 import 'dart:math' as Math;
 
 import 'package:isolatesystem/worker/Worker.dart';
@@ -33,8 +31,10 @@ class HelloPrinter extends Worker {
   sendMsgUsingTimer() {
     int counter = 0;
     String message = "Test #";
-    new Timer.periodic(const Duration(microseconds:1),(t) {
+    int random = 300 + new Math.Random().nextInt(100);
+    new Timer.periodic(new Duration(microseconds:random),(t) {
       send("$message${counter++}", "isolateSystem/helloPrinter");
+      print("Created $message###$counter");
     });
   }
 }

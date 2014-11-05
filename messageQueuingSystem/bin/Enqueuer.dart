@@ -34,8 +34,11 @@ class Enqueuer {
     password = args[3];
 
     _initConnection();
+    runZoned((){
+      receivePort.listen(_onReceive);
+    }, onError:(e, stackTrace) => print("Caught")
+    );
 
-    receivePort.listen(_onReceive);
   }
 
 

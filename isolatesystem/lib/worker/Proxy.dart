@@ -70,9 +70,10 @@ class Proxy extends Worker {
   void _onData(String msg) {
     // Deserialize and send to itself first? router
     // print("Response from Activator: $msg");
-    var message = isJsonString(msg) ? JSON.decode(msg) : msg;
 
-    if(MessageUtil.isValidMessage(message)) {
+    var message = isJsonString(msg) ? JSON.decode(msg) : msg;
+    _log("PROXY: $message");
+    if(message is Map) {
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
       String action = MessageUtil.getAction(message);
@@ -81,21 +82,21 @@ class Proxy extends Worker {
       switch(action) {
         case Action.CREATED:
           _log("CREATED message sent, my id = $id");
-          sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.CREATED, receivePort.sendPort));
+          sendPort.send([SenderType.PROXY, id, Action.CREATED, receivePort.sendPort]);
           break;
         case Action.ERROR:
           //TODO: end isolate: close sendPort, disconnect webSocket
           kill();
           break;
         case Action.RESTARTING:
-          sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.RESTARTING, null));
+          _sendToRouter(MessageUtil.create(SenderType.PROXY, id, Action.RESTARTING, null));
           receivePort.close();
           webSocket.close().then((value) {
             _log("Proxy: WebSocket connection with activator is now closed.");
           });
           break;
         default:
-          sendPort.send(message);
+          _sendToRouter(message);
           break;
       }
     }
@@ -112,14 +113,17 @@ class Proxy extends Worker {
   void _onDone() {
     _log("Connection closed by server!");
     _log("Reconnecting...");
-    this.sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.ERROR, null));
+    _sendToRouter(MessageUtil.create(SenderType.PROXY, id, Action.ERROR, null));
     //_initWebSocket();
   }
 
+  void _sendToRouter (var message) {
+    sendPort.send(JSON.encode(message));
+  }
 
   @override
   void kill() {
-    sendPort.send(MessageUtil.create(SenderType.PROXY, id, Action.KILLED,null));
+    _sendToRouter(MessageUtil.create(SenderType.PROXY, id, Action.KILLED,null));
     webSocket.close().then((value) {
       _log("Proxy: WebSocket Disconnected.");
     });
@@ -140,6 +144,6 @@ class Proxy extends Worker {
   }
 
   void _log(String text) {
-    //print(text);
+    print(text);
   }
 }

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:convert';
 
-import 'package:isolatesystem/IsolateSystem.dart';
 import 'package:isolatesystem/action/Action.dart';
 import 'package:isolatesystem/message/MessageUtil.dart';
 import 'package:isolatesystem/message/SenderType.dart';
@@ -69,6 +68,10 @@ class IsolateDeployer {
     _log("Activator: message received from isolate -> $message");
 
     if(MessageUtil.isValidMessage(message)) {
+      if(message is String) {
+        message = JSON.decode(message);
+      }
+
       String senderType = MessageUtil.getSenderType(message);
       String senderId = MessageUtil.getId(message);
       String action = MessageUtil.getAction(message);
@@ -171,7 +174,7 @@ class IsolateDeployer {
   }
 
   _forward(String id, var message) {
-    getIsolateById(id).sendPort.send(MessageUtil.getPayload(message));
+    getIsolateById(id).sendPort.send(JSON.encode(MessageUtil.getPayload(message)));
   }
 
   _Isolate getIsolateById(String id) {
@@ -193,7 +196,7 @@ class IsolateDeployer {
   }
 
   void _log(String text) {
-    //print(text);
+    print(text);
   }
 }
 

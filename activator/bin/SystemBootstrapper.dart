@@ -44,7 +44,7 @@ class SystemBootstrapper {
 
     registryPath = "ws://localhost:42044/registry";
 
-    print("Connecting to $registryPath ...");
+    _log("Connecting to $registryPath ...");
 
     _initWebSocket();
   }
@@ -56,13 +56,13 @@ class SystemBootstrapper {
   void _handleWebSocket(WebSocket socket) {
     webSocket = socket;
     if(webSocket != null && webSocket.readyState == WebSocket.OPEN) {
-      print("Connected to registry!");
+      _log("Connected to registry!");
     }
     webSocket.listen(_onData, onDone:_onDone);
   }
 
   void _onError(var message) {
-    print("Could not connect, retrying...");
+    _log("Could not connect, retrying...");
     new Timer(new Duration(seconds:3), () {
       print ("Retrying...");
       _initWebSocket();
@@ -70,8 +70,8 @@ class SystemBootstrapper {
   }
 
   void _onDone() {
-    print("Connection closed by server!");
-    print("Reconnecting...");
+    _log("Connection closed by server!");
+    _log("Reconnecting...");
     _initWebSocket();
   }
 
@@ -81,7 +81,7 @@ class SystemBootstrapper {
   }
 
   void _onReceive(var message) {
-    print("Bootstrapper: $message");
+    _log("Bootstrapper: $message");
     String action = message['action'];
 
     switch (action) {
@@ -113,7 +113,7 @@ class SystemBootstrapper {
         }
         break;
       case LIST_SYSTEMS:
-//        print("Running Isolates: $_runningIsolates");
+//        _log("Running Isolates: $_runningIsolates");
 //        webSocket.add(JSON.encode({
 //            'requestId':message['requestId'], 'details':_runningIsolates
 //        }));
@@ -125,7 +125,7 @@ class SystemBootstrapper {
             if(value != null) {
               List<Map> list1 = JSON.decode(value);
               fullDetails[s] = list1;
-              print('Response: $list1');
+              _log('Response: $list1');
               if(fullDetails.length == _systems.length) {
                 webSocket.add(JSON.encode({
                   'requestId':message['requestId'], 'details':fullDetails
@@ -159,6 +159,10 @@ class SystemBootstrapper {
         }
       break;
     }
+  }
+
+  void _log(var text) {
+    //print(text);
   }
 
   IsolateSystem _getSystemByName(String name) {

@@ -84,6 +84,7 @@ class Mqs {
 
   String webSocketPath = "/mqs";
   String listeningPort = "42043";
+  String prefetchCount = "1";
 
   List<String> connectionArgs;
   List<_IsolateSystem> _connectedSystems;
@@ -104,7 +105,8 @@ class Mqs {
     }
   }
 
-  Mqs({host:LOCALHOST, port:RABBITMQ_DEFAULT_PORT, username:DEFAULT_LOGIN, password:DEFAULT_PASSWORD}) {
+  Mqs({host:LOCALHOST, port:RABBITMQ_DEFAULT_PORT, username:DEFAULT_LOGIN, password:DEFAULT_PASSWORD, prefetchCount:"1"}) {
+
     _receivePort = new ReceivePort();
     _me = _receivePort.sendPort;
     try {
@@ -118,6 +120,8 @@ class Mqs {
     _bufferMessagesToDequeuer = new List();
     _bufferMessagesToEnqueuer = new List();
 
+    this.prefetchCount = prefetchCount;
+    print(prefetchCount);
     _log("Starting up enqueuer...");
     connectionArgs = [host, port, username, password];
     _startEnqueuerIsolate(connectionArgs);
@@ -308,6 +312,7 @@ class Mqs {
       List temp  = new List();
       temp.addAll(connectionArgs);
       temp.add(topic);
+      temp.add(prefetchCount);
 
       _startDequeuerIsolate(temp);
       _bufferMessagesToDequeuer.add(fullMessage);
@@ -345,7 +350,9 @@ class Mqs {
   }
 
   _startEnqueuerIsolate(List<String> args) {
-    Isolate.spawnUri(enqueueIsolate, args, _receivePort.sendPort);
+    Isolate.spawnUri(enqueueIsolate, args, _receivePort.sendPort).catchError((){
+      print ("ERROR!");
+    });
   }
 
   Future<Isolate> _startDequeuerIsolate(List<String> args) {
@@ -412,8 +419,23 @@ class Mqs {
 /**
  * Start the Message Queuing System
  */
-main() {
-  Mqs mqs = new Mqs(host:"127.0.0.1", port:61613); //port for connection via STOMP (rabbitMQ)
+main(List<String> args) {
+  String host = "127.0.0.1";
+  String port = "61613";
+  String username = Mqs.DEFAULT_LOGIN;
+  String password = Mqs.DEFAULT_PASSWORD;
+  String prefetchCount = "1";
+
+  if(args is List && args.length >= 4) {
+    host = args[0];
+    port = args[1];
+    username = args[2];
+    password = args[3];
+    if(args.length == 5) {
+      prefetchCount = args[4];
+    }
+  }
+  Mqs mqs = new Mqs(host:"127.0.0.1", port:61613, username:Mqs.DEFAULT_LOGIN, password: Mqs.DEFAULT_PASSWORD, prefetchCount:prefetchCount); //port for connection via STOMP (rabbitMQ)
 }
 
 class _IsolateSystem {

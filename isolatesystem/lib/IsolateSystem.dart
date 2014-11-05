@@ -154,6 +154,7 @@ class IsolateSystem {
     } else {
       _sendPortOfController.send([SenderType.ISOLATE_SYSTEM, this.name, Controller.GET_RUNNING_ISOLATES, r.sendPort]); // sendPort:r.sendPort
       r.listen((var msg) {
+        print("RUNNing isolates => $msg");
         c.complete(msg);
       });
     }
@@ -397,7 +398,7 @@ class IsolateSystem {
   }
 
   _log(String text) {
-    //print(text);
+    print(text);
   }
 
   String get name => _name;

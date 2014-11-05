@@ -40,6 +40,7 @@ class Dequeuer {
   int maxMessageBuffer = 1;
   int maxDequeueRequestsBuffered = 10000;
   List<String> dequeueRequestsFrom;
+  String prefetchCount;
 
   Map<String, String> bufferMailBox = new Map();
 
@@ -65,6 +66,7 @@ class Dequeuer {
     username = args[2];
     password = args[3];
     topic = args[4];
+    prefetchCount = args[5];
     subscriptionId = "id_$topic";
 
     sendPort.send([DEQUEUER, _me, topic]); //{'senderType':DEQUEUER, 'topic':topic, 'payload': _me});
@@ -135,11 +137,12 @@ class Dequeuer {
   _flushBuffer() {
     if(bufferMailBox.isNotEmpty) {
       _log("\nFlushing buffer");
-      print("Size of requests : ${dequeueRequestsFrom.length}");
+      var x = dequeueRequestsFrom.removeAt(0);
       bufferMailBox.forEach((key, value) {
         _sendToMqs({
-            'senderType':DEQUEUER, 'topic':topic, 'payload':value, 'isolateSystemId':dequeueRequestsFrom.removeAt(0)
+            'senderType':DEQUEUER, 'topic':topic, 'payload':value, 'isolateSystemId':x
         });
+        print("Dequeued -> $value");
         client.ack(key);
       });
       bufferMailBox.clear();
@@ -148,7 +151,7 @@ class Dequeuer {
 
   _subscribeMessage(String topic) {
     try {
-      client.subscribeString(subscriptionId, topic, _onData, ack:CLIENT_INDIVIDUAL, extraHeaders:{"prefetch-count":"2"});
+      client.subscribeString(subscriptionId, topic, _onData, ack:CLIENT_INDIVIDUAL, extraHeaders:{"prefetch-count":prefetchCount});
       _log("Subscribed to $topic");
     } catch(e) {
       _log("May be already Subscribed $e");
@@ -169,7 +172,6 @@ class Dequeuer {
           dequeueRequestsFrom.add(msg['isolateSystemId']);
           if (dequeueRequestsFrom.length >= maxDequeueRequestsBuffered) {
             dequeueRequestsFrom.removeAt(0); // removing oldest queue if limit is reached
-            print("Removing oldest request as limit is reached : $topic");
           }
           _flushBuffer();
           break;
@@ -201,7 +203,7 @@ class Dequeuer {
    * Closes all connections and
    * Kill this isolate if it is idle for a long time
    *
-   * It will be respawned, if needed again
+   * It will be respawned, if needed, again
    */
   void _closeIfIdle() {
     bool keepCounting = true;

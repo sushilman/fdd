@@ -15,7 +15,7 @@ class PrinterSystem {
     receivePort = new ReceivePort();
     String PrinterSystemWorkerUri = "${dirname(Platform.script.toString())}/HelloPrinter.dart";
 
-    List<String> workersPaths = ["localhost", "localhost", "localhost"];
+    List<String> workersPaths = ["localhost"];
 
     IsolateSystem system = new IsolateSystem("isolateSystem", "ws://localhost:42043/mqs");
     IsolateRef helloPrinter = system.addIsolate("helloPrinter", PrinterSystemWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);

@@ -53,16 +53,9 @@ class Controller {
     //stopwatch = new Stopwatch();
 
     _receivePort.listen((message) {
-      try {
         _onReceive(message);
-      } catch (e, stackTrace) {
-        _log ("Exception : $e, StackTrace: $stackTrace");
-        try {
-          _sendPortOfIsolateSystem.send(e);
-        } catch (e2, s2) {
-          _sendPortOfIsolateSystem.send(new Exception("UnknownException"));
-        }
-      }
+
+
     });
   }
 
@@ -85,7 +78,7 @@ class Controller {
             _handleMessagesFromRouters(senderId, action, payload);
             break;
           case SenderType.FILE_MONITOR:
-            _handleMessagesFromFileMonitor(senderId, action, payload);
+            _handleMessagesFromFileMonitor(senderId, action, payload, message);
             break;
           default:
             _log("Controller: Unknown Sender Type -> $senderType");
@@ -149,7 +142,9 @@ class Controller {
         } else {
           fullMessage = MessageUtil.setSenderType(SenderType.CONTROLLER, fullMessage);
           _sendToRouter(router, fullMessage);
-          router.fileMonitorSendPort.send(JSON.encode(fullMessage));
+          if(router.hotDeployment) {
+            router.fileMonitorSendPort.send(JSON.encode(fullMessage));
+          }
           _routers.remove(router);
           print("Router: killing msg sent");
         }
@@ -203,7 +198,7 @@ class Controller {
     }
   }
 
-  _handleMessagesFromFileMonitor(String senderId, String action, var payload) {
+  _handleMessagesFromFileMonitor(String senderId, String action, var payload, var fullMessage) {
     //_out("Controller: Message from file monitor $payload");
     if(payload is SendPort) {
       String routerId = senderId.split('_').last;
@@ -211,6 +206,8 @@ class Controller {
       if(router != null) {
         router.fileMonitorSendPort = payload;
         router.hotDeployment = true;
+      } else {
+        _messageBuffer.add(fullMessage);
       }
     } else {
       switch(action) {
