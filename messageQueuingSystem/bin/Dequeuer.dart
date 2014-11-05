@@ -9,6 +9,7 @@ import 'dart:convert';
 
 import "Mqs.dart";
 import "action/Action.dart";
+import "message/MessageUtil.dart";
 /**
  * TODO: There are some ugly hacks that needs to be taken care of !
  *
@@ -37,7 +38,7 @@ class Dequeuer {
   SendPort sendPort;
   SendPort _me;
   int maxMessageBuffer = 1;
-  int maxDequeueRequestsBuffered = 1000;
+  int maxDequeueRequestsBuffered = 10000;
   List<String> dequeueRequestsFrom;
 
   Map<String, String> bufferMailBox = new Map();
@@ -66,7 +67,7 @@ class Dequeuer {
     topic = args[4];
     subscriptionId = "id_$topic";
 
-    sendPort.send([DEQUEUER, topic, _me]); //{'senderType':DEQUEUER, 'topic':topic, 'payload': _me});
+    sendPort.send([DEQUEUER, _me, topic]); //{'senderType':DEQUEUER, 'topic':topic, 'payload': _me});
 
     _initConnection();
 
@@ -122,7 +123,7 @@ class Dequeuer {
     var decodedMessage = JSON.decode(message);
     String key = headers["ack"];
     //send message to self to add it to buffer
-    _me.send({
+    _sendToSelf({
         'key':key, 'topic':headers['destination'], 'action':DEQUEUED, 'payload':decodedMessage
     });
   }
@@ -147,7 +148,7 @@ class Dequeuer {
 
   _subscribeMessage(String topic) {
     try {
-      client.subscribeString(subscriptionId, topic, _onData, ack:CLIENT_INDIVIDUAL, extraHeaders:{"prefetch-count":"1"});
+      client.subscribeString(subscriptionId, topic, _onData, ack:CLIENT_INDIVIDUAL, extraHeaders:{"prefetch-count":"2"});
       _log("Subscribed to $topic");
     } catch(e) {
       _log("May be already Subscribed $e");
@@ -158,14 +159,17 @@ class Dequeuer {
   void _onReceive(msg) {
     _log("Dequeue Isolate : $msg");
     idleCounter = 0;
-    if (msg is Map) {
+    if (MessageUtil.isValidMessage(msg)) {
+      if(msg is String) {
+        msg = JSON.decode(msg);
+      }
       String action = msg['action'];
       switch (action) {
         case Action.DEQUEUE:
           dequeueRequestsFrom.add(msg['isolateSystemId']);
           if (dequeueRequestsFrom.length >= maxDequeueRequestsBuffered) {
-            var a = dequeueRequestsFrom.removeAt(0); // removing oldest queue if limit is reached
-            print("Removing request as limit is reached : $topic");
+            dequeueRequestsFrom.removeAt(0); // removing oldest queue if limit is reached
+            print("Removing oldest request as limit is reached : $topic");
           }
           _flushBuffer();
           break;
@@ -188,13 +192,16 @@ class Dequeuer {
     sendPort.send(JSON.encode(message));
   }
 
+  _sendToSelf(var message) {
+    _me.send(JSON.encode(message));
+  }
+
   /**
    * Unsubscribes
    * Closes all connections and
    * Kill this isolate if it is idle for a long time
    *
    * It will be respawned, if needed again
-   * TODO: implement in MQS
    */
   void _closeIfIdle() {
     bool keepCounting = true;

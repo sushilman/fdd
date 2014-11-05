@@ -26,9 +26,7 @@ class Enqueuer {
 
   Enqueuer(List<String> args, SendPort sendPort) {
     ReceivePort receivePort = new ReceivePort();
-    sendPort.send({
-        'senderType':ENQUEUER, 'payload': receivePort.sendPort
-    });
+    sendPort.send([ENQUEUER, receivePort.sendPort]);
 
     host = args[0];
     connectToPort = args[1];
@@ -76,6 +74,9 @@ class Enqueuer {
   }
 
   void _onReceive(var message) {
+    Stopwatch stopwatch = new Stopwatch();
+    stopwatch.start();
+    stopwatch.reset();
     _log("Enqueue Isolate: $message");
     if (MessageUtil.isValidMessage(message)) {
       if(message is String) {
@@ -92,6 +93,7 @@ class Enqueuer {
           break;
       }
     }
+    //print("Time Taken Enqueue -> ${stopwatch.elapsedMicroseconds}");
   }
 
   _log(text) {

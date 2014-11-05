@@ -131,7 +131,7 @@ class Mqs {
       if(message is String) {
         message = JSON.decode(message);
       } else if(message is List) {
-        message = {'senderType': message[0], 'topic': message[1], 'payload': message[2]};
+        message = {'senderType': message[0], 'payload': message[1], 'topic': (message.length > 2) ? message[2] : null};
       }
       String senderType = MessageUtil.getSenderType(message);
 
@@ -270,7 +270,7 @@ class Mqs {
   _onData(WebSocket socket, String isolateSystemName, String isolateSystemId, var msg) {
     var message = JSON.decode(msg);
     _log("MQS: ondata -> $message");
-    _me.send({'senderType':ISOLATE_SYSTEM, 'isolateSystemName':isolateSystemName, 'isolateSystemId':isolateSystemId, 'message':message});
+    _sendToSelf({'senderType':ISOLATE_SYSTEM, 'isolateSystemName':isolateSystemName, 'isolateSystemId':isolateSystemId, 'message':message});
   }
 
   _onDisconnect(WebSocket socket, String isolateSystemName, String isolateSystemId) {
@@ -312,7 +312,7 @@ class Mqs {
       _startDequeuerIsolate(temp);
       _bufferMessagesToDequeuer.add(fullMessage);
     } else if(dequeuer.sendPort != null) {
-      dequeuer.sendPort.send(messageForDequeuer);
+      _sendToDequeuer(dequeuer, messageForDequeuer);
     } else {
       _bufferMessagesToDequeuer.add(fullMessage);
     }
@@ -333,14 +333,14 @@ class Mqs {
   void _flushBufferToEnqueuer() {
     int len = _bufferMessagesToEnqueuer.length;
     for(int i = 0; i < len; i++) {
-      _me.send(_bufferMessagesToEnqueuer.removeAt(0));
+      _sendToSelf(_bufferMessagesToEnqueuer.removeAt(0));
     }
   }
 
   void _flushBufferToDequeuer() {
     int len = _bufferMessagesToDequeuer.length;
     for(int i = 0; i < len; i++) {
-      _me.send(_bufferMessagesToDequeuer.removeAt(0));
+      _sendToSelf(_bufferMessagesToDequeuer.removeAt(0));
     }
   }
 
@@ -400,7 +400,6 @@ class Mqs {
 
   _updateIsolateSystemInDequeuers(_IsolateSystem system) {
     for(_Dequeuer dequeuer in _getDequeuersByIsolateSystemName(system.name)) {
-      _log("Updating socket for ${dequeuer.topic} of $system");
       dequeuer.system = system;
     }
   }

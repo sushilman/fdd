@@ -8,7 +8,7 @@ import '../lib/IsolateRef.dart';
 import '../lib/router/Router.dart';
 
 String EXPECTED_MESSAGE = "Test Message";
-const int MESSAGES_COUNT = 4000;
+const int MESSAGES_COUNT = 600000;
 
 main() {
   group('IsolateSystemTest', () {
@@ -34,7 +34,7 @@ main() {
       expect(testWorker is IsolateRef, isTrue);
     });
 
-    /*
+
     test('IsolateSystem Message throughput skipping Message Queuing System', () {
       String timeStamp;
       for(int counter = 0; counter < MESSAGES_COUNT; counter++) {
@@ -42,8 +42,8 @@ main() {
         Map message = {'timestamp':timeStamp, 'value':EXPECTED_MESSAGE, 'counter':counter};
         testWorker.sendDirect(message);
       }
-    }); */
-
+    });
+/*
     test('IsolateSystem Message throughput via Message Queuing System', () {
       String timeStamp;
       for(int counter = 0; counter < MESSAGES_COUNT; counter++) {
@@ -52,7 +52,7 @@ main() {
         testWorker.send(message);
       }
     });
-
+*/
     test('IsolateSystem Destruction test', () {
       new Timer(const Duration(seconds:10), () {
         system.killSystem();

@@ -21,7 +21,7 @@ _handleWebSocket(WebSocket socket) {
     };
 
     var enqueueMessage = MessageUtil.createEnqueueMessage(targetQueue, payload);
-    print(enqueueMessage);
+    //print(enqueueMessage);
     socket.add(JSON.encode(enqueueMessage));
   });
 

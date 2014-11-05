@@ -34,7 +34,7 @@ class HelloPrinter extends Worker {
     int counter = 0;
     String message = "Test #";
     new Timer.periodic(const Duration(microseconds:1),(t) {
-      send("$message${counter++}}", "isolateSystem/helloPrinter");
+      send("$message${counter++}", "isolateSystem/helloPrinter");
     });
   }
 }

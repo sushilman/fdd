@@ -4,24 +4,27 @@ import 'dart:async' show Timer;
 
 import "message/MessageUtil.dart";
 
+String topic = "isolateSystem.helloPrinter";
+var message = MessageUtil.createDequeueMessage(topic);
+WebSocket socket;
 void main() {
-  WebSocket.connect("ws://localhost:42043/mqs/isolateSystem").then(_handleWebSocket).catchError(_onError);
+  WebSocket.connect("ws://localhost:42043/mqs/isolateSystem/dummyUuid").then(_handleWebSocket).catchError(_onError);
 }
 
-_handleWebSocket(WebSocket socket) {
-  socket.listen(_onData);
-  new Timer.periodic (const Duration(seconds:5), (t) {
-    String topic = "isolateSystem.helloPrinter";
-    var message = MessageUtil.createDequeueMessage(topic);
-    socket.add(JSON.encode(message));
-    print("\n\n\nRequest sent: ");
-  });
+_handleWebSocket(WebSocket ws) {
+  socket = ws;
+  ws.listen(_onData);
+  if(ws.readyState == WebSocket.OPEN) {
+      _dequeueMsg();
+  }
 }
 
 _onData(var message) {
-  print("Before decoding: $message");
-  message = JSON.decode(message);
-  print("Dequeued -> $message");
+  _dequeueMsg();
+}
+
+_dequeueMsg() {
+  socket.add(JSON.encode(message));
 }
 
 _onError() {
