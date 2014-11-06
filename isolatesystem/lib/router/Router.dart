@@ -347,7 +347,7 @@ abstract class Router {
   }
 
   _log(String text) {
-    print(text);
+    //print(text);
   }
 
   _pingWorker(Worker worker) {

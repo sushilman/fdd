@@ -92,19 +92,6 @@ class Mqs {
   List _bufferMessagesToDequeuer;
   List _bufferMessagesToEnqueuer;
 
-  _displayDequeuers() {
-    print("Dequeuers:");
-    print("Size: ${_dequeuers.length}");
-    for(_Dequeuer _dequeuer in _dequeuers) {
-      print ("D_IS NAME : ${_dequeuer.isolateSystemName}");
-      print ("TOPIC: ${_dequeuer.topic}");
-      print ("D->IS_NAME: ${_dequeuer.isolateSystem.name}");
-      print ("Size of Sockets: ${_dequeuer.isolateSystem.sockets.length}");
-      print ("Sockets: ${_dequeuer.isolateSystem.sockets}");
-      print ("\n");
-    }
-  }
-
   Mqs({host:LOCALHOST, port:RABBITMQ_DEFAULT_PORT, username:DEFAULT_LOGIN, password:DEFAULT_PASSWORD, prefetchCount:"1"}) {
 
     _receivePort = new ReceivePort();
@@ -112,7 +99,7 @@ class Mqs {
     try {
       _receivePort.listen(_onReceive);
     } catch(e) {
-      print("Exception caught => $e");
+      _log("Exception caught => $e");
     }
     _dequeuers = new List();
     _connectedSystems = new List();
@@ -350,9 +337,7 @@ class Mqs {
   }
 
   _startEnqueuerIsolate(List<String> args) {
-    Isolate.spawnUri(enqueueIsolate, args, _receivePort.sendPort).catchError((){
-      print ("ERROR!");
-    });
+    Isolate.spawnUri(enqueueIsolate, args, _receivePort.sendPort);
   }
 
   Future<Isolate> _startDequeuerIsolate(List<String> args) {

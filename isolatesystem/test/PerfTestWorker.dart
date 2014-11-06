@@ -11,11 +11,13 @@ main(List<String> args, SendPort sendPort) {
 
 class TestWorker extends Worker {
   int startTimeStamp = 0;
+  int messageCounter = 0;
 
   TestWorker(List<String> args, SendPort sendPort): super(args, sendPort);
 
   @override
   onReceive(var message) {
+    messageCounter++;
     switch(message['counter']) {
       case 0:
         startTimeStamp = int.parse(message['timestamp']);
@@ -28,6 +30,11 @@ class TestWorker extends Worker {
         double average = (timestamp - startTimeStamp) / (MESSAGES_COUNT - 1) ;
         print("Average = ${average} ms");
         print("Throughput = ${ (1000) / average}"); // 1000 miliseconds = 1 second
+        print("Total messages: $messageCounter");
+
+        test("Test total messages received", () {
+          expect(messageCounter, MESSAGES_COUNT);
+        });
         break;
     }
     done();

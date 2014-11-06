@@ -137,12 +137,11 @@ class Dequeuer {
   _flushBuffer() {
     if(bufferMailBox.isNotEmpty) {
       _log("\nFlushing buffer");
-      var x = dequeueRequestsFrom.removeAt(0);
+      var requestSender = dequeueRequestsFrom.removeAt(0);
       bufferMailBox.forEach((key, value) {
         _sendToMqs({
-            'senderType':DEQUEUER, 'topic':topic, 'payload':value, 'isolateSystemId':x
+            'senderType':DEQUEUER, 'topic':topic, 'payload':value, 'isolateSystemId':requestSender
         });
-        print("Dequeued -> $value");
         client.ack(key);
       });
       bufferMailBox.clear();

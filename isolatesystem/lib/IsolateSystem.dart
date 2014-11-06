@@ -398,7 +398,7 @@ class IsolateSystem {
   }
 
   _log(String text) {
-    print(text);
+    //print(text);
   }
 
   String get name => _name;
