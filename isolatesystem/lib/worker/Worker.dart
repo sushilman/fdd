@@ -85,7 +85,7 @@ abstract class Worker {
             _replyToPing();
             break;
           case Action.KILL:
-            kill();
+            _kill();
             break;
           default:
           //_log("Worker: unknown action -> $action");
@@ -158,6 +158,8 @@ abstract class Worker {
     _log("Killing WORKER $id");
     _sendToRouter(MessageUtil.create(SenderType.WORKER, id, Action.KILLED, null));
     kill();
+
+     throw new Exception("Hack to Forcefully Shutdown Isolate");
   }
 
   void kill() {

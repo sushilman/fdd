@@ -30,11 +30,18 @@ class HelloPrinter extends Worker {
 
   sendMsgUsingTimer() {
     int counter = 0;
-    String message = "Test #";
-    int random = 300 + new Math.Random().nextInt(100);
-    new Timer.periodic(new Duration(microseconds:random),(t) {
+    String message = "Test !";
+    int random = 1000000 + new Math.Random().nextInt(100);
+    new Timer.periodic(new Duration(microseconds:random),(Timer t) {
       send("$message${counter++}", "isolateSystem/helloPrinter");
-      print("Created $message###$counter");
+      print("Created $message#$counter");
+      if(counter > 500000) {
+        t.cancel();
+      }
     });
+  }
+
+  kill() {
+    print("Say, closing all connections and timers");
   }
 }

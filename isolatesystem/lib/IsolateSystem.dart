@@ -16,8 +16,9 @@ import 'message/MQSMessageUtil.dart';
 import 'IsolateRef.dart';
 import 'controller/Controller.dart';
 
+
 /**
- * TODO: Take care of these Possible Issues
+ * DONE: Take care of these Possible Issues
  * 1. Pull requests are not answered by Message Queuing System
  *  - May be the queue is empty
  *  - may be the pull message does not reach message queuing system
@@ -27,12 +28,11 @@ import 'controller/Controller.dart';
  *   -- OR poll for free isolate if the router is sitting idle for few seconds
  *   -- and send pull request based on that
  *
- *  2. Actor Supervision - Exception escalation?
+ *  2. Actor Supervision - Exception escalation? -> Not Done
  *    - how to?
  *      -> onError of Future
  *      -> and, try catch blocks
  *
- * TODO: Refactor Actions in isolateSystem,Controller,Routers, Workers
  *
  * Oct 15:
  * If an isolateSystem is started by a bootstrapper which maintains connection with Registry

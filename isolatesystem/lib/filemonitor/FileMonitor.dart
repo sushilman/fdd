@@ -1,8 +1,9 @@
-library isolatesystem.FileMonitor;
+library isolatesystem.filemonitor.FileMonitor;
 
 import 'dart:io';
-import 'dart:isolate';
 import 'dart:async';
+import 'dart:isolate';
+import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
@@ -24,7 +25,7 @@ fileMonitor(Map args) {
 class FileMonitor extends Worker {
   bool killed = false;
   FileMonitor(Map args) : super.internal(args) {
-    sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.CREATED, receivePort.sendPort));
+    sendPort.send([SenderType.FILE_MONITOR, id, Action.CREATED, receivePort.sendPort]);
 
     startMonitoring(Uri.parse(args['workerUri']));
   }
@@ -34,7 +35,7 @@ class FileMonitor extends Worker {
     if(message is SendPort) {
 
     } else {
-      print("FileMonitor: Unhandled message: $message");
+      _log("FileMonitor: Unhandled message: $message");
     }
   }
 
@@ -42,7 +43,7 @@ class FileMonitor extends Worker {
     int seconds = 2;
     var oldHash;
     var hash;
-    print ("Monitoring started for uri $uri");
+    _log ("Monitoring started for uri $uri");
     Duration duration = new Duration(seconds:seconds);
     if(uri.toString().startsWith("http://")
     || uri.toString().startsWith("https://")
@@ -57,7 +58,7 @@ class FileMonitor extends Worker {
             List<int> fileContent = new List<int>();
             fileContent.addAll(value);
             hash = _calcHash(fileContent);
-            //print("Hash:" + hash);
+            //_log("Hash:" + hash);
             if (oldHash == null) {
               oldHash = hash;
             } else if (hash != null) {
@@ -73,13 +74,13 @@ class FileMonitor extends Worker {
       new Timer.periodic(duration, (t) {
         if(killed) {
           t.cancel();
-          print("Timer cancelled");
+          _log("Timer cancelled");
         } else {
           new File.fromUri(uri).readAsBytes().then((bytes) {
             List<int> fileContent = new List<int>();
             fileContent.addAll(bytes);
             hash = _calcHash(fileContent);
-            //print("Hash:" + hash);
+            //_log("Hash:" + hash);
             if (oldHash == null) {
               oldHash = hash;
             } else if (hash != null) {
@@ -107,13 +108,17 @@ class FileMonitor extends Worker {
   }
 
   _restartIsolate() {
-    sendPort.send(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.RESTART, {'to': this.me}));
-    print("Restart command issued !");
+    sendPort.send(JSON.encode(MessageUtil.create(SenderType.FILE_MONITOR, id, Action.RESTART, {'to': this.me})));
+    _log("Restart command issued !");
+  }
+
+  _log(var text) {
+    //print(text);
   }
 
   @override
   kill() {
     this.killed = true;
-    print("KILL fileMonitor $id");
+    _log("KILL fileMonitor $id");
   }
 }

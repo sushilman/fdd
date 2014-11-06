@@ -14,10 +14,10 @@ class EnqueuerSystem {
     receivePort = new ReceivePort();
     String PrinterSystemWorkerUri = "${dirname(Platform.script.toString())}/Enqueuer.dart";
 
-    List<String> workersPaths = ["ws://localhost:42042/activator"];
+    List<String> workersPaths = ["localhost"];
 
     IsolateSystem system = new IsolateSystem("isolateSystem", "ws://localhost:42043/mqs");
-    IsolateRef enqueuer = system.addIsolate("enqueuer", PrinterSystemWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
+    IsolateRef enqueuer = system.addIsolate("enqueuer", PrinterSystemWorkerUri, workersPaths, Router.ROUND_ROBIN, hotDeployment:true);
   }
 }
 

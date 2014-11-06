@@ -12,7 +12,7 @@ import '../router/Random.dart';
 import '../router/RoundRobin.dart';
 import '../router/Broadcast.dart';
 
-import '../src/FileMonitor.dart';
+import '../filemonitor/FileMonitor.dart';
 
 /**
  * Controller
