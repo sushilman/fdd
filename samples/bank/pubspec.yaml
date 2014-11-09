@@ -1,0 +1,9 @@
+name: bank
+version: 0.0.1
+description: A simple bank application, which can create account, deposit into the account & withdraw from the account.
+dependencies:
+  isolatesystem:
+    path: ../../isolatesystem/
+
+dev_dependencies:
+#  unittest: any

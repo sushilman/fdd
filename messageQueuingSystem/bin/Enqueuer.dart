@@ -66,7 +66,7 @@ class Enqueuer {
     if(client != null) {
       client.sendString(topic, JSON.encode(message), headers: headers);
 
-      _log("Message sent successfully from enqueuer to rabbitmq via stomp...");
+      print("Message $message sent successfully from enqueuer to rabbitmq via stomp...");
       return true;
     }
     return false;

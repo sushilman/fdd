@@ -1,0 +1,9 @@
+name: pingPong
+version: 0.0.1
+description: A simple ping pong application. Which sends messages to each other, initiated by a starter.
+dependencies:
+  isolatesystem:
+    path: ../../isolatesystem
+
+dev_dependencies:
+#  unittest: any
