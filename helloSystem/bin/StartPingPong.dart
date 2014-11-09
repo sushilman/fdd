@@ -4,7 +4,8 @@ import 'package:isolatesystem/worker/Worker.dart';
 
 /**
  * A sample isolate for ping pong
- * Simply sends the start message
+ * This worker simply sends the start message
+ * which initiates the ping pong between two workers
  */
 main(List<String> args, SendPort sendPort) {
   new StartPingPong(args, sendPort);
@@ -12,6 +13,7 @@ main(List<String> args, SendPort sendPort) {
 
 class StartPingPong extends Worker {
   StartPingPong(List<String> args, SendPort sendPort):super(args, sendPort) {
+
     String pingAddress = "isolateSystem/ping";
     String pongAddress = "isolateSystem/pong";
 
@@ -20,6 +22,5 @@ class StartPingPong extends Worker {
 
   @override
   onReceive(var message) {
-
   }
 }

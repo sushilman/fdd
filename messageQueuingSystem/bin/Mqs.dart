@@ -212,13 +212,14 @@ class Mqs {
       _flushBufferToDequeuer();
     } else if(payload == null){
       if(message['action'] == "action.killed") {
-        _Dequeuer removedDeq = _getDequeuerByTopic(MessageUtil.getTopic(message));
-        _dequeuers.remove(removedDeq);
+//        _Dequeuer removedDeq = _getDequeuerByTopic(MessageUtil.getTopic(message));
+//        _dequeuers.remove(removedDeq);
+        String topic = MessageUtil.getTopic(message);
+        _dequeuers.removeWhere((dequeuer) => dequeuer.topic == topic);
       }
     } else {
       _log("${dequeuer.isolateSystem.sockets.keys} sockets in -> ${dequeuer.isolateSystem.name}");
       String key = message['isolateSystemId'];
-
 
       if(dequeuer.isolateSystem.sockets.containsKey(key)) {
         message.remove('isolateSystemId');
@@ -323,15 +324,13 @@ class Mqs {
   }
 
   void _flushBufferToEnqueuer() {
-    int len = _bufferMessagesToEnqueuer.length;
-    for(int i = 0; i < len; i++) {
+    while(_bufferMessagesToEnqueuer.isNotEmpty) {
       _sendToSelf(_bufferMessagesToEnqueuer.removeAt(0));
     }
   }
 
   void _flushBufferToDequeuer() {
-    int len = _bufferMessagesToDequeuer.length;
-    for(int i = 0; i < len; i++) {
+    while(_bufferMessagesToDequeuer.isNotEmpty) {
       _sendToSelf(_bufferMessagesToDequeuer.removeAt(0));
     }
   }
@@ -345,49 +344,23 @@ class Mqs {
   }
 
   _Dequeuer _getDequeuerByTopic(String topic) {
-    for(final _Dequeuer dequeuer in _dequeuers) {
-      if(topic == dequeuer.topic) {
-        return dequeuer;
-      }
-    }
-    return null;
+    return _dequeuers.firstWhere((dequeuer) => dequeuer.topic == topic, orElse:() => null);
   }
 
   List<_Dequeuer> _getDequeuersByIsolateSystemName(String systemName) {
-    List<_Dequeuer> dequeuers = new List();
-
-    for(final _Dequeuer dequeuer in _dequeuers) {
-      if(dequeuer.isolateSystemName == systemName) {
-        dequeuers.add(dequeuer);
-      }
-    }
-    return dequeuers;
+    return _dequeuers.where((dequeuer) => dequeuer.isolateSystemName == systemName);
   }
 
   _Dequeuer _getDequeuerByIsolateSystemId(String id) {
-    for(final _Dequeuer dequeuer in _dequeuers) {
-      if(dequeuer.isolateSystem._sockets.containsKey(id)) {
-        return dequeuer;
-      }
-    }
-    return null;
+    return _dequeuers.firstWhere((dequeuer) => dequeuer.isolateSystem._sockets.containsKey(id), orElse:() => null);
   }
 
   _IsolateSystem _getIsolateSystemByName(String systemName) {
-    for(_IsolateSystem isolateSystem in _connectedSystems) {
-      if(isolateSystem.name == systemName) {
-        return isolateSystem;
-      }
-    }
-    return null;
+    return _connectedSystems.firstWhere((isolateSystem) => isolateSystem.name == systemName, orElse:() => null);
   }
 
-  _removeSystemFromDequeuers(_IsolateSystem system) {
-    for(_Dequeuer dequeuer in _dequeuers) {
-      if (dequeuer.isolateSystem.name == system.name) {
-        dequeuer.system = null;
-      }
-    }
+  void _removeSystemFromDequeuers(_IsolateSystem system) {
+    _dequeuers.removeWhere((dequeuer) => dequeuer.isolateSystem.name == system.name);
   }
 
   _updateIsolateSystemInDequeuers(_IsolateSystem system) {

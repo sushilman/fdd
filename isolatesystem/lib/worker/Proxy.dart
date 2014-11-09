@@ -85,7 +85,6 @@ class Proxy extends Worker {
           sendPort.send([SenderType.PROXY, id, Action.CREATED, workerReceivePort.sendPort]);
           break;
         case Action.ERROR:
-          //TODO: end isolate: close sendPort, disconnect webSocket
           kill();
           break;
         case Action.RESTARTING:

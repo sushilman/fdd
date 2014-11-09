@@ -139,8 +139,6 @@ class IsolateDeployer {
     String action = MessageUtil.getAction(message);
     String payload = MessageUtil.getPayload(message);
 
-    //print("Inside onData: ${senderId}");
-
     switch(action) {
       case Action.SPAWN:
         String poolName = payload[0];
@@ -174,29 +172,19 @@ class IsolateDeployer {
   }
 
   _forward(String id, var message) {
-    getIsolateById(id).sendPort.send(JSON.encode(MessageUtil.getPayload(message)));
+    getIsolateById(id).sendPort.send(JSON.encode(message));
   }
 
   _Isolate getIsolateById(String id) {
-    for(_Isolate isolate in isolates) {
-      if(isolate.id == id) {
-        return isolate;
-      }
-    }
-    return null;
+    return isolates.firstWhere((isolate) => isolate.id == id, orElse:() => null);
   }
 
   _getWorkerBySocket(WebSocket socket) {
-    for(_Isolate isolate in isolates) {
-      if(isolate.socket == socket) {
-        return isolate;
-      }
-    }
-    return null;
+    return isolates.firstWhere((isolate) => isolate.socket == socket, orElse:() => null);
   }
 
   void _log(String text) {
-    print(text);
+    //print(text);
   }
 }
 

@@ -31,20 +31,16 @@ class FileMonitor extends Worker {
   }
 
   onReceive(var message) {
-    //print("FileMonitor: $message");
-    if(message is SendPort) {
 
-    } else {
-      _log("FileMonitor: Unhandled message: $message");
-    }
   }
 
   startMonitoring(Uri uri) {
-    int seconds = 2;
+    int seconds = 1;
     var oldHash;
     var hash;
+    HttpClient httpClient = new HttpClient();
     _log ("Monitoring started for uri $uri");
-    Duration duration = new Duration(seconds:seconds);
+    Duration duration = new Duration(milliseconds:100);
     if(uri.toString().startsWith("http://")
     || uri.toString().startsWith("https://")
     || uri.toString().startsWith("ftp://")) {
@@ -52,7 +48,7 @@ class FileMonitor extends Worker {
         if(killed) {
           t.cancel();
         } else {
-          new HttpClient().getUrl(uri)
+          httpClient.getUrl(uri)
           .then((HttpClientRequest request) => request.close())
           .then((HttpClientResponse response) => response.listen((value) {
             List<int> fileContent = new List<int>();
@@ -71,12 +67,13 @@ class FileMonitor extends Worker {
         }
       });
     } else {
+      File file = new File.fromUri(uri);
       new Timer.periodic(duration, (t) {
         if(killed) {
           t.cancel();
           _log("Timer cancelled");
         } else {
-          new File.fromUri(uri).readAsBytes().then((bytes) {
+          file.readAsBytes().then((bytes) {
             List<int> fileContent = new List<int>();
             fileContent.addAll(bytes);
             hash = _calcHash(fileContent);

@@ -202,15 +202,16 @@ class Dequeuer {
    * Unsubscribes
    * Closes all connections and
    * Kill this isolate if it is idle for a long time
+   * and if there isn't any message in the queue
    *
    * It will be respawned, if needed, again
    */
   void _closeIfIdle() {
     bool keepCounting = true;
     new Timer.periodic(const Duration(seconds:1), (Timer t) {
-      if(keepCounting) {
+      if(keepCounting && bufferMailBox.isEmpty) {
         idleCounter++;
-        if (idleCounter >= 5) {
+        if (idleCounter >= 10) {
           t.cancel();
           _shutDown();
           keepCounting = false;
@@ -224,11 +225,11 @@ class Dequeuer {
     try {
       client.unsubscribe(subscriptionId);
     } catch (e) {
-      print("May be alread unsubscribed : $e");
+      print("May be already unsubscribed : $e");
     }
     receivePort.close();
     _sendToMqs({'senderType':DEQUEUER, 'payload':null, 'action':"action.killed", 'topic':this.topic});
-    throw new Exception("Isolate Shutdown Ugly Hack");
+    throw new Exception("Isolate Shutdown Ugly Hack -> $topic");
   }
 
   _log(String text) {

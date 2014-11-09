@@ -51,8 +51,6 @@ abstract class Router {
 
   List _messageBuffer;
 
-  //Stopwatch stopwatch;
-
   Router(Map args) {
     this._sendPortOfController = args['sendPort'];
     _receivePort = new ReceivePort();
@@ -88,9 +86,6 @@ abstract class Router {
   selectWorker();
 
   _onReceive(var message) {
-    //stopwatch.start();
-    //stopwatch.reset();
-    //print("\nRouter Received At: ${new DateTime.now().millisecondsSinceEpoch}: $message");
     _log("Router: $message");
     if(MessageUtil.isValidMessage(message)) {
       if(message is String) {
@@ -193,7 +188,6 @@ abstract class Router {
       case Action.CREATED:
         if(worker == null) {
           _log("Worker still NULL so sending same message to self, bad senderId/workerId?");
-          //_me.send(fullMessage);
           _messageBuffer.add(fullMessage);
         } else {
           _log("Router: Assigning sendport");
@@ -218,6 +212,9 @@ abstract class Router {
       // In case of ASK, we need to dequeue from separate_individual queue, thus full-id of the worker is required in this case
       case Action.ASK:
         _sendToController(MessageUtil.create(SenderType.ROUTER, senderId, Action.ASK, payload));
+        // This is required to prevent 'not dequeuing' from general queue of this pool
+        // because ASK sends request do dequeue from another queue only
+        _sendToController(MessageUtil.create(SenderType.ROUTER, _id, Action.PULL_MESSAGE, null));
         break;
       case Action.KILLED:
       case Action.ERROR:
@@ -248,7 +245,7 @@ abstract class Router {
     w.sendPort.send(encodedMessage);
   }
 
-  _sentToSelf(var message) {
+  _sendToSelf(var message) {
     _me.send(JSON.encode(message));
   }
 
@@ -308,22 +305,7 @@ abstract class Router {
   }
 
   bool _areAllWorkersReady() {
-    //_out("Are all workers ready? ${workers.length} vs ${workersPaths.length}");
-
-    if(workers.length != _workersPaths.length) {
-      return false;
-    }
-
-    for (Worker worker in workers) {
-      try {
-        if(worker.sendPort == null) {
-          return false;
-        }
-      } catch (e) {
-        return false;
-      }
-    }
-    return true;
+    return ((workers.length == _workersPaths.length) && workers.every((worker) => worker.sendPort != null));
   }
 
   /**
@@ -333,12 +315,7 @@ abstract class Router {
    */
 
   Worker _getWorkerById(String id) {
-    for(Worker worker in workers) {
-      if(worker.id == id) {
-        return worker;
-      }
-    }
-    return null;
+    return workers.firstWhere((worker) => worker.id == id, orElse:() => null);
   }
 
   removeWorker(Worker w) {
@@ -346,9 +323,8 @@ abstract class Router {
   }
 
   void _flushBuffer() {
-    int len = _messageBuffer.length;
-    for(int i = 0; i < len; i++) {
-      _sentToSelf(_messageBuffer.removeAt(0));
+    while(_messageBuffer.isNotEmpty) {
+      _sendToSelf(_messageBuffer.removeAt(0));
     }
   }
 

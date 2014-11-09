@@ -153,7 +153,7 @@ class SystemBootstrapper {
   }
 
   IsolateSystem _getSystemByName(String systemName) {
-    return _systems.firstWhere((system) {return (system.name == systemName);});
+    return _systems.firstWhere((system) => (system.name == systemName), orElse:() => null);
   }
 
 }

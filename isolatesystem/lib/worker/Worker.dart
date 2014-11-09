@@ -65,7 +65,10 @@ abstract class Worker {
 
       String senderType = MessageUtil.getSenderType(message);
 
-      if(senderType == SenderType.ROUTER) {
+      /**
+       * SenderType controller is applicable for FileMonitor
+       */
+      if(senderType == SenderType.ROUTER || senderType == SenderType.PROXY || senderType == SenderType.CONTROLLER) {
         String action = MessageUtil.getAction(message);
         var payload = MessageUtil.getPayload(message);
         if(payload is Map && payload.containsKey(SENDER)) {

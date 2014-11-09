@@ -31,7 +31,7 @@ class HelloPrinter extends Worker {
   sendMsgUsingTimer() {
     int counter = 0;
     String message = "Test !";
-    int random = 1000000 + new Math.Random().nextInt(100);
+    int random = 100000000 + new Math.Random().nextInt(1000);
     new Timer.periodic(new Duration(microseconds:random),(Timer t) {
       send("$message${counter++}", "isolateSystem/helloPrinter");
       print("Created $message#$counter");

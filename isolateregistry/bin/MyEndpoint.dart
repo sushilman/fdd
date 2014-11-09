@@ -58,8 +58,8 @@ class MyEndpoint {
             Map isolateSystem = JSON.decode(data);
             registry.deployIsolate(isolateSystem);
           } on Exception {
-            request.response.write("body must be json data");
-            print("bad data");
+            request.response.write("Body must be a json data");
+            print("Bad Data");
           }
         });
       } else if(request.uri.path == '/registry/system/shutdown') {
@@ -68,19 +68,13 @@ class MyEndpoint {
             Map isolateSystem = JSON.decode(data);
             registry.shutdownIsolateSystemOnNode(isolateSystem);
           } on Exception {
-            request.response.write("body must be json data: $data");
-            print("bad data: $data");
+            request.response.write("Body must be a json data: $data");
+            print("Bad Data: $data");
           }
         });
       } else {
         defaultHandler(request);
       }
-//    } else {
-//      request.response.statusCode = HttpStatus.BAD_REQUEST;
-//      request.response.write("Content-Type must be application/json");
-//      print ("bad content type or no content type");
-//    }
-    print("deployed and connection closed !");
     request.response.close();
   }
 

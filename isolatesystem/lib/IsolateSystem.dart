@@ -144,6 +144,7 @@ class IsolateSystem {
   }
 
   /**
+   * Gets a list of running workers from controller
    * Returns in json format
    */
   Future<String> getRunningIsolates() {
@@ -154,7 +155,6 @@ class IsolateSystem {
     } else {
       _sendPortOfController.send([SenderType.ISOLATE_SYSTEM, this.name, Controller.GET_RUNNING_ISOLATES, r.sendPort]); // sendPort:r.sendPort
       r.listen((var msg) {
-        print("RUNNing isolates => $msg");
         c.complete(msg);
       });
     }

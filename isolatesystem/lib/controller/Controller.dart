@@ -40,7 +40,6 @@ class Controller {
 
   List _messageBuffer;
 
-  //Stopwatch stopwatch;
 
   Controller(Map args) {
     _id = args['id'];
@@ -52,7 +51,6 @@ class Controller {
     _routers = new List<_Router>();
 
     _messageBuffer = new List();
-    //stopwatch = new Stopwatch();
 
     _receivePort.listen((message) {
         _onReceive(message);
@@ -154,8 +152,14 @@ class Controller {
 
       case Action.KILL_ALL:
         for(_Router router in _routers) {
+
           fullMessage = MessageUtil.setSenderType(SenderType.CONTROLLER, fullMessage);
           _sendToRouter(router, fullMessage);
+
+          if(router.hotDeployment) {
+            router.fileMonitorSendPort.send(JSON.encode(fullMessage));
+          }
+          _routers.remove(router);
         }
         _receivePort.close();
         break;
@@ -176,8 +180,6 @@ class Controller {
         case Action.SEND:
         case Action.REPLY:
           _sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.SEND, payload));
-          //_sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
-          //print("\nController Sent At: ${new DateTime.now().millisecondsSinceEpoch} & elapsed microseconds ${stopwatch.elapsedMicroseconds}: $payload");
           break;
         case Action.ASK:
           _sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.ASK, payload));
@@ -187,19 +189,19 @@ class Controller {
           _sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           break;
         case Action.PULL_MESSAGE:
-          Stopwatch s = new Stopwatch();
-          s.start();
-          s.reset();
           _sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
-          _log("Time taken to send pull request => ${s.elapsedMicroseconds}");
           break;
         case Action.ERROR:
           print("Received error so removing router from list");
           if(payload['exception'] == ExceptionMessage.ISOLATE_SPAWN_EXCEPTION) {
-            _routers.removeWhere((router) {
-              _sendToRouter(router, MessageUtil.create(SenderType.CONTROLLER, senderId, Action.KILL, null));
-              return (router.id == senderId);
-            });
+            _Router router = _getRouterById(senderId);
+
+            String killMessage = MessageUtil.create(SenderType.CONTROLLER, senderId, Action.KILL, null);
+            _sendToRouter(router, killMessage);
+            if(router.hotDeployment) {
+              router.fileMonitorSendPort.send(JSON.encode(killMessage));
+            }
+            _routers.remove(router);
           }
           break;
         default:
@@ -210,7 +212,6 @@ class Controller {
   }
 
   _handleMessagesFromFileMonitor(String senderId, String action, var payload, var fullMessage) {
-    //_out("Controller: Message from file monitor $payload");
     if(payload is SendPort) {
       String routerId = senderId.split('_').last;
       _Router router = _getRouterById(routerId);
@@ -270,7 +271,12 @@ class Controller {
     Isolate.spawn(router, {'id':routerId, 'workerUri':workerUri, 'workerPaths':workersPaths, 'extraArgs':extraArgs, 'sendPort': _me}).then((isolate){
       _Router router = new _Router(routerId, routerType, workerUri, workersPaths);
       _routers.add(router);
-    });
+    }).catchError((errorMessage) {
+      if (errorMessage is IsolateSpawnException) {
+        print("Error $errorMessage");
+        _sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, this._id, Action.ERROR, {'exception':ExceptionMessage.ISOLATE_SPAWN_EXCEPTION}));
+      }
+    });;
   }
 
   _spawnFileMonitor(String routerId, String workerUri) {
@@ -278,13 +284,7 @@ class Controller {
   }
 
   _Router _getRouterById(String id) {
-    _routers.where((router) {return (router.id == id || router.id == id.substring(0, id.lastIndexOf('/')));});
-//    for(_Router router in _routers) {
-//      if(router.id == id || router.id == id.substring(0, id.lastIndexOf('/'))) {
-//        return router;
-//      }
-//    }
-//    return null;
+    return _routers.firstWhere((router) => ( router.id == id || router.id == id.substring(0, id.lastIndexOf('/')) ), orElse:() => null);
   }
 
   void _flushBuffer() {

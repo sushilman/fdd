@@ -73,9 +73,6 @@ class Enqueuer {
   }
 
   void _onReceive(var message) {
-    Stopwatch stopwatch = new Stopwatch();
-    stopwatch.start();
-    stopwatch.reset();
     _log("Enqueue Isolate: $message");
     if (MessageUtil.isValidMessage(message)) {
       if(message is String) {
@@ -92,7 +89,6 @@ class Enqueuer {
           break;
       }
     }
-    //print("Time Taken Enqueue -> ${stopwatch.elapsedMicroseconds}");
   }
 
   _log(text) {

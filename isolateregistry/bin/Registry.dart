@@ -45,8 +45,8 @@ class Registry {
   _onData(WebSocket socket, var msg) {
     // for now only data that arrives from bootstrapper is -> list of systems it is running
     msg = JSON.decode(msg);
-    print("List of Isolates Bootstrapper at ${_getBootstrapperBySocket(socket).ip} : ${_getBootstrapperBySocket(socket).port} are:");
-    print("$msg");
+    _log("List of Isolates Bootstrapper at ${_getBootstrapperBySocket(socket).ip} : ${_getBootstrapperBySocket(socket).port} are:");
+    _log("$msg");
 
     HttpRequest req = requestQueue[msg['requestId']].removeAt(0);
 
@@ -107,28 +107,18 @@ class Registry {
   }
 
   _displayAllBootstrappers() {
-    print("List of connected Systems:");
+    _log("List of connected Systems:");
     for(Bootstrapper _bootstrapper in _connectedBootstrappers) {
-      print("${_bootstrapper.ip} : ${_bootstrapper.port}");
+      _log("${_bootstrapper.ip} : ${_bootstrapper.port}");
     }
   }
 
   Bootstrapper _getBootstrapperBySocket(WebSocket socket) {
-    for(Bootstrapper bootstrapper in _connectedBootstrappers) {
-      if(bootstrapper.socket == socket) {
-        return bootstrapper;
-      }
-    }
-    return null;
+    return _connectedBootstrappers.firstWhere((bootstrapper) => bootstrapper.socket == socket, orElse:() => null);
   }
 
   Bootstrapper _getBootstrapperById(String id) {
-    for(Bootstrapper bootstrapper in _connectedBootstrappers) {
-      if(bootstrapper.id == id) {
-        return bootstrapper;
-      }
-    }
-    return null;
+    return _connectedBootstrappers.firstWhere((bootstrapper) => bootstrapper.id == id, orElse:() => null);
   }
 
   deployIsolate(Map data) {
@@ -137,12 +127,12 @@ class Registry {
     Bootstrapper bootstrapper = _getBootstrapperById(id);
     data['action'] = "action.addIsolate";
 
-    print("Before sending: $data");
+    _log("Before sending: $data");
 
     if(bootstrapper != null)
       bootstrapper.socket.add(JSON.encode(data));
     else
-      print("Bootstrapper is not available");
+      _log("Bootstrapper is not available");
   }
 
   List getConnectedNodes() {
@@ -154,14 +144,17 @@ class Registry {
     String id = data.remove('bootstrapperId');
     Bootstrapper bootstrapper = _getBootstrapperById(id);
     data['action'] = "action.kill";
-    print("KILL isolate : $data");
+    _log("KILL isolate : $data");
     if(bootstrapper != null) {
       bootstrapper.socket.add(JSON.encode(data));
     } else {
-      print("Bootstrapper is not available anymore");
+      _log("Bootstrapper is not available anymore");
     }
   }
 
+  _log(var text) {
+    print(text);
+  }
 }
 
 class Bootstrapper {
