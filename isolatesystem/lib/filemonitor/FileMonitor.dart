@@ -25,7 +25,7 @@ fileMonitor(Map args) {
 class FileMonitor extends Worker {
   bool killed = false;
   FileMonitor(Map args) : super.internal(args) {
-    sendPort.send([SenderType.FILE_MONITOR, id, Action.CREATED, receivePort.sendPort]);
+    sendPort.send([SenderType.FILE_MONITOR, id, Action.CREATED, workerReceivePort.sendPort]);
 
     startMonitoring(Uri.parse(args['workerUri']));
   }

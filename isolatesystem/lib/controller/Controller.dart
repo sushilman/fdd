@@ -5,6 +5,8 @@ import 'dart:isolate';
 
 import '../message/MessageUtil.dart';
 import '../message/SenderType.dart';
+import '../message/ExceptionMessage.dart';
+
 import '../action/Action.dart';
 
 import '../router/Router.dart';
@@ -136,7 +138,7 @@ class Controller {
         break;
       case Action.KILL:
         _Router router = _getRouterById(payload['routerId']);
-        print("Router: killing router with ${router.id}");
+        print("Controller: killing router with ${router.id}");
         if(router == null || router.sendPort == null) {
           _messageBuffer.add(fullMessage);
         } else {
@@ -146,7 +148,7 @@ class Controller {
             router.fileMonitorSendPort.send(JSON.encode(fullMessage));
           }
           _routers.remove(router);
-          print("Router: killing msg sent");
+          print("Controller: killing msg sent");
         }
         break;
 
@@ -191,6 +193,15 @@ class Controller {
           _sendToIsolateSystem(MessageUtil.create(SenderType.CONTROLLER, senderId, Action.PULL_MESSAGE, null));
           _log("Time taken to send pull request => ${s.elapsedMicroseconds}");
           break;
+        case Action.ERROR:
+          print("Received error so removing router from list");
+          if(payload['exception'] == ExceptionMessage.ISOLATE_SPAWN_EXCEPTION) {
+            _routers.removeWhere((router) {
+              _sendToRouter(router, MessageUtil.create(SenderType.CONTROLLER, senderId, Action.KILL, null));
+              return (router.id == senderId);
+            });
+          }
+          break;
         default:
           _log("Controller: Unknown Action from Router: $action");
           break;
@@ -214,7 +225,9 @@ class Controller {
         case Action.RESTART:
           String routerId = payload['to'];
           _Router router = _getRouterById(routerId);
-          _sendToRouter(router, MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
+          if(router != null && router.sendPort != null) {
+            _sendToRouter(router, MessageUtil.create(SenderType.CONTROLLER, _id, Action.RESTART_ALL, null));
+          }
           break;
         default:
           break;
@@ -227,7 +240,9 @@ class Controller {
   }
 
   _sendToRouter(_Router router, var message) {
-    router.sendPort.send(JSON.encode(message));
+    if(router.sendPort != null) {
+      router.sendPort.send(JSON.encode(message));
+    }
   }
 
   _sendToSelf(var message) {
@@ -263,12 +278,13 @@ class Controller {
   }
 
   _Router _getRouterById(String id) {
-    for(_Router router in _routers) {
-      if(router.id == id || router.id == id.substring(0, id.lastIndexOf('/'))) {
-        return router;
-      }
-    }
-    return null;
+    _routers.where((router) {return (router.id == id || router.id == id.substring(0, id.lastIndexOf('/')));});
+//    for(_Router router in _routers) {
+//      if(router.id == id || router.id == id.substring(0, id.lastIndexOf('/'))) {
+//        return router;
+//      }
+//    }
+//    return null;
   }
 
   void _flushBuffer() {

@@ -8,7 +8,7 @@ import '../message/MessageUtil.dart';
 import '../message/SenderType.dart';
 
 abstract class Worker {
-  ReceivePort receivePort;
+  ReceivePort workerReceivePort;
   SendPort sendPort;
   SendPort _me;
   String id;
@@ -36,10 +36,10 @@ abstract class Worker {
 
     args = _extractExtraArguments(args);
 
-    receivePort = new ReceivePort();
-    _me = receivePort.sendPort;
-    sendPort.send([SenderType.WORKER, id, Action.CREATED, receivePort.sendPort]);
-    receivePort.listen((var message) {
+    workerReceivePort = new ReceivePort();
+    _me = workerReceivePort.sendPort;
+    sendPort.send([SenderType.WORKER, id, Action.CREATED, workerReceivePort.sendPort]);
+    workerReceivePort.listen((var message) {
       _onReceive(message);
     });
   }
@@ -48,9 +48,9 @@ abstract class Worker {
     id = args['id'];
     me = args['routerId'];
     this.sendPort = args['sendPort'];
-    receivePort = new ReceivePort();
-    _me = receivePort.sendPort;
-    receivePort.listen(_onReceive, onDone:_onDone, cancelOnError:false);
+    workerReceivePort = new ReceivePort();
+    _me = workerReceivePort.sendPort;
+    workerReceivePort.listen(_onReceive, onDone:_onDone, cancelOnError:false);
   }
 
   _onDone() {
@@ -63,35 +63,43 @@ abstract class Worker {
         message = JSON.decode(message);
       }
 
-      String action = MessageUtil.getAction(message);
+      String senderType = MessageUtil.getSenderType(message);
 
-      var payload = message;
-
-      if(payload is Map && payload.containsKey(SENDER)) {
-        sender = payload[SENDER];
-      }
-      if(payload is Map && payload.containsKey(Worker.REPLY_TO)) {
-        respondTo = payload[Worker.REPLY_TO];
-      }
-      if(respondTo == null) {
-        respondTo = sender;
-      }
-
-      if(action == null) {
-        onReceive(payload['message']);
-      } else {
-        switch (action) {
-          case Action.PING:
-            _replyToPing();
-            break;
-          case Action.KILL:
-            _kill();
-            break;
-          default:
-          //_log("Worker: unknown action -> $action");
+      if(senderType == SenderType.ROUTER) {
+        String action = MessageUtil.getAction(message);
+        var payload = MessageUtil.getPayload(message);
+        if(payload is Map && payload.containsKey(SENDER)) {
+          sender = payload[SENDER];
         }
+        if(payload is Map && payload.containsKey(Worker.REPLY_TO)) {
+          respondTo = payload[Worker.REPLY_TO];
+        }
+        if(respondTo == null) {
+          respondTo = sender;
+        }
+
+
+        if(action == Action.NONE) {
+          onReceive(payload['message']);
+        } else {
+          switch (action) {
+            case Action.PING:
+              _replyToPing();
+              break;
+            case Action.KILL:
+              _kill();
+              break;
+            default:
+            //_log("Worker: unknown action -> $action");
+          }
+        }
+      } else {
+        onReceive(message);
       }
+    } else {
+      onReceive(message);
     }
+
 
     /**
      * sending DONE here creates issues with Proxy Isolate
@@ -154,12 +162,12 @@ abstract class Worker {
   }
 
   void _kill() {
-    receivePort.close();
+    workerReceivePort.close();
     _log("Killing WORKER $id");
     _sendToRouter(MessageUtil.create(SenderType.WORKER, id, Action.KILLED, null));
     kill();
 
-     throw new Exception("Hack to Forcefully Shutdown Isolate");
+    throw "Hack to Forcefully Shutdown Isolate -> $id";
   }
 
   void kill() {

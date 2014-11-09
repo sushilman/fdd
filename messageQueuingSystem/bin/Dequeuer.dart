@@ -139,11 +139,12 @@ class Dequeuer {
       _log("\nFlushing buffer");
       var requestSender = dequeueRequestsFrom.removeAt(0);
       bufferMailBox.forEach((key, value) {
+        client.ack(key);
         _sendToMqs({
             'senderType':DEQUEUER, 'topic':topic, 'payload':value, 'isolateSystemId':requestSender
         });
-        client.ack(key);
       });
+
       bufferMailBox.clear();
     }
   }
@@ -223,7 +224,7 @@ class Dequeuer {
     try {
       client.unsubscribe(subscriptionId);
     } catch (e) {
-
+      print("May be alread unsubscribed : $e");
     }
     receivePort.close();
     _sendToMqs({'senderType':DEQUEUER, 'payload':null, 'action':"action.killed", 'topic':this.topic});

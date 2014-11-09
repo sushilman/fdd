@@ -8,8 +8,16 @@ import 'dart:async';
 import 'package:isolatesystem/IsolateSystem.dart';
 import 'package:isolatesystem/IsolateRef.dart';
 
-main([List<String> args, SendPort sendPort]) {
-  new SystemBootstrapper(args, sendPort);
+startSystemBootstrapper(List<String> args) {
+  main(args);
+}
+
+main(List<String> args, [SendPort sendPort]) {
+  if(args.length == 1) {
+    new SystemBootstrapper(args[0], sendPort);
+  } else {
+    print("Usage: dart SystemBootstrapper.dart full_websocket_path_of_registry (eg:'ws://localhost:42044/registry')");
+  }
 }
 
 /**
@@ -24,25 +32,25 @@ class SystemBootstrapper {
   SendPort _me;
   List<IsolateSystem> _systems;
 
-  // Map of System -> list of isolates it is running
-  Map<String, List<_Worker>> _runningIsolates;
-
   var webSocket;
 
   static const String ADD_ISOLATE = "action.addIsolate";
   static const String KILL = "action.kill";
   static const String LIST_SYSTEMS = "action.listSystems";
-  String registryPath;
 
-  SystemBootstrapper([List<String> args, SendPort this.sendPort]) {
+  static const String DEFAULT_REGISTRY_PATH = "ws://localhost:42044/registry";
+
+  String registryPath = DEFAULT_REGISTRY_PATH;
+
+  SystemBootstrapper(String registryPath, [SendPort this.sendPort]) {
     receivePort = new ReceivePort();
     _me = receivePort.sendPort;
     _systems = new List();
-    _runningIsolates = new Map();
-    //sendPort.send(_me);
     receivePort.listen(_onReceive);
 
-    registryPath = "ws://localhost:42044/registry";
+    if(registryPath.isNotEmpty) {
+      this.registryPath = registryPath;
+    }
 
     _log("Connecting to $registryPath ...");
 
@@ -96,35 +104,20 @@ class SystemBootstrapper {
         String extraArgs = message['args'];
 
         IsolateSystem system = _getSystemByName(systemName);
+
         if (system == null) {
           system = new IsolateSystem(systemName, pathToMQS);
           _systems.add(system);
         }
-
-        //system.addIsolate(name, uri, workersPaths, routerType, hotDeployment:deploymentType, args:extraArgs);
-
         IsolateRef myIsolate = system.addIsolate(name, uri, workersPaths, routerType, hotDeployment:deploymentType, args:extraArgs);
-
-        if (_runningIsolates.containsKey(systemName)) {
-          _runningIsolates[systemName].add(new _Worker(name, uri, workersPaths, routerType, deploymentType));
-        } else {
-          _runningIsolates[systemName] = new List();
-          _runningIsolates[systemName].add(new _Worker(name, uri, workersPaths, routerType, deploymentType));
-        }
         break;
       case LIST_SYSTEMS:
-//        _log("Running Isolates: $_runningIsolates");
-//        webSocket.add(JSON.encode({
-//            'requestId':message['requestId'], 'details':_runningIsolates
-//        }));
-
-
         Map <String, List> fullDetails = new Map<String, List>();
-        for(String s in _runningIsolates.keys) {
-          _getSystemByName(s).getRunningIsolates().then((String value) {
+        for(IsolateSystem system in _systems) {
+          system.getRunningIsolates().then((String value) {
             if(value != null) {
               List<Map> list1 = JSON.decode(value);
-              fullDetails[s] = list1;
+              fullDetails[system.name] = list1;
               _log('Response: $list1');
               if(fullDetails.length == _systems.length) {
                 webSocket.add(JSON.encode({
@@ -133,28 +126,22 @@ class SystemBootstrapper {
               }
             }
           });
-          //when all details of all systems are fetched
-//            webSocket.add(JSON.encode({
-//                'requestId':message['requestId'], 'details':fullDetails
-//            }));
         }
 
         break;
       case KILL:
-      // the isolate system must close all the connections / websocket as well as other isolate ports.
         String systemName = message['isolateSystemName'];
         if (message.containsKey('isolateName')) {
           IsolateSystem s = _getSystemByName(systemName);
           String isolateName = message['isolateName'];
           if(s != null) {
             s.killIsolate(isolateName);
-            _removeWorkerFromSystem(systemName, isolateName);
           }
         } else {
           IsolateSystem s = _getSystemByName(systemName);
           if(s != null) {
             s.killSystem();
-            _removeSystemByName(systemName);
+            _systems.remove(s);
           }
         }
       break;
@@ -165,68 +152,8 @@ class SystemBootstrapper {
     //print(text);
   }
 
-  IsolateSystem _getSystemByName(String name) {
-    for(IsolateSystem system in _systems) {
-      if(system.name == name) {
-        return system;
-      }
-    }
-    return null;
+  IsolateSystem _getSystemByName(String systemName) {
+    return _systems.firstWhere((system) {return (system.name == systemName);});
   }
 
-  _removeWorkerFromSystem(String isolateSystemName, String workerName) {
-    if(_runningIsolates.containsKey(isolateSystemName)) {
-      _runningIsolates[isolateSystemName].removeWhere((_Worker w) {
-        return w.name == workerName;
-      });
-    }
-  }
-
-  void _removeSystemByName(String name) {
-    for(int i = 0; i < _systems.length; i++) {
-      if(_systems[i].name == name) {
-        _runningIsolates.remove(_systems[i].name);
-        _systems.remove(_systems[i]);
-        break;
-      }
-    }
-  }
-
-//_getSystemById(systemId).addIsolate(name, uri, workersPaths, routerType, hotDeployment: hotDeployment, args:args);
-}
-
-
-class _Worker {
-  String _name;
-  String _uri;
-  String _paths;
-  String _routerType;
-  bool _hotDeployment;
-
-  _Worker(this._name, this._uri, this._paths, this._routerType, this._hotDeployment);
-
-  bool get hotDeployment => _hotDeployment;
-  set hotDeployment(bool value) => _hotDeployment = value;
-
-  String get routerType => _routerType;
-  set routerType(String value) => _routerType = value;
-
-  String get paths => _paths;
-  set paths(String value) => _paths = value;
-
-  String get uri => _uri;
-  set uri(String value) => _uri = value;
-
-  String get name => _name;
-  set name(String value) => _name = value;
-
-  Map toJson() {
-    Map json = new Map();
-    json['name'] = _name;
-    json['uri'] = _uri;
-    json['paths'] = _paths;
-    json['routerType'] = _routerType;
-    json['hotDeployment'] = _hotDeployment;
-    return json;
-  }
 }

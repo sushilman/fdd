@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../action/Action.dart';
 import '../message/MessageUtil.dart';
 import '../message/SenderType.dart';
+import '../message/ExceptionMessage.dart';
 import '../worker/Proxy.dart';
 
 /**
@@ -158,7 +159,7 @@ abstract class Router {
               //in case router returns multiple workers
               for (Worker w in worker) {
                 if(w.sendPort != null) {
-                  _sendToWorker(w, payload['message']);
+                  _sendToWorker(w, MessageUtil.create(SenderType.ROUTER, _id, Action.NONE, payload['message']));
                 } else {
                   _messageBuffer.add(fullMessage);
                 }
@@ -167,7 +168,7 @@ abstract class Router {
               _messageBuffer.add(fullMessage);
             } else {
               _log("Router -> Worker: ${payload['message']}");
-              _sendToWorker(worker, payload['message']);
+              _sendToWorker(worker, MessageUtil.create(SenderType.ROUTER, _id, Action.NONE, payload['message']));
             }
           }
         }
@@ -271,6 +272,11 @@ abstract class Router {
       Isolate.spawnUri(_workerSourceUri, [id, this._id, path, args], _receivePort.sendPort).then((Isolate isolate) {
         Worker w = new Worker(id, path, isolate);
         workers.add(w);
+      }).catchError((errorMessage) {
+        if (errorMessage is IsolateSpawnException) {
+          print("Error $errorMessage");
+          _sendToController(MessageUtil.create(SenderType.ROUTER, this._id, Action.ERROR, {'exception':ExceptionMessage.ISOLATE_SPAWN_EXCEPTION}));
+        }
       });
     }
   }

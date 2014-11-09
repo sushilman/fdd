@@ -1,13 +1,9 @@
 import 'dart:isolate';
-import 'dart:convert';
-import 'dart:async';
-import 'dart:io' show sleep;
-import 'dart:math' as Math;
 
 import 'package:isolatesystem/worker/Worker.dart';
 
 /**
- * A sample isolate for pong pong
+ * A sample isolate for ping pong
  */
 main(List<String> args, SendPort sendPort) {
   new Pong(args, sendPort);

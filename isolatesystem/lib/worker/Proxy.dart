@@ -82,7 +82,7 @@ class Proxy extends Worker {
       switch(action) {
         case Action.CREATED:
           _log("CREATED message sent, my id = $id");
-          sendPort.send([SenderType.PROXY, id, Action.CREATED, receivePort.sendPort]);
+          sendPort.send([SenderType.PROXY, id, Action.CREATED, workerReceivePort.sendPort]);
           break;
         case Action.ERROR:
           //TODO: end isolate: close sendPort, disconnect webSocket
@@ -90,7 +90,7 @@ class Proxy extends Worker {
           break;
         case Action.RESTARTING:
           _sendToRouter(MessageUtil.create(SenderType.PROXY, id, Action.RESTARTING, null));
-          receivePort.close();
+          workerReceivePort.close();
           webSocket.close().then((value) {
             _log("Proxy: WebSocket connection with activator is now closed.");
           });
@@ -127,7 +127,7 @@ class Proxy extends Worker {
     webSocket.close().then((value) {
       _log("Proxy: WebSocket Disconnected.");
     });
-    receivePort.close();
+    workerReceivePort.close();
   }
 
   void restart() {

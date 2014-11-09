@@ -35,10 +35,6 @@ class Registry {
     _connectedBootstrappers = new List();
     requestQueue = new Map();
     wss = new WebSocketServer(defaultPort, defaultPath, _onConnect, _onData, _onDisconnect);
-
-//    new Timer(const Duration(seconds:10),() {
-//
-//    });
   }
 
   _onConnect(WebSocket socket, String remoteIP, String remotePort) {

@@ -1,4 +1,4 @@
-library isolatesystem.actions.Action;
+library isolatesystem.action.Action;
 
 class Action {
   static const String SPAWN = "action.spawn";
