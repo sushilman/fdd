@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>RegistryWebclient</title>
+    <link rel="stylesheet" href="registrywebclient.css">
+  </head>
+  <body>
+    <h1>FDD Manager</h1>
+
+    <p>A simple client for managing isolate systems !</p>
+
+    <div id = "container">
+      <div class="column" id="nodes">
+        <div class="header">
+          <h1>Nodes</h1>
+        </div>
+        <div class="contents">
+          <ol id="nodeList">
+
+          </ol>
+        </div>
+      </div>
+
+      <div class="column" id="systems">
+        <div class="header">
+          <h1>Deployed Systems</h1>
+          <div id="addWorkerButton" title="Deploy an Isolate in an IsolateSystem">+</div>
+        </div>
+        <div class="contents">
+          <ul id="systemsList">
+
+          </ul>
+        </div>
+      </div>
+
+      <div class="column" id="details">
+        <div class="header">
+          <h1>Details</h1>
+        </div>
+        <div class="contents">
+          <ul id="detailsInfo">
+
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div id="overlay" class="hidden">
+      <form id="addWorkerForm">
+        <input type="hidden" id="bootstrapperId" value = ""/>
+        <div id="closeButton"> X </div>
+        <div>
+          <label class="label" for="isolateSystemName">IsolateSystem Name</label>
+          <input id="isolateSystemName" type="text" />
+        </div>
+        <div>
+          <label class="label" for="isolateName">Isolate Name</label>
+          <input id="isolateName" type="text" />
+        </div>
+        <div>
+          <label for="uri">Source</label>
+          <input id="uri" type="text" />
+        </div>
+        <div>
+          <label for="routerType">Router Type</label>
+          <input id="routerType" type="text" list="routerTypeList"/>
+          <datalist id="routerTypeList">
+            <option value="random"></option>
+            <option value="roundRobin"></option>
+            <option value="broadcast"></option>
+          </datalist>
+        </div>
+        <div>
+          <label for="workersPaths">Deployment paths</label>
+          <input id="workersPaths" name="deploymentPaths" type="text" />
+        </div>
+        <div>
+          <label for="hotDeployment">Enable Hot Deployment</label>
+          <input id="hotDeployment" type="checkbox" />
+        </div>
+        <div>
+          <label for="messageQueuingSystemServer">Message Queuing System Server</label>
+          <input id="messageQueuingSystemServer" type="text" />
+        </div>
+        <div>
+          <label for="submit"></label>
+          <button type="button" id="submit" name="submit">Add</button>
+        </div>
+      </form>
+    </div>
+
+    <script type="application/dart" src="registrywebclient.dart"></script>
+    <script src="packages/browser/dart.js"></script>
+  </body>
+</html>

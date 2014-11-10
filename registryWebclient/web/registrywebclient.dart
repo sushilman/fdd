@@ -1,11 +1,14 @@
 import 'dart:html';
 import 'dart:convert';
 
-String registryHost = "localhost";
-String registryPort = "8000";
-String baseUri = "http://$registryHost:$registryPort/registry";
+ //String registryHost = "localhost";
+ //String registryPort = "8000";
+ //String baseUri = "http://$registryHost:$registryPort/registry";
+
+String baseUri = "";
 
 void main() {
+  baseUri = Uri.parse(document.baseUri).queryParameters['host'];
   fetchNodes();
   querySelector("#addWorkerButton").onClick.listen(_showAddWorkerForm);
   querySelector("#closeButton").onClick.listen(_closeAddWorkerForm);
@@ -239,6 +242,3 @@ serializeForm(FormElement form) {
 
   return data;
 }
-
-
-
