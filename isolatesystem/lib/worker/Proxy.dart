@@ -121,12 +121,14 @@ class Proxy extends Worker {
   }
 
   @override
-  void beforeKill() {
-    _sendToRouter(MessageUtil.create(SenderType.PROXY, id, Action.KILLED,null));
-    webSocket.close().then((value) {
-      _log("Proxy: WebSocket Disconnected.");
+  Future beforeKill() {
+    return new Future(() {
+      _sendToRouter(MessageUtil.create(SenderType.PROXY, id, Action.KILLED,null));
+      webSocket.close().then((value) {
+        _log("Proxy: WebSocket Disconnected.");
+      });
+      workerReceivePort.close();
     });
-    workerReceivePort.close();
   }
 
   void restart() {

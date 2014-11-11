@@ -76,7 +76,6 @@ class Consumer extends Worker {
     stopwatch.reset();
     if(counter == NO_OF_MESSAGES_TO_CONSUME) {
       kill();
-      //_writeStats();
     } else {
       done();
     }
@@ -85,7 +84,6 @@ class Consumer extends Worker {
 
   @override
   beforeKill() {
-    print("Called!");
     return _writeStats();
   }
 

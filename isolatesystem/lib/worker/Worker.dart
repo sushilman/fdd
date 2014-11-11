@@ -166,7 +166,6 @@ abstract class Worker {
   }
 
   void kill() {
-    print ("KILL CALLED");
     beforeKill().then((_) => _forceKill(), onError: () => _forceKill());
   }
 
@@ -180,7 +179,7 @@ abstract class Worker {
 
   Future beforeKill() {
     // optional implementation and can be safely overridden
-    return new Future.value(null);
+    return new Future(() {});
   }
 
   void _sendToRouter (var message) {
