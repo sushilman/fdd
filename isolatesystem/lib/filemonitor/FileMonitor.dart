@@ -114,7 +114,7 @@ class FileMonitor extends Worker {
   }
 
   @override
-  kill() {
+  beforeKill() {
     this.killed = true;
     _log("KILL fileMonitor $id");
   }

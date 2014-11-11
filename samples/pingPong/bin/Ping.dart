@@ -33,9 +33,23 @@ class Ping extends Worker {
     } else if (message['value'].startsWith("PONG")) {
       print("**## ${message['value']} ${message['count']} **");
       int count = int.parse(message['count']) + 1;
-
       ask({'value': "PING", 'count' :  "$count"}, respondTo);
     }
+  }
+
+  /**
+   * Heavy working function
+   * that takes random amount of time
+   */
+  _calculateFactorial(int n) {
+    if(n == 0) {
+      return 1;
+    }
+    int factorial = 1;
+    for(int i = 1; i < n; i++) {
+      factorial *= i;
+    }
+    return factorial;
   }
 
   /**

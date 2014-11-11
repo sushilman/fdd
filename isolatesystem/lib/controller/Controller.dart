@@ -136,9 +136,8 @@ class Controller {
         break;
       case Action.KILL:
         _Router router = _getRouterById(payload['routerId']);
-        print("Controller: killing router with ${router.id}");
         if(router == null || router.sendPort == null) {
-          _messageBuffer.add(fullMessage);
+          //_messageBuffer.add(fullMessage);
         } else {
           fullMessage = MessageUtil.setSenderType(SenderType.CONTROLLER, fullMessage);
           _sendToRouter(router, fullMessage);
@@ -146,7 +145,7 @@ class Controller {
             router.fileMonitorSendPort.send(JSON.encode(fullMessage));
           }
           _routers.remove(router);
-          print("Controller: killing msg sent");
+
         }
         break;
 

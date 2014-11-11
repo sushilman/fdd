@@ -13,6 +13,7 @@ void main() {
   querySelector("#addWorkerButton").onClick.listen(_showAddWorkerForm);
   querySelector("#closeButton").onClick.listen(_closeAddWorkerForm);
   querySelector("#submit").onClick.listen(_addWorker);
+  querySelector("#submitToAll").onClick.listen(_addWorkerToAllNodes);
 }
 
 void fetchNodes() {
@@ -48,9 +49,11 @@ void _fetchRunningSystems(String id) {
 }
 
 void _onSystemsFetched(responseText) {
-  print("Systems Fetched : $responseText");
+  _clear(querySelector('#systemsList'));
+  _clear(querySelector('#detailsInfo'));
+  //print("Systems Fetched : $responseText");
   Map systems = JSON.decode(responseText);
-  print("Systems Fetched decoded : $systems");
+  //print("Systems Fetched decoded : $systems");
   StringBuffer elements = new StringBuffer();
   for(String systemName in systems.keys) {
 
@@ -160,17 +163,34 @@ void _closeAddWorkerForm(MouseEvent e) {
 void _addWorker(MouseEvent e) {
   FormElement form = querySelector("#addWorkerForm");
   Map formData = serializeForm(form);
-  var url = "$baseUri/deploy";
-  HttpRequest request = new HttpRequest();
-  request.open("POST", url, async:false);
-  request.setRequestHeader("Content-type", "application/json");
-  request.send(JSON.encode(formData));
-  window.location.reload();
+  _sendRequest(formData);
   /*
   String nodeId = formData['bootstrapperId'];
   _closeAddWorkerForm(null);
   _fetchRunningSystems(nodeId);
   */
+}
+
+void _addWorkerToAllNodes(MouseEvent e) {
+  FormElement form = querySelector("#addWorkerForm");
+  Map formData = serializeForm(form);
+
+  ElementList nodes = querySelectorAll("#nodeList li");
+  for(Element node in nodes.toList()) {
+    print(node.id);
+    formData['bootstrapperId'] = node.id;
+    _sendRequest(formData);
+  }
+}
+
+void _sendRequest(Map formData) {
+  var url = "$baseUri/deploy";
+  HttpRequest request = new HttpRequest();
+  request.open("POST", url, async:false);
+  request.setRequestHeader("Content-type", "application/json");
+  print(JSON.encode(formData));
+  request.send(JSON.encode(formData));
+  window.location.reload();
 }
 
 void _shutdownIsolateSystem(MouseEvent e, Element el) {

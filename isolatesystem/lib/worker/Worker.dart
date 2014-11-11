@@ -2,6 +2,7 @@ library isolatesystem.worker.Worker;
 
 import 'dart:isolate';
 import 'dart:convert';
+import 'dart:async';
 
 import '../action/Action.dart';
 import '../message/MessageUtil.dart';
@@ -90,7 +91,7 @@ abstract class Worker {
               _replyToPing();
               break;
             case Action.KILL:
-              _kill();
+              kill();
               break;
             default:
             //_log("Worker: unknown action -> $action");
@@ -164,17 +165,22 @@ abstract class Worker {
     _sendToRouter(MessageUtil.create(SenderType.WORKER, id, Action.ASK, msg));
   }
 
-  void _kill() {
+  void kill() {
+    print ("KILL CALLED");
+    beforeKill().then((_) => _forceKill(), onError: () => _forceKill());
+  }
+
+  void _forceKill() {
     workerReceivePort.close();
     _log("Killing WORKER $id");
     _sendToRouter(MessageUtil.create(SenderType.WORKER, id, Action.KILLED, null));
-    kill();
 
     throw "Hack to Forcefully Shutdown Isolate -> $id";
   }
 
-  void kill() {
+  Future beforeKill() {
     // optional implementation and can be safely overridden
+    return new Future.value(null);
   }
 
   void _sendToRouter (var message) {

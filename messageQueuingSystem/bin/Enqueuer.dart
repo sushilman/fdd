@@ -24,6 +24,8 @@ class Enqueuer {
   String username;
   String password;
 
+  List bufferMessages;
+
   Enqueuer(List<String> args, SendPort sendPort) {
     ReceivePort receivePort = new ReceivePort();
     sendPort.send([ENQUEUER, receivePort.sendPort]);
@@ -32,6 +34,8 @@ class Enqueuer {
     connectToPort = args[1];
     username = args[2];
     password = args[3];
+
+    bufferMessages = new List();
 
     _initConnection();
     receivePort.listen(_onReceive);
@@ -65,8 +69,6 @@ class Enqueuer {
   bool _enqueueMessage(String topic, String message, {Map<String, String> headers}) {
     if(client != null) {
       client.sendString(topic, JSON.encode(message), headers: headers);
-
-      print("Message $message sent successfully from enqueuer to rabbitmq via stomp...");
       return true;
     }
     return false;
@@ -85,7 +87,11 @@ class Enqueuer {
       switch (action) {
         case Action.ENQUEUE:
           _log("Enqueue $message with headers: ${Mqs.HEADERS} to topic ${topic} in message_broker_system");
-          _enqueueMessage(topic, message['payload'], headers:Mqs.HEADERS);
+          if(client != null) {
+            _enqueueMessage(topic, message['payload'], headers:Mqs.HEADERS);
+          } else {
+            bufferMessages.add(message);
+          }
           break;
       }
     }

@@ -108,7 +108,6 @@ class Mqs {
     _bufferMessagesToEnqueuer = new List();
 
     this.prefetchCount = prefetchCount;
-    print(prefetchCount);
     _log("Starting up enqueuer...");
     connectionArgs = [host, port, username, password];
     _startEnqueuerIsolate(connectionArgs);

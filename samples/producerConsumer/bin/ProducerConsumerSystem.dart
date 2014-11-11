@@ -9,21 +9,23 @@ import 'dart:io';
 /**
  * Not required if deployed via FDD manager (REST or WEB interface)
  */
-class ConsumerSystem {
+class ProducerConsumerSystem {
   ReceivePort receivePort;
 
-  ConsumerSystem() {
+  ProducerConsumerSystem() {
     receivePort = new ReceivePort();
-    String PrinterSystemWorkerUri = "${dirname(Platform.script.toString())}/ConsumerBenchmark.dart";
+    String ConsumerWorkerUri= "${dirname(Platform.script.toString())}/ConsumerBenchmark.dart";
+    String ProducerWorkerUri = "${dirname(Platform.script.toString())}/Producer.dart";
 
     List<String> workersPaths = ["localhost"];
 
     IsolateSystem system = new IsolateSystem("mysystem", "ws://localhost:42043/mqs");
-    IsolateRef helloPrinter = system.addIsolate("consumer", PrinterSystemWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
-    
+    IsolateRef consumer = system.addIsolate("consumer", ConsumerWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
+    IsolateRef producer = system.addIsolate("producer", ProducerWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
+
   }
 }
 
 main() {
-  new ConsumerSystem();
+  new ProducerConsumerSystem();
 }

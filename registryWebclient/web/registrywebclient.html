@@ -52,19 +52,19 @@
         <div id="closeButton"> X </div>
         <div>
           <label class="label" for="isolateSystemName">IsolateSystem Name</label>
-          <input id="isolateSystemName" type="text" />
+          <input id="isolateSystemName" type="text" placeholder="Have to be same as used in source code"/>
         </div>
         <div>
           <label class="label" for="isolateName">Isolate Name</label>
-          <input id="isolateName" type="text" />
+          <input id="isolateName" type="text" placeholder="Have to be same as used in source code (without prefix)"/>
         </div>
         <div>
           <label for="uri">Source</label>
-          <input id="uri" type="text" />
+          <input id="uri" type="text" placeholder="HTTP URI or an absolute path to the file in local disk"/>
         </div>
         <div>
           <label for="routerType">Router Type</label>
-          <input id="routerType" type="text" list="routerTypeList"/>
+          <input id="routerType" type="text" list="routerTypeList" placeholder="Select a router or provide full path to custom router"/>
           <datalist id="routerTypeList">
             <option value="random"></option>
             <option value="roundRobin"></option>
@@ -73,7 +73,7 @@
         </div>
         <div>
           <label for="workersPaths">Deployment paths</label>
-          <input id="workersPaths" name="deploymentPaths" type="text" />
+          <input id="workersPaths" name="deploymentPaths" placeholder="Use comma to separate locations for multiple instances" type="text" />
         </div>
         <div>
           <label for="hotDeployment">Enable Hot Deployment</label>
@@ -81,11 +81,15 @@
         </div>
         <div>
           <label for="messageQueuingSystemServer">Message Queuing System Server</label>
-          <input id="messageQueuingSystemServer" type="text" />
+          <input id="messageQueuingSystemServer" type="text" placeholder="WebSocket path to message queuing system server" />
         </div>
         <div>
           <label for="submit"></label>
-          <button type="button" id="submit" name="submit">Add</button>
+          <button type="button" id="submit" name="submit">Add to Selected</button>
+        </div>
+        <div>
+          <label for="submitToAll"></label>
+          <button type="button" id="submitToAll" name="submitToAll">Add to ALL</button>
         </div>
       </form>
     </div>

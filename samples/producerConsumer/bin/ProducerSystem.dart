@@ -7,10 +7,10 @@ import 'dart:isolate';
 import 'dart:io';
 
 
-class EnqueuerSystem {
+class ProducerSystem {
   ReceivePort receivePort;
 
-  EnqueuerSystem() {
+  ProducerSystem() {
     receivePort = new ReceivePort();
     String PrinterSystemWorkerUri = "${dirname(Platform.script.toString())}/Producer.dart";
 
@@ -22,5 +22,5 @@ class EnqueuerSystem {
 }
 
 main() {
-  new EnqueuerSystem();
+  new ProducerSystem();
 }

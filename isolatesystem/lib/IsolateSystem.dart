@@ -252,7 +252,7 @@ class IsolateSystem {
   }
 
   _connectToMqs() {
-    if(!_isSystemKilled) {
+    if(!_isSystemKilled && _pathToMQS.isNotEmpty) {
       WebSocket.connect(_pathToMQS).then(_handleMqsWebSocket).catchError(_onErrorFromMqs);
     }
   }

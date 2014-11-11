@@ -12,7 +12,7 @@ class WebSocketServer {
           if (WebSocketTransformer.isUpgradeRequest(request)) {
             WebSocketTransformer.upgrade(request).then((socket) {
               String subPath = request.uri.path.substring(path.length + 1);
-              print('WebSocketServer: SystemId = $subPath');
+              //print('WebSocketServer: System and Id = $subPath');
               handleWebSocket(subPath, socket, onConnect, onData, onDisconnect);
             });
           } else {

@@ -105,11 +105,18 @@ class SystemBootstrapper {
 
         IsolateSystem system = _getSystemByName(systemName);
 
-        if (system == null) {
-          system = new IsolateSystem(systemName, pathToMQS);
-          _systems.add(system);
+        if(pathToMQS.isNotEmpty && systemName.isNotEmpty
+        && name.isNotEmpty && uri.isNotEmpty
+        && workersPaths.isNotEmpty) {
+
+          if (system == null) {
+            system = new IsolateSystem(systemName, pathToMQS);
+            _systems.add(system);
+          }
+          IsolateRef myIsolate = system.addIsolate(name, uri, workersPaths, routerType, hotDeployment:deploymentType, args:extraArgs);
+        } else {
+          print("Invalid Data Provided, Not starting anything");
         }
-        IsolateRef myIsolate = system.addIsolate(name, uri, workersPaths, routerType, hotDeployment:deploymentType, args:extraArgs);
         break;
       case LIST_SYSTEMS:
         Map <String, List> fullDetails = new Map<String, List>();

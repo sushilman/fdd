@@ -85,7 +85,7 @@ class Proxy extends Worker {
           sendPort.send([SenderType.PROXY, id, Action.CREATED, workerReceivePort.sendPort]);
           break;
         case Action.ERROR:
-          kill();
+          beforeKill();
           break;
         case Action.RESTARTING:
           _sendToRouter(MessageUtil.create(SenderType.PROXY, id, Action.RESTARTING, null));
@@ -121,7 +121,7 @@ class Proxy extends Worker {
   }
 
   @override
-  void kill() {
+  void beforeKill() {
     _sendToRouter(MessageUtil.create(SenderType.PROXY, id, Action.KILLED,null));
     webSocket.close().then((value) {
       _log("Proxy: WebSocket Disconnected.");
