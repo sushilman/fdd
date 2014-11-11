@@ -14,12 +14,12 @@ class ConsumerSystem {
 
   ConsumerSystem() {
     receivePort = new ReceivePort();
-    String PrinterSystemWorkerUri = "${dirname(Platform.script.toString())}/ConsumerBenchmark.dart";
+    String sourceUri = "${dirname(Platform.script.toString())}/ConsumerWithLoad.dart";
 
-    List<String> workersPaths = ["localhost"];
+    List<String> workersPaths = ["localhost", "localhost", "localhost","localhost", "localhost", "localhost"];
 
     IsolateSystem system = new IsolateSystem("mysystem", "ws://localhost:42043/mqs");
-    IsolateRef helloPrinter = system.addIsolate("consumer", PrinterSystemWorkerUri, workersPaths, Router.RANDOM, hotDeployment:true);
+    IsolateRef consumer = system.addIsolate("consumer", sourceUri, workersPaths, Router.RANDOM, hotDeployment:true);
     
   }
 }

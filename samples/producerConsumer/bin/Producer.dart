@@ -41,6 +41,7 @@ class Producer extends Worker {
   sendMsgWithDelay() {
     int counter = 0;
     int oldCount = 0;
+
     int startTime = new DateTime.now().millisecondsSinceEpoch;
 
     new Timer.periodic(const Duration(seconds:1), (t) {
@@ -76,7 +77,7 @@ Throughput: ${(counter / elapsedTime) * 1000} messages per second
   }
 
   _log(var data) {
-    File f = new File("log_producer_throttled.txt");
+    File f = new File("log_producer.txt");
     var sink = f.openWrite(mode:FileMode.APPEND);
     sink.write(data);
     sink.close();
