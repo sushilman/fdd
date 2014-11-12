@@ -33,6 +33,7 @@ void _onNodesFetched(responseText) {
   querySelector("#nodeList").appendHtml(elements.toString());
 
   List<Element> elementList = querySelectorAll('#nodeList li');
+  querySelector("#nodes .header h1").appendText(" (${elementList.length} nodes)");
   for(Element e in elementList) {
     e.onClick.listen((MouseEvent event) {
       _setSelectedNode(e);

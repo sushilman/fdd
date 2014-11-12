@@ -13,19 +13,21 @@ main(List<String> args, SendPort sendPort) {
 
 class Requester extends Worker {
   static const String SupplierAddress = "demosystem/supplier";
-  static const int MAX_REQUESTS = 1000;
+  static const int MAX_REQUESTS = 10000;
 
   int maxLatency;
   int minLatency;
   int sum;
   int counter;
   DateTime startTime;
+  String description = "Test ID ";
 
   Requester(List<String> args, SendPort sendPort):super(args, sendPort) {
     startTime = new DateTime.now();
     counter = 0;
     sum = 0;
     print("Started requester!");
+    description = "${args}";
     _sendRequest();
   }
 
@@ -81,8 +83,10 @@ class Requester extends Worker {
 
   Future _writeStats() {
     String data = """
+------------------------------------------------------------------
+TITLE: $description
 Start Time: $startTime
-Ended At: ${new DateTime.now()}
+End Time: ${new DateTime.now()}
 Total messages consumed: ${counter}
 Average latency: ${sum/counter}
 Max Latency: $maxLatency

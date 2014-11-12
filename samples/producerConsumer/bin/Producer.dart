@@ -56,7 +56,7 @@ class Producer extends Worker {
       //print(JSON.encode(message).length);
       send(message, consumerAddress);
       counter++;
-      if(counter == MAX_MESSAGES) {
+      if(counter >= MAX_MESSAGES) {
         break;
       }
     }

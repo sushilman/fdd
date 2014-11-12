@@ -3,6 +3,8 @@ import 'dart:io';
 import 'dart:math' as Math;
 
 import 'package:isolatesystem/worker/Worker.dart';
+import 'ConsumerBenchmark.dart';
+
 /**
  * A sample hello isolate
  */
@@ -12,10 +14,12 @@ main(List<String> args, SendPort sendPort) {
 
 class Producer extends Worker {
 
-  static const int MAX_MESSAGES = 80000;
+  static const int MAX_MESSAGES = 160000000;
   static const String consumerAddress = "mysystem/consumer";
+  String description = "Test ID ";
 
   Producer(List<String> args, SendPort sendPort) : super(args, sendPort) {
+    description += "${args}";
     sendMsgWithDelay();
   }
 
@@ -37,14 +41,16 @@ class Producer extends Worker {
       Map message = {'createdAt': timestamp, 'message': "Test #${counter++}"};
       send(message, consumerAddress);
 
-      if(counter == MAX_MESSAGES) {
+      if(counter >= MAX_MESSAGES) {
         break;
       }
     }
     int endTime = new DateTime.now().millisecondsSinceEpoch;
     int elapsedTime = endTime - startTime;
-    String conclusion = """
+    String data = """
 ----------------------------------------------------------------
+TITLE: $description
+
 Time: ${new DateTime.now()}
 Started At: $startTime
 Ended At: $endTime
@@ -53,7 +59,7 @@ Total Messages Produced: $counter
 Throughput: ${(counter / elapsedTime) * 1000} messages per second
 ----------------------------------------------------------------
 """;
-    _log(conclusion);
+    _log(data);
 
   }
 
@@ -62,7 +68,10 @@ Throughput: ${(counter / elapsedTime) * 1000} messages per second
   }
 
   _log(var conclusion) {
-    File f = new File("log_producer_throttled.txt");
+    String workerUuid = id.split('/').last;
+    File f = new File("logs/log_producer_throttled.txt_$description-$workerUuid.txt");
+    f.createSync(recursive:true);
+
     var sink = f.openWrite(mode:FileMode.APPEND);
     sink.write(conclusion);
     sink.close();

@@ -194,13 +194,14 @@ class Controller {
           print("Received error so removing router from list");
           if(payload['exception'] == ExceptionMessage.ISOLATE_SPAWN_EXCEPTION) {
             _Router router = _getRouterById(senderId);
-
             String killMessage = MessageUtil.create(SenderType.CONTROLLER, senderId, Action.KILL, null);
-            _sendToRouter(router, killMessage);
-            if(router.hotDeployment) {
-              router.fileMonitorSendPort.send(JSON.encode(killMessage));
+            if(router != null) {
+              _sendToRouter(router, killMessage);
+              if(router.hotDeployment) {
+                router.fileMonitorSendPort.send(JSON.encode(killMessage));
+              }
+              _routers.remove(router);
             }
-            _routers.remove(router);
           }
           break;
         default:

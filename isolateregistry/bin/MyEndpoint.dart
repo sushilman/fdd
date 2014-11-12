@@ -6,7 +6,7 @@ import 'Registry.dart';
 
 class MyEndpoint {
   MyEndpoint() {
-    final HOST = InternetAddress.LOOPBACK_IP_V4;
+    final HOST = InternetAddress.ANY_IP_V4;
     final PORT = 8000;
     HttpServer.bind(HOST, PORT).then((_server) {
       _server.listen((HttpRequest request) {
