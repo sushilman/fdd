@@ -12,7 +12,7 @@ main(List<String> args, SendPort sendPort) {
 }
 
 class Consumer extends Worker {
-  static const int NO_OF_MESSAGES_TO_CONSUME = 16000000;
+  static const int NO_OF_MESSAGES_TO_CONSUME = 1600000;
   String description = "Test ID ";
 
   int oldCount = 0;

@@ -8,26 +8,31 @@ import 'package:isolatesystem/worker/Worker.dart';
  * A sample consumer isolate
  */
 main(List<String> args, SendPort sendPort) {
-  Consumer printerIsolate = new Consumer(args, sendPort);
+  Consumer consumer = new Consumer(args, sendPort);
 }
 
 class Consumer extends Worker {
-  static const int NO_OF_MESSAGES_TO_CONSUME = 80000;
-  static const String TEST_DESC = "Test with $NO_OF_MESSAGES_TO_CONSUME messages, 1 MQS, 1 System 1 Consumer, 1 Producer, Starting up simultaneously";
+  static const int NO_OF_MESSAGES_TO_CONSUME = 1600000;
+  String description = "Test ID ";
+
   int oldCount = 0;
   int counter = 0;
   Stopwatch stopwatch = new Stopwatch();
-  Consumer(List<String> args, SendPort sendPort) : super(args, sendPort);
+  StringBuffer allLog;
+
   int maxDelayBetweenMessages;
   int minDelayBetweenMessages;
 
   int totalDelays = 0;
-  int startedAt;
+  int startedAt = 0;
   int maxThroughput = 0;
 
   DateTime startTime;
-  StringBuffer allLog = new StringBuffer("\n==Log Separator==\n < $TEST_DESC > \n");
 
+  Consumer(List<String> args, SendPort sendPort) : super(args, sendPort) {
+    description += "${args}";
+    allLog = new StringBuffer("\n==Log Separator==\n < $description > \n");
+  }
 
   @override
   onReceive(message) {
@@ -110,7 +115,10 @@ Max Throughput : $maxThroughput per Second
   }
 
   Future _writeLog(String data) {
-    File f = new File("log_consumerWithLoadBenchmark.txt");
+    String workerUuid = id.split('/').last;
+    File f = new File("logs/log_consumerBenchmarkWithLoad_$description-$workerUuid.txt");
+    f.createSync(recursive:true);
+
     var sink = f.openWrite(mode:FileMode.APPEND);
     sink.write(data);
     return sink.close();
