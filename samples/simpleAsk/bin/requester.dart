@@ -26,7 +26,7 @@ class Requester extends Worker {
     startTime = new DateTime.now();
     counter = 0;
     sum = 0;
-    print("Started requester!");
+    //print("Started requester!");
     description = "${args}";
     _sendRequest();
   }
@@ -50,7 +50,7 @@ class Requester extends Worker {
       minLatency = latency;
     }
 
-    print(message['responseMessage']);
+    //print(message['responseMessage']);
     counter++;
 
     if(counter == MAX_REQUESTS) {
