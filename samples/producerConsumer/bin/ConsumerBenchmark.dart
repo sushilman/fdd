@@ -114,7 +114,7 @@ Max Throughput : $maxThroughput per Second
 
   Future _writeLog(String data) {
     String workerUuid = id.split('/').last;
-    File f = new File("logs/log_consumerBenchmark_$description-$workerUuid.txt");
+    File f = new File("log_consumerBenchmark_$description-$workerUuid.txt");
     f.createSync(recursive:true);
 
     var sink = f.openWrite(mode:FileMode.APPEND);

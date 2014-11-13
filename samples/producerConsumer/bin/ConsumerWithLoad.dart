@@ -12,8 +12,8 @@ main(List<String> args, SendPort sendPort) {
 }
 
 class Consumer extends Worker {
-  static const int NO_OF_MESSAGES_TO_CONSUME = 1600000;
-  String description = "Test ID ";
+  static const int NO_OF_MESSAGES_TO_CONSUME = 200000;
+  String description = "";
 
   int oldCount = 0;
   int counter = 0;
@@ -77,11 +77,16 @@ class Consumer extends Worker {
     int createdAt = message['createdAt'];
     int latency = currentTimestamp - createdAt;
 
-    _calculateFactorial(1999);
+    //_calculateFactorial(300);
 
     stopwatch.start();
     stopwatch.reset();
-    if(counter == NO_OF_MESSAGES_TO_CONSUME) {
+
+    if(counter % 10000 == 0) {
+      _writeStats();
+    }
+
+    if(counter >= NO_OF_MESSAGES_TO_CONSUME) {
       kill();
     } else {
       done();
@@ -115,13 +120,17 @@ Max Throughput : $maxThroughput per Second
   }
 
   Future _writeLog(String data) {
+    Completer c = new Completer();
     String workerUuid = id.split('/').last;
-    File f = new File("logs/log_consumerBenchmarkWithLoad_$description-$workerUuid.txt");
-    f.createSync(recursive:true);
-
-    var sink = f.openWrite(mode:FileMode.APPEND);
-    sink.write(data);
-    return sink.close();
+    File f = new File("log_$description-consumerBenchmark-$workerUuid.txt");
+    f.create(recursive:true).then((file){
+      var sink = file.openWrite(mode:FileMode.APPEND);
+      sink.write(data);
+      return sink.close().then((_){
+        c.complete(null);
+      });
+    });
+    return c.future;
   }
 
   /**

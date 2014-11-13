@@ -69,7 +69,7 @@ class Mqs {
 
   static const String TOPIC = "/queue";
 
-  static Map<String, String> HEADERS = {"persistent":"true"};//{'delivery_mode':'2'};//{'reply-to' : '/queue/test'};
+  static Map<String, String> HEADERS = null; //{"persistent":"true"};//{'delivery_mode':'2'};//{'reply-to' : '/queue/test'};
 
   List<_Dequeuer> _dequeuers;
 
@@ -378,21 +378,25 @@ class Mqs {
  */
 main(List<String> args) {
   String host = "127.0.0.1";
-  String port = "61613";
+  int port = 61613;
   String username = Mqs.DEFAULT_LOGIN;
   String password = Mqs.DEFAULT_PASSWORD;
   String prefetchCount = "1";
 
   if(args is List && args.length >= 4) {
     host = args[0];
-    port = args[1];
+    port = int.parse(args[1]);
     username = args[2];
     password = args[3];
     if(args.length == 5) {
       prefetchCount = args[4];
     }
+  } else if (args != null || args.length != 0){
+    print("Usage: dart Mqs.dart host port username password [prefetchCount]");
+    return;
   }
-  Mqs mqs = new Mqs(host:"127.0.0.1", port:61613, username:Mqs.DEFAULT_LOGIN, password: Mqs.DEFAULT_PASSWORD, prefetchCount:prefetchCount); //port for connection via STOMP (rabbitMQ)
+
+  Mqs mqs = new Mqs(host:host, port:port, username:username, password: password, prefetchCount:prefetchCount); //port for connection via STOMP (rabbitMQ)
 }
 
 class _IsolateSystem {

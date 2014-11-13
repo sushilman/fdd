@@ -13,7 +13,7 @@ main(List<String> args, SendPort sendPort) {
 
 class Producer extends Worker {
 
-  static const int MAX_MESSAGES = 80000;
+  static const int MAX_MESSAGES = 640000;
   static const String consumerAddress = "mysystem/consumer";
 
   static const String TextBytes64   = "0123456701234567012345670123456701234567012345670123456701234567";
@@ -26,8 +26,10 @@ class Producer extends Worker {
 
 
   StringBuffer data = new StringBuffer();
+  String description = "";
 
   Producer(List<String> args, SendPort sendPort) : super(args, sendPort) {
+    description += "${args}";
     sendMsgWithDelay();
   }
 
@@ -52,8 +54,9 @@ class Producer extends Worker {
 
     while(true) {
       int timestamp = new DateTime.now().millisecondsSinceEpoch;
-      Map message = {'createdAt': timestamp, 'message': Message1024Bytes};
+      Map message = {'createdAt': timestamp, 'message': Message64Bytes};
       //print(JSON.encode(message).length);
+      sleep(const Duration(microseconds:500));
       send(message, consumerAddress);
       counter++;
       if(counter >= MAX_MESSAGES) {
@@ -77,7 +80,8 @@ Throughput: ${(counter / elapsedTime) * 1000} messages per second
   }
 
   _log(var data) {
-    File f = new File("log_producer.txt");
+    String workerUuid = id.split('/').last;
+    File f = new File("log_$description-producer-$workerUuid.txt");
     var sink = f.openWrite(mode:FileMode.APPEND);
     sink.write(data);
     sink.close();
