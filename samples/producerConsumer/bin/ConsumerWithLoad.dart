@@ -12,7 +12,7 @@ main(List<String> args, SendPort sendPort) {
 }
 
 class Consumer extends Worker {
-  static const int NO_OF_MESSAGES_TO_CONSUME = 200000;
+  static const int NO_OF_MESSAGES_TO_CONSUME = 20000000;
   String description = "";
 
   int oldCount = 0;
@@ -82,7 +82,7 @@ class Consumer extends Worker {
     stopwatch.start();
     stopwatch.reset();
 
-    if(counter % 10000 == 0) {
+    if(counter % 2000 == 0) {
       _writeStats();
     }
 

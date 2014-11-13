@@ -56,7 +56,7 @@ class Producer extends Worker {
       int timestamp = new DateTime.now().millisecondsSinceEpoch;
       Map message = {'createdAt': timestamp, 'message': Message64Bytes};
       //print(JSON.encode(message).length);
-      sleep(const Duration(microseconds:500));
+      //sleep(const Duration(microseconds:500));
       send(message, consumerAddress);
       counter++;
       if(counter >= MAX_MESSAGES) {
