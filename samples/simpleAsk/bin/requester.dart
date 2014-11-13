@@ -20,7 +20,7 @@ class Requester extends Worker {
   int sum;
   int counter;
   DateTime startTime;
-  String description = "Test ID ";
+  String description = "";
 
   Requester(List<String> args, SendPort sendPort):super(args, sendPort) {
     startTime = new DateTime.now();
@@ -52,6 +52,10 @@ class Requester extends Worker {
 
     //print(message['responseMessage']);
     counter++;
+
+    if(counter % 2000 == 0) {
+      _writeStats();
+    }
 
     if(counter == MAX_REQUESTS) {
       kill();
@@ -97,7 +101,8 @@ Min Latency: $minLatency
   }
 
   Future _writeLog(String data) {
-    File f = new File("log_simpleAsk.txt");
+    String workerUuid = id.split('/').last;
+    File f = new File("log_$description-simpleAsk-requester-$workerUuid.txt");
     var sink = f.openWrite(mode:FileMode.APPEND);
     sink.write(data);
     return sink.close();
