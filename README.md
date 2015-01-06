@@ -1,10 +1,8 @@
-# FDD
+# DDE
 
-##Framework for Distributed Dart
+##A Framework for Distributed Dart
 
- - Dart Dart Everywhere (DDE) - https://imgflip.com/i/d0wrw
- - Ballistic Dart (BD)
- - Multi Dart (MD)
+ - Dart Dart Everywhere (DDE)
 
 ##Quick Getting Started Guide:
 1. Checkout `fdd` repository
